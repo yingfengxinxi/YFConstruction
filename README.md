@@ -99,41 +99,34 @@
 ### 🎬 系统演示：
 
 
-PC端演示： http://zhgd.sdyingfeng.cn <br>
-
+1、PC端演示： http://zhgd.sdyingfeng.cn <br>
+~~~
 项目端账号：15854827610 密码：联系客服<br>
 
 监管端账号：13241588504  密码：联系客服<br>
-
+~~~
  
 
-大屏端演示：http://zhgd.sdyingfeng.cn/njv<br>
+2、大屏端演示：http://zhgd.sdyingfeng.cn/njv<br>
+~~~
+项目端账号：15854827610 密码：联系客服
+监管端账号：13241588504 密码：联系客服
+~~~
 
-项目端账号：15854827610 密码：联系客服<br>
+3、移动端APP演示：
+~~~
+ 项目端APP下载地址:http://zhgd.sdyingfeng.cn/apk/xmapk/gd.apk
+ 项目端账号：15854827610  密码：联系客服
 
-监管端账号：13241588504 密码：联系客服<br>
-
-
-移动端APP演示：
-
-移动端项目端APP下载地址
-
- http://zhgd.sdyingfeng.cn/apk/xmapk/gd.apk
-
- 项目端账号：15854827610  密码：联系客服<br>
-
-移动端监管端APP下载地址
-
- http://zhgd.sdyingfeng.cn/apk/jgapk/gd.apk
-
- 监管端账号：13241588504 密码：联系客服<br>
-
+ 移动端监管端APP下载地址：http://zhgd.sdyingfeng.cn/apk/jgapk/gd.apk
+ 监管端账号：13241588504 密码：联系客服
+~~~
 
 ---
 
 ###  📞 联系我们
 
-如果您对LingView有任何疑问或需要咨询，欢迎与我们联系：
+如果您有任何疑问或需要咨询，欢迎与我们联系：
 
 
 客服微信：lhl-bmy-bhw
