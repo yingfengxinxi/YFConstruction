@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.admin.mapper.AdminConfigMapper">
+
+    <update id="updateAdminConfigNoTenantId" parameterType="com.kakarote.admin.entity.PO.AdminConfig">
+        update wk_admin_config set value=#{data.value},description=#{data.description}  where setting_id=#{data.settingId}
+        and tenant_id is not null
+    </update>
+
+</mapper>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.equipment.mapper.EquipmentOfflineMapper">
+    <select id="selectOfflineTower" resultType="java.util.Map">
+        SELECT
+            a.equipment_id,a.monitor_time,b.status,a.tenant_id,a.project_id
+        FROM
+            ( SELECT equipment_id, MAX( monitor_time ) AS monitor_time,tenant_id,project_id FROM b_equipment_tower_data_at GROUP BY equipment_id ) a
+            LEFT JOIN ( SELECT * FROM b_equipment_offline WHERE id IN ( SELECT MAX( id ) FROM b_equipment_offline GROUP BY equipment_id ) ) b ON a.equipment_id = b.equipment_id
+        WHERE
+            TIME_TO_SEC( timediff( NOW( ), a.monitor_time ) ) > ( SELECT VALUE FROM wk_admin_config WHERE NAME = 'mechanicalEquipmentOffline' )
+            AND ( b.STATUS IS NULL OR b.STATUS = 1 )
+    </select>
+    <select id="selectOfflineElevator" resultType="java.util.Map">
+        SELECT
+            a.equipment_id,a.monitor_time,b.status,a.tenant_id,a.project_id
+        FROM
+            ( SELECT equipment_id, MAX( monitor_time ) AS monitor_time,tenant_id,project_id FROM b_equipment_elevator_data_at GROUP BY equipment_id ) a
+            LEFT JOIN ( SELECT * FROM b_equipment_offline WHERE id IN ( SELECT MAX( id ) FROM b_equipment_offline GROUP BY equipment_id ) ) b ON a.equipment_id = b.equipment_id
+        WHERE
+            TIME_TO_SEC( timediff( NOW( ), a.monitor_time ) ) > ( SELECT VALUE FROM wk_admin_config WHERE NAME = 'mechanicalEquipmentOffline' )
+            AND ( b.STATUS IS NULL OR b.STATUS = 1 )
+    </select>
+    <select id="selectPage"  resultType="java.util.Map">
+        SELECT
+            a.id,a.equipment_id,a.status,a.monitor_time,b.asset_code,b.asset_name,c.project_name,b.type_id
+        FROM
+            b_equipment_offline a
+            LEFT JOIN b_equipment_assets b on a.equipment_id = b.asset_id
+            LEFT JOIN b_project_info c on a.project_id = c.id
+        <where>
+            <if test="data.equipmentName!=null and data.equipmentName != ''">
+                and b.asset_name like concat('%', #{data.equipmentName}, '%')
+            </if>
+            <if test="data.equipmentCode!=null and data.equipmentCode != ''">
+                and b.asset_code like concat('%', #{data.equipmentCode}, '%')
+            </if>
+            <if test="data.projectName!=null and data.projectName != ''">
+                and c.project_name like concat('%', #{data.projectName}, '%')
+            </if>
+            <if test="data.typeId!=null and data.typeId != ''">
+                and b.type_id = #{data.typeId}
+            </if>
+            <if test="data.startTime != null">
+                and a.monitor_time >= #{data.startTime,jdbcType=TIMESTAMP}
+            </if>
+            <if test="data.endTime != null">
+                and a.monitor_time &lt;= #{data.endTime,jdbcType=TIMESTAMP}
+            </if>
+        </where>
+        order by a.monitor_time desc
+    </select>
+</mapper>

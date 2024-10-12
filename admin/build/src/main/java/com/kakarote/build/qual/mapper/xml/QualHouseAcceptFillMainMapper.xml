@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.qual.mapper.QualHouseAcceptFillMainMapper">
+
+    <select id="selectByPage" resultType="com.kakarote.build.qual.entity.PO.QualHouseAcceptFillMain">
+        select a.accept_id, a.building_id, a.house_id, a.accept_work, a.template_name_id, a.accept_time, a.accept_by,
+        a.accept_conclusion, a.is_adopt, a.location_lon, a.location_lat, a.batch_id, a.create_by, a.create_time, a.update_by,
+        a.update_time from b_qual_house_accept_fill_main a  left join b_qual_build_mange b on a.house_id=b.building_id
+        <where>
+            1=1
+            <if test="data.buildingId!=null">
+              AND  a.building_id=#{data.buildingId}
+            </if>
+            <if test="data.acceptWork!=null and data.acceptWork!=''">
+              AND  a.accept_work=#{data.acceptWork}
+            </if>
+            <if test="data.templateNameId!=null ">
+              AND   a.template_name_id=#{data.templateNameId}
+            </if>
+
+            <if test="data.houseId!=null and data.houseId != ''">
+               AND    b.distrib_house_type_id=#{data.houseId}
+            </if>
+            <if test="data.locationLon != null and data.locationLon != ''">
+                AND accept_time  &gt;= #{data.locationLon}
+            </if>
+            <if test="data.locationLat != null and data.locationLat != ''">
+                AND #{data.locationLat} &gt;= accept_time
+            </if>
+            <if test="data.isAdopt != null and data.isAdopt != ''">
+                AND  a.is_adopt=#{data.isAdopt}
+            </if>
+
+        </where>
+        /*order by a.create_time desc*/
+    </select>
+    <select id="wxselectByPage" resultType="com.kakarote.build.qual.entity.BO.QualHouseAcceptFillMainBO">
+        SELECT
+        a.accept_id,
+        b.building_name as building,
+        c.building_name as house,
+        a.accept_work,
+        d.template_name as template,
+        a.accept_time,
+        a.accept_by,
+        a.accept_conclusion,
+        a.is_adopt,
+        a.location_lon,
+        a.location_lat,
+        a.batch_id,
+        a.create_by,
+        a.create_time,
+        a.update_by,
+        a.update_time
+        FROM
+        b_qual_house_accept_fill_main a
+        LEFT JOIN b_qual_build_mange b on a.building_id = b.building_id
+        LEFT JOIN b_qual_build_mange c on a.house_id = c.building_id
+        LEFT JOIN b_qual_accept_template_main_set d on a.template_name_id = d.id
+        <where>
+            <if test="data.buildingId!=null">
+                a.building_id=#{data.buildingId}
+            </if>
+            <if test="data.acceptWork!=null and data.acceptWork!=''">
+                a.accept_work=#{data.acceptWork}
+            </if>
+            <if test="data.templateNameId!=null ">
+                a.template_name_id=#{data.templateNameId}
+            </if>
+        </where>
+        order by a.create_time desc
+    </select>
+    <select id="wxselectById"  resultType="com.kakarote.build.qual.entity.BO.QualHouseAcceptFillMainBO">
+        SELECT
+            a.accept_id,
+            b.building_name as building,
+            e.building_name as floor,
+            c.building_name as house,
+            a.accept_work,
+            d.template_name as template,
+            a.accept_time,
+            a.accept_by,
+            a.accept_conclusion,
+            a.is_adopt,
+            a.location_lon,
+            a.location_lat,
+            a.batch_id,
+            a.create_by,
+            a.create_time,
+            a.update_by,
+            a.update_time
+        FROM
+            b_qual_house_accept_fill_main a
+            LEFT JOIN b_qual_build_mange b on a.building_id = b.building_id
+            LEFT JOIN b_qual_build_mange c on a.house_id = c.building_id
+            LEFT JOIN b_qual_build_mange e on c.parent_id = e.building_id
+            LEFT JOIN b_qual_accept_template_main_set d on a.template_name_id = d.id
+            where a.accept_id = #{id}
+    </select>
+    <insert id="wxSave"  useGeneratedKeys="true" keyProperty="acceptId">
+      INSERT INTO b_qual_house_accept_fill_main(
+       building_id, house_id, accept_work, template_name_id, accept_time, accept_by,
+      accept_conclusion,is_adopt,tenant_id,project_id,create_time)
+      VALUES ( #{buildingId}, #{houseId}, #{acceptWork}, #{templateNameId}, #{acceptTime}, #{acceptBy},
+       #{acceptConclusion},#{isAdopt},#{tenantId},#{projectId},#{createTime});
+    </insert>
+
+</mapper>

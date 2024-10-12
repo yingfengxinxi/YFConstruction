@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.project.mapper.ProgressPlanManageDetailsMapper">
+
+    <select id="selectByMap" resultType="java.util.Map" parameterType="com.kakarote.build.project.entity.BO.ProgressPlanManageBO">
+        select b.*,a.*
+        from b_progress_plan_manage a
+        left join b_progress_plan_manage_details b on a.id = b.zhid
+        <where>
+            1=1
+            <if test="data.startDate != null and data.startDate != ''">
+                and a.start_Date = #{data.startDate}
+            </if>
+            <if test="data.mid != null and data.mid != ''">
+                and a.mid = #{data.mid}
+            </if>
+            <if test="data.maxLoft != null and data.maxLoft != ''">
+                and a.max_Loft = #{data.maxLoft}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectByMapNoPage" parameterType="com.kakarote.build.project.entity.BO.ProgressPlanManageBO" resultType="java.util.Map">
+        select b.*,a.*
+        from b_progress_plan_manage a
+        inner join b_progress_plan_manage_details b on a.id = b.zhid
+        <where>
+            1=1
+            <if test="data.startDate != null and data.startDate != ''">
+                and a.start_Date = #{data.startDate}
+            </if>
+            <if test="data.mid != null and data.mid != ''">
+                and a.mid = #{data.mid}
+            </if>
+            <if test="data.maxLoft != null and data.maxLoft != ''">
+                and a.max_Loft = #{data.maxLoft}
+            </if>
+            <if test="data.ifMilestone != null and data.ifMilestone != ''">
+                and b.if_milestone = #{data.ifMilestone}
+            </if>
+        </where>
+        order by serial_number asc,b.create_time desc
+    </select>
+
+
+<!--    首页 工程进度  b.if_milestone = 'Y'
+        and
+        1：未开始
+        2：进行中
+        3：已完成
+        4：超时-->
+    <select id="selectByMapForSHOU" parameterType="com.kakarote.build.project.entity.BO.ProgressPlanManageBO" resultType="java.util.Map">
+        select b.name,b.plan_start_date,plan_end_date,b.mdid,b.pmdid,b.if_milestone,
+        case when(actual_end_date is null  and plan_end_date &lt; now())then'4'
+        when (actual_start_date is null ) then '1'
+        when (actual_start_date is not null
+        and actual_end_date is null
+        and plan_end_date &gt;= now()
+        or(actual_end_date is not null and actual_end_date &gt; now())
+        ) then '2'
+        when(actual_end_date is not null  and actual_end_date &lt;= now())then'3'
+        end status,
+        b.actual_start_date,b.actual_end_date
+        from b_progress_plan_manage_details b
+        where  b.mid = #{data.mid}
+        order by serial_number asc,b.create_time desc
+    </select>
+
+<!--  根据选择的月份  生成月计划   根据模板明细id和父任务id形成树结构-->
+<!--    if(总计划.开始月份<=选择月份&&总计划.结束月份>=选择月份)
+{
+开始日期=总计划.开始日期<选择月份第一天?选择月份第一天:总计划.开始日期；
+结束日期=总计划.结束日期>选择月最后一天:?选择月最后一天:总计划.结束日期
+}-->
+    <select id="selectByMapForMonthPlan" parameterType="java.util.Map" resultType="java.util.Map">
+        select
+        <!--   是否展示输入框 是     -->
+        1 editFlag,
+        <!-- 用于生成树结构       -->
+        a.mdid, a.pmdid  ,
+        <!-- 用于 月计划保存赋值       -->
+        a.mdid as planDetailMdId,a.pmdid as parentId ,
+        a.serial_number,
+        a.level,a.name,a.plan_gqi_number,a.related_building_id,a.if_milestone,
+        a.if_critical_route,a.pre_node,a.note,
+
+        case when a.plan_start_date is null then #{data.firstDayOfMonth}
+        when a.plan_start_date &lt; #{data.firstDayOfMonth} then #{data.firstDayOfMonth}
+        else a.plan_start_date end planStartDate,
+
+        case when a.plan_end_date is null then #{data.lastDayOfMonth}
+        when a.plan_end_date &gt; #{data.lastDayOfMonth} then #{data.lastDayOfMonth}
+        else a.plan_end_date end planEndDate,
+
+        a.actual_start_date,a.actual_end_date
+        from b_progress_plan_manage_details a
+        <where>
+            1=1
+            <if test="data.planMonth != null and data.planMonth != ''">
+                and #{data.planMonth}
+                BETWEEN DATE_FORMAT(a.plan_start_date,'%Y-%m')
+                and DATE_FORMAT(a.plan_end_date,'%Y-%m')
+            </if>
+            <if test="data.mid != null and data.mid != ''">
+                and a.mid = #{data.mid}
+            </if>
+            <if test="data.ifMilestone != null and data.ifMilestone != ''">
+                and a.if_milestone = #{data.ifMilestone}
+            </if>
+        </where>
+        order by serial_number asc,a.create_time desc
+    </select>
+
+    <select id="selectByPage" resultType="java.util.Map">
+        select b.*,a.*
+        from b_progress_plan_manage a
+        inner join b_progress_plan_manage_details b on a.id = b.zhid
+        <where>
+            1=1
+            <if test="data.mid != null and data.mid != ''">
+                and a.mid = #{data.mid}
+            </if>
+            <if test="data.maxLoft != null and data.maxLoft != ''">
+                and a.max_Loft = #{data.maxLoft}
+            </if>
+            <if test="data.ifMilestone != null and data.ifMilestone != ''">
+                and b.if_milestone = #{data.ifMilestone}
+            </if>
+            <if test="data.planStartDateLeft != null and data.planStartDateLeft != ''">
+                and <![CDATA[ b.plan_start_date >= date_format( #{data.planStartDateLeft},'%Y-%m-%d') ]]>
+            </if>
+            <if test="data.planStartDateRight != null and data.planStartDateRight != ''">
+                and <![CDATA[ b.plan_start_date <= date_format( #{data.planStartDateRight},'%Y-%m-%d') ]]>
+            </if>
+            <if test="data.planEndDateLeft != null and data.planEndDateLeft != ''">
+                and <![CDATA[ b.plan_end_date >= date_format( #{data.planEndDateLeft},'%Y-%m-%d') ]]>
+            </if>
+            <if test="data.planEndDateRight != null and data.planEndDateRight != ''">
+                and <![CDATA[ b.plan_end_date <= date_format( #{data.planEndDateRight},'%Y-%m-%d') ]]>
+            </if>
+        </where>
+        order by b.serial_number, b.plan_start_date
+    </select>
+
+    <select id="selectPlanProgressList" resultType="java.util.Map">
+        select a.id as planId, a.mdid as id, a.name as text, a.name as toolTipsTxt, true as open, a.pmdid as parent,
+            (case when (a.actual_start_date is not null and a.actual_start_date != '') then a.actual_start_date else a.plan_start_date end ) as startDate,
+            (case when (a.actual_end_date is not null and a.actual_end_date != '') then a.actual_end_date else a.plan_end_date end ) as endDate,
+            (case when(actual_end_date is null and plan_end_date &lt; now())then'4'
+                when (actual_start_date is null ) then '1'
+                when (actual_start_date is not null
+                and actual_end_date is null
+                and plan_end_date >= now()
+                or(actual_end_date is not null and actual_end_date > now())
+                ) then '2'
+                when(actual_end_date is not null  and actual_end_date &lt;= now())then'3' end ) as type,
+            IFNULL(case when actual_start_date is not null and actual_end_date is not null
+                then (to_days(a.actual_end_date) - to_days(a.actual_start_date))
+                else (to_days(a.plan_end_date) - to_days(a.plan_start_date)) end, 0) duration
+        from b_progress_plan_manage_details a
+        where mid = #{data.mid}
+        order by startDate
+    </select>
+</mapper>

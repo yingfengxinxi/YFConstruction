@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.qual.mapper.BQualMarkingroomMonitoringMapper">
+
+    <sql id="selectVo">
+        select id, create_by, create_time, update_by, update_time,tenant_id,project_id,
+        curing_room_id,device_id,temp,humidity,alarm,temp_alarm,humidity_alarm,event_time
+		from b_qual_markingroom_monitoring
+    </sql>
+
+    <select id="selectDataList" resultType="com.kakarote.build.qual.entity.PO.BQualMarkingroomMonitoring">
+        <include refid="selectVo"/>
+        <where>
+            1=1
+            <if test="data.curingRoomId != null and data.curingRoomId != ''">
+                AND curing_room_id =  #{data.curingRoomId}
+            </if>
+            <if test="data.deviceId != null and data.deviceId != ''">
+                AND device_id =  #{data.deviceId}
+            </if>
+            <if test="data.alarm != null and data.alarm != ''">
+                AND alarm =  #{data.alarm}
+            </if>
+            <if test="data.tempAlarm != null and data.tempAlarm != ''">
+                AND temp_alarm =  #{data.tempAlarm}
+            </if>
+            <if test="data.humidityAlarm != null and data.humidityAlarm != ''">
+                AND humidity_alarm =  #{data.humidityAlarm}
+            </if>
+        </where>
+    </select>
+</mapper>

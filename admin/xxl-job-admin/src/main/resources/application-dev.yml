@@ -1,0 +1,26 @@
+xxl:
+  job:
+    accessToken:
+    i18n:
+    triggerpool:
+      fast:
+        max: 200
+      slow:
+        max: 100
+    logretentiondays: 30
+spring:
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:xtuXyBCP}
+    database: 13
+    lettuce:
+      pool:
+        max-active: 300
+  datasource:
+#    url: jdbc:${DATASOURCE_DBTYPE:mysql}://${DATASOURCE_HOST:rm-m5eqdyah37h7a10si6o.mysql.rds.aliyuncs.com}:${DATASOURCE_PORT:3306}/wk_xxl_job_sjpt?characterEncoding=utf8&useSSL=false&zeroDateTimeBehavior=convertToNull&tinyInt1isBit=false&serverTimezone=Asia/Shanghai&allowMultiQueries=true
+#    username: ${DATASOURCE_USERNAME:qdoner_123}
+#    password: ${DATASOURCE_PASSWORD:qdoner_123}
+    url: jdbc:${DATASOURCE_DBTYPE:mysql}://${DATASOURCE_HOST:localhost}:${DATASOURCE_PORT:3306}/zhgd_job?characterEncoding=utf8&useSSL=false&zeroDateTimeBehavior=convertToNull&tinyInt1isBit=false&serverTimezone=Asia/Shanghai
+    username: ${DATASOURCE_USERNAME:zhgd_job}
+    password: ${DATASOURCE_PASSWORD:xtuXyBCP}

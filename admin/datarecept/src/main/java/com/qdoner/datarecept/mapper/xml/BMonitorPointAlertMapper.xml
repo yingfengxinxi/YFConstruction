@@ -1,0 +1,1652 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qdoner.datarecept.mapper.BMonitorPointAlertMapper">
+    <select id="selectPage" resultType="com.qdoner.datarecept.entity.PO.MonitorPointAlert">
+        SELECT
+        a.*,b.asset_name,b.asset_code,c.point_name,f.monitor_type,c.alarm_upper,c.alarm_lower,c.unit as valueUnit,d.location_name,
+        IFNULL(e.project_abbreviation,e.project_name) AS projectName
+        FROM
+        b_monitor_point_alert a
+        LEFT JOIN b_equipment_assets b ON a.equipment_id = b.asset_id
+        LEFT JOIN b_equipment_monitor_point c on a.monitor_point_id = c.id
+        LEFT JOIN b_equipment_location d on b.location_id=d.location_id
+        LEFT JOIN b_project_info e on a.project_id = e.id
+        LEFT JOIN b_equipment_type f on b.type_id = f.type_id
+        <where>
+            <if test="data.assetName != null and data.assetName != ''">
+                and b.asset_name like concat('%', #{data.assetName,jdbcType=VARCHAR}, '%')
+            </if>
+            <if test="data.pointName != null and data.pointName != ''">
+                and c.point_name like concat('%', #{data.pointName,jdbcType=VARCHAR}, '%')
+            </if>
+            <if test="data.monitorType != null and data.monitorType != ''">
+                and f.monitor_type = #{data.monitorType,jdbcType=VARCHAR}
+            </if>
+            <if test="data.startDate != null ">
+                and a.create_time <![CDATA[ >= ]]> #{data.startDate}
+            </if>
+            <if test="data.endDate != null ">
+                and a.create_time <![CDATA[ <= ]]>  #{data.endDate}
+            </if>
+            <if test="data.handleState != null and data.handleState != ''">
+                and a.handle_state =#{data.handleState}
+            </if>
+            <if test="data.alertType != null and data.alertType != ''">
+                and a.alert_type =#{data.alertType}
+            </if>
+            <if test="data.timeSlot != null and data.timeSlot != ''">
+                and DATE_FORMAT(a.create_time,'%Y-%m-%d') =DATE_FORMAT(now(),'%Y-%m-%d')
+            </if>
+            <if test="data.projectId != null and data.projectId != ''">
+                and a.project_id=#{data.projectId}
+            </if>
+            <if test="data.equipmentId != null and data.equipmentId != ''">
+                and a.equipment_id=#{data.equipmentId}
+            </if>
+
+            <if test="data.keyword != null and data.keyword != ''">
+                and CONCAT(a.content,b.asset_name,c.point_name,e.project_name) LIKE CONCAT('%',#{data.keyword},'%')
+            </if>
+
+        </where>
+        order by a.create_time desc
+    </select>
+    <select id="selectById" resultType="com.qdoner.datarecept.entity.PO.MonitorPointAlert">
+        SELECT
+        a.*,b.asset_name,c.point_name,c.monitor_type,c.alarm_upper,c.alarm_lower,d.location_name,c.unit as value_unit
+        FROM
+        b_monitor_point_alert a
+        LEFT JOIN b_equipment_assets b ON a.equipment_id = b.asset_id
+        LEFT JOIN b_equipment_monitor_point c on a.monitor_point_id = c.id
+        LEFT JOIN b_equipment_location d on b.location_id=d.location_id
+        where a.id = #{id,jdbcType=VARCHAR}
+    </select>
+    <select id="AlarmsNum_project" resultType="java.util.Map">
+        select count(*) as alarmsProjectNum from (select id from b_monitor_point_alert where alert_type='0' and DATE_FORMAT(create_time,'%Y-%m-%d')=DATE_FORMAT(now(),'%Y-%m-%d') GROUP BY project_id)a
+    </select>
+
+    <select id="AlarmsNum" resultType="java.util.Map">
+        select count(*) as alarmstNum from (select id from b_monitor_point_alert where alert_type='1' and DATE_FORMAT(create_time,'%Y-%m-%d')=DATE_FORMAT(now(),'%Y-%m-%d') GROUP BY project_id)a
+    </select>
+    <select id="EarlyWarning" resultType="java.util.Map">
+      	select a.dict_label as name,IFNULL(b.value,0) as value	from
+       	(select * from wk_admin_dict_data  where dict_type= #{data.dictType} and dict_value not in (7,8))a left join (
+		select c.dict_label,c.dict_value,count(monitor_point_id) as value from b_monitor_point_alert a
+		left join b_equipment_monitor_point b on a.monitor_point_id=b.id
+		left join (select * from wk_admin_dict_data  where dict_type=  #{data.dictType} )c on b.monitor_son_type=c.dict_value and c.dict_value not in (7,8)
+		where  a.alert_type= #{data.alertType}  and DATE_FORMAT( a.create_time,'%Y-%m-%d')=DATE_FORMAT(NOW(),'%Y-%m-%d')
+		GROUP BY b.monitor_son_type )b on a.dict_value=b.dict_value
+    </select>
+    <select id="MonitSituation" resultType="java.util.Map">
+        select a.curr_date as monitorDate, IFNULL(b.dayNum ,0) as dayNum,IFNULL(b.nightNum ,0) as nightNum from (
+        select date_format(date_add(curdate(),interval -t.help_topic_id ${data.dateType}),#{data.format}) as 'curr_date'
+        from mysql.help_topic t  where t.help_topic_id &lt; #{data.num}) a
+        left join (select B.date,
+        sum(case when (B.create_time &gt; CONCAT(B.date,' 06:00:00') and  B.create_time &lt;= CONCAT(B.date,' 18:00:00')) then 1 else 0 end ) as 'dayNum',
+        sum(case when ((B.create_time &gt; CONCAT(B.date,' 18:00:00') and B.create_time &lt;= CONCAT(B.date,' 23:59:59')) or (B.create_time &gt;= CONCAT(B.date,' 00:00:00') and B.create_time &lt;= CONCAT(B.date,' 06:00:00')))then 1 else 0 end ) as 'nightNum'
+        from (select *,DATE_FORMAT(A.create_time, #{data.format}) as date from b_monitor_point_alert A  where alert_type=#{data.alertType}
+        )B GROUP BY B.date) b on a.curr_date = b.date order by monitorDate asc;
+    </select>
+
+    <select id="MonitSituationPM" resultType="java.util.Map">
+        select a.curr_date as monitorDate, IFNULL(b.PM2 ,0.00) as PM2Num,IFNULL(b.PM10 ,0.00) as PM10Num from (
+        select date_format(date_add(curdate(),interval -t.help_topic_id ${data.dateType}),#{data.format}) as 'curr_date' from mysql.help_topic t  where t.help_topic_id &lt; #{data.num}) a
+        left join (
+        select aaa.date,
+        (case when aaa.monitor_son_type='1' then IFNULL(aaa.average,0) else 0 end ) as 'PM2',
+        (case when aaa.monitor_son_type='2' then IFNULL(aaa.average,0) else 0 end ) as 'PM10'
+        from (	select a.point_id,a.start_time,a.point_name,a.monitor_type,a.monitor_son_type,a.date,
+				CAST((a.sumValue/a.numValue) AS DECIMAL(10,2)) as average from (
+				select A.point_id,A.value,A.start_time,B.point_name,B.monitor_type,B.monitor_son_type,DATE_FORMAT(A.start_time,#{data.format}) as 'date'
+				,count(DATE_FORMAT(A.start_time,#{data.format})) as numValue, sum(a.value+0.00) as sumValue
+				from b_equipment_monitor_data_month A left join b_equipment_monitor_point B on A.point_id=B.id
+        where A.point_id in (select id from b_equipment_monitor_point  where  monitor_type =#{data.monitorType}
+        and monitor_son_type=#{data.monitorSonType} or monitor_son_type=#{data.monitorSonType2})GROUP BY monitor_son_type,date
+			 )a )aaa GROUP BY aaa.date
+         ) b
+        on a.curr_date = b.date
+        order by monitorDate ASC
+    </select>
+
+    <select id="ProjectAlarmNum" resultType="java.util.Map">
+       SELECT B.id AS projectId,B.project_name AS projectName,
+            IFNULL( B.project_abbreviation,
+                B.project_name
+            ) AS projectAbbreviation,
+            sum( CASE WHEN (DATE_FORMAT(A.create_time, '%Y-%m-%d') = DATE_FORMAT(NOW(), '%Y-%m-%d')) THEN 1 ELSE 0 END ) AS 'todayAlarmNum',
+            count(A.create_time) AS 'totalAlarmNum'
+        FROM b_project_info_view B
+        LEFT JOIN b_monitor_point_alert A ON A.project_id = B.id AND alert_type = '1'
+        WHERE  b.project_state = '2'
+        GROUP BY B.project_id
+        ORDER BY todayAlarmNum DESC,totalAlarmNum DESC,B.sort
+    </select>
+
+    <select id="alarmsStatistics" resultType="java.util.Map">
+        select IFNULL(sum(case when (DATE_FORMAT(create_time,'%Y-%m-%d')=DATE_FORMAT(#{data.time},'%Y-%m-%d')) then 1 else 0 end ),0)as 'dayNum',
+        IFNULL(sum(case when (YEARWEEK(date_format(create_time,'%Y-%m-%d')) = YEARWEEK(#{data.time})) then 1 else 0 end ),0)as 'weekNum',
+        IFNULL(sum(case when (DATE_FORMAT(create_time,'%Y-%m')=DATE_FORMAT(#{data.time},'%Y-%m')) then 1 else 0 end ),0)as 'monthNum',
+        IFNULL(sum(case when (DATE_FORMAT(create_time,'%Y')=DATE_FORMAT(#{data.time},'%Y')) then 1 else 0 end ),0)as 'yearNum'
+        from b_monitor_point_alert where  project_id=#{data.projectId} and alert_type='1';
+    </select>
+
+    <select id="alarmsTrend" resultType="java.util.Map">
+        select a.curr_date as monitorDate,DATE_FORMAT(a.curr_date,'%d') as dateNum, IFNULL(b.dayNum ,0) as dayNum from (
+        select date_format(date_add(curdate(),interval -t.help_topic_id ${data.dateType}),#{data.format}) as 'curr_date'
+        from mysql.help_topic t  where t.help_topic_id &lt; #{data.num}) a
+        left join (
+        select  DATE_FORMAT(create_time,#{data.format}) as date,count(*) as dayNum from b_monitor_point_alert where project_id=#{data.projectId} GROUP BY DATE_FORMAT(create_time,'%Y-%m-%d')
+        ) b on a.curr_date = b.date order by monitorDate asc;
+    </select>
+    <select id="realTimeData" resultType="java.util.Map">
+        SELECT t1.hourList as date, DATE_FORMAT(t1.hourList,'%H')as hourNumber, COUNT( t2.alertHOUR ) dateCount
+         FROM ( SELECT DATE_FORMAT(DATE_ADD(NOW(), INTERVAL - help_topic_id HOUR ), '%Y-%m-%d %H' ) as hourList
+                FROM mysql.help_topic where help_topic_id &lt; 24) t1
+        LEFT JOIN ( SELECT DATE_FORMAT(create_time , '%Y-%m-%d %H' ) as alertHOUR FROM b_monitor_point_alert
+                    WHERE create_time >= ( NOW() - INTERVAL 24 HOUR)
+                    AND monitor_point_id in (select id from b_equipment_monitor_point where monitor_type=#{data.monitorType}
+                    and monitor_son_type=#{data.monitorSonType}  ) AND project_id=#{data.projectId}
+                  ) t2 ON t1.hourList = t2.alertHOUR
+        GROUP BY  t1.hourList ORDER BY t1.hourList DESC;
+    </select>
+    <select id="hisAirQualityAnalysis" resultType="java.util.Map">
+        select a.level_name as levelName,IFNULL(b.num,0) as num
+        from b_env_level a
+        left join (
+            select c.level_name as levelName,count(point_id) as num
+            from b_equipment_monitor_data_month a
+            left join b_equipment_monitor_point b on a.point_id=b.id
+            LEFT JOIN b_env_level c on a.value >= c.min and a.value &lt; c.max
+            where a.project_id=#{data.projectId} and b.monitor_type=#{data.monitorType} and b.monitor_son_type=#{data.monitorSonType}
+            GROUP BY levelName
+        )b on a.level_name=b.levelName
+    </select>
+
+    <select id="latelyAirQualityAnalysis" resultType="java.util.Map">
+        select a.curr_date as monitorDate, IFNULL(b.average ,'--') as average,IFNULL(b.levelName,'--') as levelName
+        from (
+            select date_format(date_add(curdate(),interval -t.help_topic_id  ${data.dateType}),#{data.format}) as 'curr_date' from mysql.help_topic t
+            where t.help_topic_id &lt; #{data.num}) a
+            left join (
+                select  DATE_FORMAT(a.start_time,#{data.format}) as date,a.value as average,
+                c.level_name as levelName,
+                b.point_name, b.monitor_type, b.unit from b_equipment_monitor_data_month a
+                LEFT JOIN b_equipment_monitor_point b ON a.point_id =b.id  and  b.monitor_type=#{data.monitorType} and b.monitor_son_type=#{data.monitorSonType}
+                LEFT JOIN b_env_level c on a.value >= c.min and a.value &lt; c.max
+            WHERE b.point_name is not NUll and a.project_id=#{data.projectId}
+        ) b on a.curr_date = b.date order by monitorDate asc;
+    </select>
+
+    <select id="todayAirQualityAnalysis" resultType="java.util.Map">
+        SELECT   a.value as average, c.level_name as levelName,
+        DATE_FORMAT(a.monitor_time,'%Y-%m-%d') as date
+        FROM b_equipment_monitor_data_at a
+        LEFT JOIN b_equipment_monitor_point b ON a.point_id =b.id and b.monitor_type=#{data.monitorType} and
+        b.monitor_son_type=#{data.monitorSonType}
+        LEFT JOIN b_env_level c on a.value >= c.min and a.value &lt; c.max
+        WHERE b.point_name is not NUll and a.project_id=#{data.projectId}
+        order by a.monitor_time desc
+        limit 1
+    </select>
+
+    <select id="overView" resultType="java.util.Map">
+        SELECT
+        a.asset_id,
+        a.asset_name,
+        IFNULL(d1.value, 0) AS pm25,
+        d1.value AS pm25Text,
+        d1.unit AS pm25Unit,
+        IFNULL(
+        d1.monitor_time,
+        d3.monitor_time
+        ) AS monitorTime,
+        d2.value AS wind,
+        d2.unit AS windUnit,
+        IFNULL(d3.value, 0) AS pm10,
+        d3.value AS pm10Text,
+        d3.unit AS pm10Unit,
+        d4.value AS temperature,
+        d4.unit AS tempUnit,
+        d5.value AS noise, d5.unit AS noiseUnit,
+        d6.value AS humidness,
+        d6.unit AS humidnessUnit,
+        d7.value AS tsp,
+        d7.unit AS tspUnit,
+        IFNULL(l.level_name, '优') AS levelName,
+        IFNULL(info.project_abbreviation,info.project_name) as projectName ,
+        info.lng, info.lat,
+        zt4.ONLINE   AS ONLINE
+        FROM
+        b_equipment_assets a
+        LEFT JOIN EquOnlineView zt4 ON a.asset_id = zt4.asset_id
+        LEFT JOIN (
+        SELECT
+        b1.project_id,
+        a1.monitor_time,
+        a1.VALUE,
+        b1.unit,
+        b1.equipment_id
+        FROM
+        b_equipment_monitor_point b1
+        LEFT JOIN b_equipment_monitor_data_at a1 ON a1.point_id = b1.id
+        WHERE
+        monitor_type = '9'
+        AND monitor_son_type = '1'
+        HAVING
+        1
+        ORDER BY
+        a1.monitor_time DESC
+        ) d1 ON a.asset_id = d1.equipment_id
+        LEFT JOIN (
+        SELECT
+        b2.project_id,
+        a2.monitor_time,
+        a2.value,
+        b2.unit,
+        b2.equipment_id
+        FROM
+        b_equipment_monitor_point b2
+        LEFT JOIN b_equipment_monitor_data_at a2 ON a2.point_id = b2.id
+        WHERE
+        monitor_type = '9'
+        AND monitor_son_type = '10'
+        HAVING
+        1
+        ORDER BY
+        a2.monitor_time DESC
+        ) d2 ON a.asset_id = d2.equipment_id
+        LEFT JOIN (
+        SELECT
+        b3.project_id,
+        a3.monitor_time,
+        a3.value,
+        b3.unit,
+        b3.equipment_id
+        FROM
+        b_equipment_monitor_point b3
+        LEFT JOIN b_equipment_monitor_data_at a3 ON a3.point_id = b3.id
+        WHERE
+        monitor_type = '9'
+        AND monitor_son_type = '2'
+        HAVING
+        1
+        ORDER BY
+        a3.monitor_time DESC
+        ) d3 ON a.asset_id = d3.equipment_id
+        LEFT JOIN (
+        SELECT
+        b4.project_id,
+        a4.monitor_time,
+        a4.value,
+        b4.unit,
+        b4.equipment_id
+        FROM
+        b_equipment_monitor_point b4
+        LEFT JOIN b_equipment_monitor_data_at a4 ON a4.point_id = b4.id
+        WHERE
+        monitor_type = '9'
+        AND monitor_son_type = '4'
+        HAVING
+        1
+        ORDER BY
+        a4.monitor_time DESC
+        ) d4 ON a.asset_id = d4.equipment_id
+        LEFT JOIN (
+        SELECT
+        b5.project_id,
+        a5.monitor_time,
+        a5.value,
+        b5.unit,
+        b5.equipment_id
+        FROM
+        b_equipment_monitor_point b5
+        LEFT JOIN b_equipment_monitor_data_at a5 ON a5.point_id = b5.id
+        WHERE
+        monitor_type = '9'
+        AND monitor_son_type = '3'
+        HAVING
+        1
+        ORDER BY
+        a5.monitor_time DESC
+        ) d5 ON a.asset_id = d5.equipment_id
+        LEFT JOIN (
+        SELECT
+        b6.project_id,
+        a6.monitor_time,
+        a6.value,
+        b6.unit,
+        b6.equipment_id
+        FROM
+        b_equipment_monitor_point b6
+        LEFT JOIN b_equipment_monitor_data_at a6 ON a6.point_id = b6.id
+        WHERE
+        monitor_type = '9'
+        AND monitor_son_type = '5'
+        HAVING
+        1
+        ORDER BY
+        a6.monitor_time DESC
+        ) d6 ON a.asset_id = d6.equipment_id
+        LEFT JOIN (
+        SELECT
+        b7.project_id,
+        a7.monitor_time,
+        a7.value,
+        b7.unit,
+        b7.equipment_id
+        FROM
+        b_equipment_monitor_point b7
+        LEFT JOIN b_equipment_monitor_data_at a7 ON a7.point_id = b7.id
+        WHERE
+        monitor_type = '9'
+        AND monitor_son_type = '9'
+        HAVING
+        1
+        ORDER BY
+        a7.monitor_time DESC
+        ) d7 ON a.asset_id = d7.equipment_id
+        LEFT JOIN b_env_level l ON d1.value >= l.min AND d1.value &lt; l.max
+        LEFT JOIN b_project_info info ON info.id = a.project_id
+        WHERE
+        info.project_state = '2' and a.type_id in (select t.type_id from b_equipment_type t where t.monitor_type = '9')
+        and exists (select * from b_equipment_monitor_data_at da
+        inner join b_equipment_monitor_point p on da.point_id = p.id where p.equipment_id = a.asset_id )
+        <if test="data.projectId !=null and data.projectId !=''" >
+            and a.project_id=#{data.projectId}
+        </if>
+        <if test="data.online !=null and data.online !=''" >
+            and zt4.ONLINE=#{data.online}
+        </if>
+        ORDER BY
+        info.sort,
+        info.create_time ASC,a.sort ASC,a.asset_id ASC
+    </select>
+
+    <select id="selectPageByEnv" resultType="com.qdoner.datarecept.entity.PO.MonitorPointAlert">
+        SELECT
+        a.*,b.asset_name,c.point_name,c.monitor_type,c.monitor_son_type,c.alarm_upper,c.alarm_lower,
+        (CASE WHEN a.alert_type = 0 THEN c.warn_upper ELSE c.alarm_upper END) upperValue,
+        (CASE WHEN a.alert_type = 0 THEN c.warn_lower ELSE c.alarm_lower END) lowerValue,
+        d.location_name,IFNULL(i.project_abbreviation,i.project_name) AS projectName, CONCAT(a.monitor_data, c.unit) valueUnit
+        FROM
+        b_monitor_point_alert a
+        LEFT JOIN b_equipment_assets b ON a.equipment_id = b.asset_id
+        LEFT JOIN b_equipment_monitor_point c on a.monitor_point_id = c.id
+        LEFT JOIN b_equipment_location d on b.location_id=d.location_id
+        left join b_project_info i on a.project_id = i.id
+        <where>
+            <if test="data.assetName != null and data.assetName != ''">
+                and b.asset_name like concat('%', #{data.assetName,jdbcType=VARCHAR}, '%')
+            </if>
+            <if test="data.pointName != null and data.pointName != ''">
+                and c.point_name like concat('%', #{data.pointName,jdbcType=VARCHAR}, '%')
+            </if>
+            <if test="data.monitorType != null and data.monitorType != ''">
+                and c.monitor_type = #{data.monitorType,jdbcType=VARCHAR}
+            </if>
+            <if test="data.startDate != null ">
+                and a.create_time <![CDATA[ >= ]]> #{data.startDate}
+            </if>
+            <if test="data.endDate != null ">
+                and a.create_time <![CDATA[ <= ]]>  #{data.endDate}
+            </if>
+            <if test="data.handleState != null and data.handleState != ''">
+                and a.handle_state =#{data.handleState}
+            </if>
+            <if test="data.alertType != null and data.alertType != ''">
+                and a.alert_type =#{data.alertType}
+            </if>
+            <if test="data.projectId">
+                and a.project_id = #{data.projectId}
+            </if>
+            <if test="data.monitorSonType != null and data.monitorSonType != ''">
+                and c.monitor_son_type =#{data.monitorSonType}
+            </if>
+            <if test="data.timeSlot != null and data.timeSlot != ''">
+                and DATE_FORMAT(a.create_time,'%Y-%m-%d') =DATE_FORMAT(now(),'%Y-%m-%d')
+            </if>
+        </where>
+        order by a.create_time desc
+    </select>
+
+    <select id="selectAlertNumber" resultType="java.util.Map">
+        SELECT IFNULL(SUM(CASE WHEN TO_DAYS(a.create_time) = TO_DAYS(NOW()) THEN 1 ELSE 0 END),0) dayNumber,
+        IFNULL(SUM(CASE WHEN YEARWEEK(DATE_FORMAT(a.create_time,'%Y-%m-%d')) = YEARWEEK(NOW(), 1) THEN 1 ELSE 0 END),0) weekNumber,
+        IFNULL(SUM(CASE WHEN DATE_FORMAT(a.create_time,'%Y-%m') = DATE_FORMAT(NOW(),'%Y-%m') THEN 1 ELSE 0 END),0) monthNumber,
+        IFNULL(SUM(CASE WHEN DATE_FORMAT(a.create_time,'%Y') = DATE_FORMAT(NOW(),'%Y') THEN 1 ELSE 0 END),0) yearNumber
+        FROM b_monitor_point_alert a
+        <if test="data.monitorType!=null and data.monitorType!=''">
+            left join b_equipment_monitor_point b on a.monitor_point_id=b.id
+        </if>
+        WHERE a.alert_type = 1
+        <if test="data.monitorType!=null and data.monitorType!=''">
+            and b.monitor_type=#{data.monitorType}
+        </if>
+    </select>
+
+    <select id="selectAlertList" resultType="java.util.Map">
+        SELECT
+        a.*,
+        (CASE WHEN (b.project_abbreviation IS NOT NULL AND b.project_abbreviation != '')
+        THEN b.project_abbreviation ELSE b.project_name END ) projectName,
+        d.dict_label AS monitorSonTypeName, c.unit
+        FROM b_monitor_point_alert a
+        LEFT JOIN b_project_info b ON a.project_id = b.project_id
+        LEFT JOIN b_equipment_monitor_point c on a.monitor_point_id = c.id
+        LEFT JOIN (SELECT dict_label, dict_value FROM wk_admin_dict_data
+        WHERE dict_type = 'b_equipment_monitor_type_9') d ON c.monitor_son_type = d.dict_value
+        WHERE <!--a.alert_type = 1--> c.monitor_type = '9'
+        ORDER BY a.create_time DESC
+        LIMIT 10
+    </select>
+
+    <select id="selectTypeProportion" resultType="java.util.Map">
+        SELECT c.value, d.dict_label AS name
+        FROM (
+            SELECT b.monitor_son_type, count(a.id) AS value
+            FROM b_monitor_point_alert a
+            LEFT JOIN b_equipment_monitor_point b ON a.monitor_point_id = b.id
+            where a.alert_type = 1
+            GROUP BY b.monitor_son_type
+            ORDER BY value DESC) c
+        inner JOIN (SELECT dict_label, dict_value FROM wk_admin_dict_data
+                WHERE dict_type = 'b_equipment_monitor_type_9') d
+        ON c.monitor_son_type = d.dict_value
+    </select>
+
+    <select id="selectAlertTrend" resultType="java.util.Map">
+        SELECT DATE_FORMAT(a.curr_date,'%c.%d') as monitorDate, IFNULL(b.earlyNumber ,0) as earlyNumber,
+        IFNULL(b.alertNumber ,0) as alertNumber from (
+        SELECT date_format(date_add(curdate(),interval -t.help_topic_id ${data.dateType}),#{data.format}) as 'curr_date'
+        from mysql.help_topic t where t.help_topic_id &lt; #{data.num}) a
+        left join (
+        SELECT DATE_FORMAT(c.create_time,#{data.format}) as date,
+        SUM(CASE WHEN c.alert_type = 0 THEN 1 ELSE 0 END) earlyNumber,
+        SUM(CASE WHEN c.alert_type = 1 THEN 1 ELSE 0 END) alertNumber
+        from b_monitor_point_alert c
+        <if test="data.monitorType!=null and data.monitorType!=''">
+            <!--left join b_equipment_monitor_point d on c.monitor_point_id=d.id-->
+            left join b_equipment_assets d on c.equipment_id = d.asset_id
+            left join b_equipment_type e on d.type_id = e.type_id
+        </if>
+        where c.alert_type in ('0', '1')
+        <if test="data.projectId != null and data.projectId != ''">
+            and c.project_id = #{data.projectId}
+        </if>
+        <if test="data.monitorType!=null and data.monitorType!=''">
+            and e.monitor_type=#{data.monitorType}
+        </if>
+        GROUP BY DATE_FORMAT(c.create_time,'%Y-%m-%d')
+        ) b on a.curr_date = b.date order by monitorDate asc;
+    </select>
+
+    <select id="selectRaiseDustAlert" resultType="java.util.Map">
+        SELECT t1.hourList as date,t1.hourList as hourNumber,
+        SUM(CASE WHEN t2.monitor_son_type = 1 then 1 else 0 end) son1,
+        SUM(CASE WHEN t2.monitor_son_type = 2 then 1 else 0 end) son2
+        FROM ( SELECT DATE_FORMAT(DATE_ADD(now(), INTERVAL - help_topic_id HOUR ), '%H' ) as hourList
+        FROM mysql.help_topic where help_topic_id &lt; 24) t1
+        LEFT JOIN ( SELECT DATE_FORMAT(a.create_time , '%H' ) as alertHOUR, b.monitor_son_type
+        FROM b_monitor_point_alert a
+        INNER JOIN (select id, monitor_son_type from b_equipment_monitor_point where monitor_type=9
+        and (monitor_son_type=1 or monitor_son_type=2)) b on a.monitor_point_id = b.id
+        WHERE a.alert_type = 1
+        <if test="data.date != null and data.date != ''">
+            and DATE_FORMAT(create_time, '%Y-%m-%d') = DATE_FORMAT(#{data.date}, '%Y-%m-%d')
+        </if>
+        ) t2 ON t1.hourList = t2.alertHOUR
+        GROUP BY t1.hourList ORDER BY t1.hourList;
+    </select>
+
+    <select id="selectNoiseAlert" resultType="java.util.Map">
+        SELECT t1.hourList as date, t1.hourList as hourNumber,
+        SUM(CASE WHEN t2.monitor_son_type = 3 then 1 else 0 end) son3
+        FROM ( SELECT DATE_FORMAT(DATE_ADD(now(), INTERVAL - help_topic_id HOUR ), '%H' ) as hourList
+        FROM mysql.help_topic where help_topic_id &lt; 24) t1
+        LEFT JOIN ( SELECT DATE_FORMAT(a.create_time , '%H' ) as alertHOUR, b.monitor_son_type
+        FROM b_monitor_point_alert a
+        INNER JOIN (select id, monitor_son_type from b_equipment_monitor_point where monitor_type=9
+        and (monitor_son_type=3)) b on a.monitor_point_id = b.id
+        WHERE a.alert_type = 1
+        <if test="data.date != null and data.date != ''">
+            and DATE_FORMAT(create_time, '%Y-%m-%d') = DATE_FORMAT(#{data.date}, '%Y-%m-%d')
+        </if>
+        ) t2 ON t1.hourList = t2.alertHOUR
+        GROUP BY t1.hourList ORDER BY t1.hourList;
+    </select>
+
+    <select id="selectPMRank" resultType="java.util.Map">
+        SELECT (CASE WHEN (c.project_abbreviation IS NOT NULL AND c.project_abbreviation != '')
+        THEN c.project_abbreviation ELSE c.project_name END ) name,
+        IFNULL(b.value,0) value, b.unit
+        FROM b_project_info c
+        inner JOIN (
+        SELECT a.project_id, a.value, d.unit FROM b_equipment_monitor_data_at a
+        inner JOIN b_equipment_monitor_point d on a.point_id = d.id
+        WHERE d.monitor_son_type = 2) b on c.id = b.project_id and c.project_state = 2
+        <if test='data.type == "1"'>
+            and b.value >= 100
+        </if>
+        <if test='data.type == "2"'>
+            and b.value &lt; 100 and b.value != 0 and b.value is not null
+        </if>
+        GROUP BY c.id
+        <if test='data.type == "1"'>
+            ORDER BY b.value desc
+        </if>
+        <if test='data.type == "2"'>
+            ORDER BY b.value
+        </if>
+        LIMIT 5
+    </select>
+
+    <select id="selectProjectAlertNumber" resultType="java.util.Map">
+        SELECT IFNULL(a.project_abbreviation,a.project_name) AS projectName,
+        SUM(CASE WHEN b.alert_type = 0 THEN 1 ELSE 0 END) earlyNumber,
+        SUM(CASE WHEN b.alert_type = 1 THEN 1 ELSE 0 END) alarmNumber
+        FROM b_project_info a
+        LEFT JOIN (
+        SELECT c.* FROM b_monitor_point_alert c
+        <if test="data.monitorType!=null and data.monitorType!=''">
+            left join b_equipment_monitor_point d on c.monitor_point_id=d.id
+        </if>
+        WHERE DATE_FORMAT(c.create_time, '%Y-%m-%d') >= DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 30 DAY), '%Y-%m-%d')
+        and c.alert_type in ('0', '1')
+        <if test="data.monitorType!=null and data.monitorType!=''">
+            and d.monitor_type=#{data.monitorType}
+        </if>) b
+        ON a.id = b.project_id
+        GROUP BY a.id
+        ORDER BY alarmNumber DESC
+        LIMIT 7
+    </select>
+    <select id="realTimeData2" resultType="java.util.Map">
+
+         SELECT t1.hourList as date, DATE_FORMAT(t1.hourList,#{data.formatStyle})as hourNumber,IfNull(t2.average,0.00) as  dateCount
+        FROM ( SELECT DATE_FORMAT(DATE_ADD(NOW(), INTERVAL - help_topic_id ${data.dateType} ), #{data.format} ) as hourList
+        FROM mysql.help_topic where help_topic_id &lt; #{data.num}) t1
+        LEFT JOIN (
+        select  DATE_FORMAT(a.start_time,#{data.format}) as alertHOUR, a.value as average,
+        (select b.level_name from b_env_level b where average >= b.min and average &lt; b.max) as levelName,b.unit
+        from ${data.tableName} a
+        LEFT JOIN b_equipment_monitor_point b ON a.point_id =b.id  and  b.monitor_type=#{data.monitorType}
+        and b.monitor_son_type=#{data.monitorSonType}
+        WHERE b.point_name is not NUll and a.start_time >= ( NOW() - INTERVAL  ${data.num} ${data.dateType})	 and a.project_id=#{data.projectId}
+        ) t2 ON t1.hourList = t2.alertHOUR
+        GROUP BY  t1.hourList ORDER BY t1.hourList asc;
+    </select>
+
+    <select id="realTimeDataZs" resultType="java.util.Map">
+
+         SELECT t1.hourList as date, DATE_FORMAT(t1.hourList,'%H')as hourNumber,IfNull(t2.average,0.00) as  dateCount
+        FROM ( SELECT DATE_FORMAT(DATE_ADD(NOW(), INTERVAL - help_topic_id HOUR ), '%Y-%m-%d %H' ) as hourList
+        FROM mysql.help_topic where help_topic_id &lt; 24) t1
+        LEFT JOIN (
+        select  DATE_FORMAT(a.start_time,'%Y-%m-%d %H') as alertHOUR, a.value as average,
+        (select b.level_name from b_env_level b where average >= b.min and average &lt; b.max) as levelName,b.unit
+        from b_equipment_monitor_data_day a
+        LEFT JOIN b_equipment_monitor_point b ON a.point_id =b.id  and  b.monitor_type=#{data.monitorType}
+        and b.monitor_son_type=#{data.monitorSonType}
+        WHERE b.point_name is not NUll and a.start_time >= ( NOW() - INTERVAL 24 HOUR)
+        ) t2 ON t1.hourList = t2.alertHOUR
+        GROUP BY  t1.hourList ORDER BY t1.hourList asc;
+    </select>
+
+    <select id="realTimeDataTemperature" resultType="java.util.Map">
+
+       select
+
+          (select a.value from b_equipment_monitor_data a ,b_equipment_monitor_point b
+            where a.point_id =b.id
+                      and  b.monitor_type=#{data.monitorType}
+                    and b.monitor_son_type=#{data.monitorSonType}
+                    and b.project_id=#{data.projectid}
+                    and b.tenant_id=#{data.tenantid}
+            and
+           DATE_FORMAT(a.monitor_time,'%Y-%m-%d') = DATE_SUB(#{data.NowDate}, INTERVAL #{data.size} DAY) order  by a.value  desc   limit 1 ) as zg
+           ,
+            (select a.value from b_equipment_monitor_data a ,b_equipment_monitor_point b
+            where a.point_id =b.id
+                      and  b.monitor_type=#{data.monitorType}
+                    and b.monitor_son_type=#{data.monitorSonType}
+                    and b.project_id=#{data.projectid}
+                    and b.tenant_id=#{data.tenantid}
+            and
+           DATE_FORMAT(a.monitor_time,'%Y-%m-%d') = DATE_SUB(#{data.NowDate}, INTERVAL #{data.size} DAY) order  by a.value   limit 1 ) as zd
+           ,DATE_SUB(#{data.NowDate}, INTERVAL #{data.size} DAY) as rq
+
+
+
+    </select>
+
+
+    <select id="realTimeDataAll" resultType="java.util.Map">
+
+       select
+
+          (select a.value from b_equipment_monitor_data a ,b_equipment_monitor_point b
+            where a.point_id =b.id
+                      and  b.monitor_type=9
+                    and b.monitor_son_type=1
+                    and b.project_id=#{data.projectid}
+                    and b.tenant_id=#{data.tenantid}
+				  order  by a.monitor_time desc  limit 1 ) as pm2 ,
+		  (select a.value from b_equipment_monitor_data a ,b_equipment_monitor_point b
+            where a.point_id =b.id
+                      and  b.monitor_type=9
+                    and b.monitor_son_type=2
+                    and b.project_id=#{data.projectid}
+                    and b.tenant_id=#{data.tenantid}
+				  order  by a.monitor_time desc  limit 1 ) as pm10 ,
+			         (select a.value from b_equipment_monitor_data a ,b_equipment_monitor_point b
+            where a.point_id =b.id
+                      and  b.monitor_type=9
+                    and b.monitor_son_type=3
+                    and b.project_id=#{data.projectid}
+                    and b.tenant_id=#{data.tenantid}
+				  order  by a.monitor_time desc  limit 1 ) as zy ,
+         (select a.value from b_equipment_monitor_data a ,b_equipment_monitor_point b
+            where a.point_id =b.id
+                      and  b.monitor_type=9
+                    and b.monitor_son_type=4
+                    and b.project_id=#{data.projectid}
+                    and b.tenant_id=#{data.tenantid}
+				  order  by a.monitor_time desc  limit 1 ) as wd ,
+         (select a.value from b_equipment_monitor_data a ,b_equipment_monitor_point b
+            where a.point_id =b.id
+                      and  b.monitor_type=9
+                    and b.monitor_son_type=5
+                    and b.project_id=#{data.projectid}
+                    and b.tenant_id=#{data.tenantid}
+				  order  by a.monitor_time desc  limit 1 ) as sd ,
+         (select a.value from b_equipment_monitor_data a ,b_equipment_monitor_point b
+            where a.point_id =b.id
+                      and  b.monitor_type=9
+                    and b.monitor_son_type=6
+                    and b.project_id=#{data.projectid}
+                    and b.tenant_id=#{data.tenantid}
+				  order  by a.monitor_time desc  limit 1 ) as fl ,
+         (select a.value from b_equipment_monitor_data a ,b_equipment_monitor_point b
+            where a.point_id =b.id
+                      and  b.monitor_type=9
+                    and b.monitor_son_type=7
+                    and b.project_id=#{data.projectid}
+                    and b.tenant_id=#{data.tenantid}
+				  order  by a.monitor_time desc  limit 1 ) as fx ,
+         (select a.value from b_equipment_monitor_data a ,b_equipment_monitor_point b
+            where a.point_id =b.id
+                      and  b.monitor_type=9
+                    and b.monitor_son_type=8
+                    and b.project_id=#{data.projectid}
+                    and b.tenant_id=#{data.tenantid}
+				  order  by a.monitor_time desc  limit 1 ) as fs ,
+        (select a.value from b_equipment_monitor_data a ,b_equipment_monitor_point b
+            where a.point_id =b.id
+                      and  b.monitor_type=9
+                    and b.monitor_son_type=10
+                    and b.project_id=#{data.projectid}
+                    and b.tenant_id=#{data.tenantid}
+				  order  by a.monitor_time desc  limit 1 ) as qy
+    </select>
+    <select id="selectAlarmPage" resultType="com.qdoner.datarecept.entity.PO.MonitorPointAlert">
+        SELECT
+        a.*,b.asset_name,c.point_name,c.monitor_type,c.alarm_upper,c.alarm_lower,d.location_name,
+        (CASE WHEN a.alert_type = 0 THEN c.warn_upper ELSE c.alarm_upper END) upperValue,
+        (CASE WHEN a.alert_type = 0 THEN c.warn_lower ELSE c.alarm_lower END) lowerValue,
+        e.project_name,CONCAT(a.monitor_data, c.unit) valueUnit
+        FROM
+        b_monitor_point_alert a
+        LEFT JOIN b_equipment_assets b ON a.equipment_id = b.asset_id
+        LEFT JOIN b_equipment_monitor_point c on a.monitor_point_id = c.id
+        LEFT JOIN b_equipment_location d on b.location_id=d.location_id
+        LEFT JOIN b_project_info e on a.project_id = e.id
+        <where>
+            <if test="data.projectId != null and data.projectId != ''">
+                and a.project_id =#{data.projectId}
+            </if>
+            <if test="data.alertType != null and data.alertType != ''">
+                and a.alert_type=#{data.alertType}
+            </if>
+            <if test="data.timeSlot != null and data.timeSlot != ''">
+                AND (
+                (#{data.timeSlot}='1' and DATE_FORMAT(a.create_time,'%Y-%m-%d')=DATE_FORMAT(now(),'%Y-%m-%d')) or -- 当天
+                (#{data.timeSlot}='2' and YEARWEEK(date_format(a.create_time,'%Y-%m-%d')) = YEARWEEK(now())) or -- 本周
+                (#{data.timeSlot}='3' and DATE_FORMAT(a.create_time,'%Y-%m')=DATE_FORMAT(now(),'%Y-%m')) or -- 本月
+                (#{data.timeSlot}='4' and YEAR(a.create_time)=YEAR(NOW()))-- 本年
+                )
+            </if>
+            <if test="data.pointName != null and data.pointName != ''">
+                AND c.monitor_son_type=(select dict_value from wk_admin_dict_data where
+                dict_type='b_equipment_monitor_type_9' and dict_label=#{data.pointName} limit 1)
+            </if>
+            <if test="data.monitorType != null and data.monitorType != ''">
+                and c.monitor_type=#{data.monitorType}
+            </if>
+        </where>
+        order by a.create_time desc
+    </select>
+
+    <select id="selectTypeProportionByParent" resultType="java.util.Map">
+        SELECT c.value, d.dict_label AS name
+        FROM (
+             SELECT b.monitor_type, count(a.id) AS value
+             FROM b_monitor_point_alert a
+                     LEFT JOIN b_equipment_monitor_point b ON a.monitor_point_id = b.id
+             where a.alert_type = 1
+             GROUP BY b.monitor_type
+             ORDER BY value DESC) c
+             LEFT JOIN (SELECT dict_label, dict_value FROM wk_admin_dict_data
+                        WHERE dict_type = 'b_equipment_monitor_type') d
+        ON c.monitor_type = d.dict_value
+    </select>
+
+    <select id="selectAlertListNew" resultType="java.util.Map">
+        SELECT
+                a.monitor_data, date_format(a.create_time, '%m-%d %H:%i:%s') createTime, date_format(a.handle_time, '%m-%d %H:%i:%s') handleTime,
+                c.alarm_upper, c.alarm_lower,
+                d.dict_label AS monitorTypeName, c.unit
+        FROM b_monitor_point_alert a
+        LEFT JOIN b_equipment_monitor_point c on a.monitor_point_id = c.id
+        LEFT JOIN (SELECT dict_label, dict_value FROM wk_admin_dict_data
+                WHERE dict_type = 'b_equipment_monitor_type') d ON c.monitor_type = d.dict_value
+        WHERE a.alert_type = 1
+        ORDER BY a.create_time DESC
+        LIMIT 10
+    </select>
+
+    <select id="selectByPointIdAndMonitorAlertType"
+            resultType="com.qdoner.datarecept.entity.PO.MonitorPointAlert">
+        select a.* from b_monitor_point_alert a
+        where a.monitor_point_id = #{data.pointId} and a.tenant_id = #{data.tenantId}
+        <if test="data.monitorAlertType != null and data.monitorAlertType != ''">
+            and a.monitor_alert_type = #{data.monitorAlertType}
+        </if>
+        order by create_time desc
+        limit 1
+    </select>
+
+    <update id="updateByIdAndTenantId">
+        update b_monitor_point_alert
+        <set>
+            <if test="data.handleTime != null and data.handleTime != ''">
+                handle_time = #{data.handleTime},
+            </if>
+            <if test="data.handleMeasures != null and data.handleMeasures != ''">
+                handle_measures = #{data.handleMeasures},
+            </if>
+            <if test="data.handleConclu != null and data.handleConclu != ''">
+                handle_conclu = #{data.handleConclu},
+            </if>
+        </set>
+        where id = #{data.id} and tenant_id = #{data.tenantId}
+    </update>
+
+
+    <select id="getCountBarByPro" resultType="java.lang.Integer">
+
+        <foreach collection="dateList" item="date" index="i" separator="union all">
+            SELECT
+            (
+            select count(1) from b_monitor_point_alert
+            where alert_type = #{type } and tenant_id = #{data.tenantId} and project_id = #{data.projectId}
+            and create_time &lt; CONCAT(#{date}," 24:00:00") and create_time &gt;= CONCAT(#{date}," 00:00:00")
+            and equipment_id in
+            (
+            <foreach collection="eqIdList" item="eqId" index="i" separator=",">
+                #{eqId }
+            </foreach>)
+
+            ) AS v
+        </foreach>
+
+    </select>
+
+    <select id="getCountPieByPro" resultType="java.util.Map">
+        select a.dict_label as name, count(b.monitor_son_type) as value
+        from (select dict_label, dict_value
+        from wk_admin_dict_data where dict_type = #{dictType,jdbcType=VARCHAR}) a
+        left join(
+        select a.*, p.monitor_son_type
+        from b_monitor_point_alert a
+        left join b_equipment_monitor_point p on a.monitor_point_id = p.id
+        where a.alert_type = '1'
+        and a.equipment_id in (
+        <foreach collection="eqIdList" item="eqId" index="i" separator=",">
+            #{eqId }
+        </foreach>) ) b on a.dict_value = b.monitor_son_type
+        group by a.dict_value
+    </select>
+
+    <select id="selectPM10AndNoiseAlarmQuantity" resultType="java.util.Map">
+        select count(a.id) total, sum(case when b.monitor_son_type = '2' then 1 else 0 end) pm10Number, sum(case when b.monitor_son_type = '3' then 1 else 0 end) noiseNumber
+        from b_monitor_point_alert a
+        left join b_equipment_monitor_point b on a.monitor_point_id = b.id
+        where b.monitor_type = '9' and (b.monitor_son_type = '2' or b.monitor_son_type = '3')
+        <if test="data.startDate != null and data.startDate != ''">
+            and DATE_FORMAT(a.create_time,'%Y-%m-%d') <![CDATA[ >= ]]> #{data.startDate}
+        </if>
+        <if test="data.endDate != null and data.endDate != ''">
+            and DATE_FORMAT(a.create_time,'%Y-%m-%d') <![CDATA[ <= ]]>  #{data.endDate}
+        </if>
+    </select>
+
+    <select id="selectEnvList" resultType="java.util.Map">
+        select DATE_FORMAT(a.create_time,'%Y年%m月%e %k点') as time, a.project_id, IFNULL(c.project_abbreviation,c.project_name) AS projectName,
+        a.monitor_data as value, IFNULL(b.unit, '') as unit
+        from b_monitor_point_alert a
+        left join b_equipment_monitor_point b on a.monitor_point_id = b.id
+        left join b_project_info c on a.project_id = c.id
+        where b.monitor_type = '9' and (b.monitor_son_type = '2' or b.monitor_son_type = '3')
+        <if test="data.startDate != null and data.startDate != ''">
+            and DATE_FORMAT(a.create_time,'%Y-%m-%d') <![CDATA[ >= ]]> #{data.startDate}
+        </if>
+        <if test="data.endDate != null and data.endDate != ''">
+            and DATE_FORMAT(a.create_time,'%Y-%m-%d') <![CDATA[ <= ]]>  #{data.endDate}
+        </if>
+    </select>
+    <select id="selectMonitorDataStatistics" resultType="java.util.Map">
+        select a.dict_label,
+        sum(case when b.alert_type is not null and b.alert_type='0' then 1 else 0 end) as early ,
+        sum(case when b.alert_type is not null and b.alert_type='1' then 1 else 0 end) as alert
+        from wk_admin_dict_data  a
+        left join b_monitor_point_alert b on a.dict_value=b.monitor_alert_type
+        where a.dict_type='b_monitor_alert_type'
+        GROUP BY a.dict_value
+    </select>
+    <select id="selectExcessiveDust"  resultType="java.util.Map">
+        SELECT
+        a.*,b.equipment_id
+        FROM
+        b_equipment_monitor_data_day a
+        LEFT JOIN b_equipment_monitor_point b on a.point_id = b.id
+        where b.monitor_type = '9'  and monitor_son_type = '2'
+        <!--and a.value >= (80 + (select value from wk_admin_config where name = 'PM10standard'))-->
+        and a.value >= #{value}
+        and a.end_time <![CDATA[ < ]]> DATE_SUB( NOW(),INTERVAL 0 HOUR) and a.end_time <![CDATA[ > ]]>  DATE_SUB( NOW(),INTERVAL 1 HOUR)
+        ORDER BY a.create_time desc
+    </select>
+    <select id="selectExcessiveDustNum"  resultType="java.lang.Integer">
+        SELECT
+            count(1) as num
+        FROM
+            b_monitor_point_alert
+        WHERE
+            DATE_FORMAT( handle_time, '%Y-%m-%d' ) = CURDATE()
+	    and monitor_alert_type = '3' and monitor_point_id  = #{pointId }
+    </select>
+    <select id="selectConstantValue"  resultType="java.util.Map">
+        select * from (SELECT
+        d.id,
+        sum(case when e.point_id is not null then 1 else 0 end) as num,
+        e.project_id,e.tenant_id,
+	    e.value,
+	    d.equipment_id
+        FROM
+        EquOnlineView a
+        LEFT JOIN EquAssetsProjectView b ON a.asset_id = b.asset_id
+        LEFT JOIN b_equipment_type c ON b.type_id = c.type_id
+        LEFT JOIN b_equipment_monitor_point d ON b.asset_id = d.equipment_id
+        LEFT JOIN b_equipment_monitor_data_day e on d.id = e.point_id
+        where
+        b.project_state = '2'
+        AND ( a.type_id IN ( SELECT type_id FROM b_equipment_type WHERE type_pid = 40 ) OR a.type_id = 40 )
+        AND d.monitor_type = '9'
+        AND d.monitor_son_type = '2'
+        AND e.end_time <![CDATA[ < ]]>   DATE_SUB( NOW(),INTERVAL 0 HOUR) and e.end_time <![CDATA[ > ]]>  DATE_SUB( NOW(),INTERVAL 5 HOUR)
+        AND e.is_near = 0
+        GROUP BY a.asset_id,e.value
+        ORDER BY d.id) w where w.num <![CDATA[ >= ]]> 3
+    </select>
+    <select id="selectConstantLine"  resultType="java.util.Map">
+        SELECT
+        d.*,
+        (
+        SELECT
+        count( 0 )
+        FROM
+        b_equipment_monitor_data
+        WHERE
+        create_time <![CDATA[ < ]]> DATE_SUB( NOW( ), INTERVAL 0 HOUR ) AND create_time <![CDATA[ > ]]> DATE_SUB( NOW( ), INTERVAL ( SELECT VALUE FROM wk_admin_config WHERE NAME = 'equOfflineHour' ) HOUR )
+        AND d.id = point_id
+        GROUP BY
+        point_id
+        ) as num
+        FROM
+        EquOnlineView a
+        LEFT JOIN EquAssetsProjectView b ON a.asset_id = b.asset_id
+        LEFT JOIN b_equipment_type c ON b.type_id = c.type_id
+        LEFT JOIN b_equipment_monitor_point d ON b.asset_id = d.equipment_id
+        WHERE
+        b.project_state = '2'
+        AND ( a.type_id IN ( SELECT type_id FROM b_equipment_type WHERE type_pid = 40 ) OR a.type_id = 40 )
+        AND d.monitor_type = '9'
+        AND d.monitor_son_type = '2'
+        ORDER BY
+        d.id
+    </select>
+    <select id="selectConstantLineNum"  resultType="java.lang.Integer">
+        SELECT
+            count(1) as num
+        FROM
+            b_monitor_point_alert
+        WHERE
+            DATE_FORMAT( handle_time, '%Y-%m-%d' ) = CURDATE()
+	    and monitor_alert_type = '5' and monitor_point_id  = #{pointId }
+    </select>
+
+
+    <select id="selectDustAlarmNum"  resultType="java.util.Map">
+      select * from (select
+        IFNULL(SUM(  case when a.id is not NULL and a.monitor_alert_type='3' then 1 else 0 end),0) as exceedNum,
+        IFNULL(sum(  case when a.id is not NULL and a.monitor_alert_type='4' then 1 else 0 end),0) as hourNum,
+        IFNULL(sum(  case when a.id is not NULL and a.monitor_alert_type='5' then 1 else 0 end),0) as offLineNum
+         from b_monitor_point_alert a
+         where DATE_FORMAT(a.create_time,'%Y-%m-%d')=DATE_FORMAT(now(),'%Y-%m-%d')  )a
+         left join
+        (select a.value as PM10, a.update_time as uploadTime,b.unit from b_equipment_monitor_data_at a
+        left join b_equipment_monitor_point b on a.point_id=b.id
+        where b.monitor_type='9' and b.monitor_son_type='2'
+        and  DATE_FORMAT(a.update_time,'%Y-%m-%d')=DATE_FORMAT(now(),'%Y-%m-%d')) b on 1=1
+    </select>
+
+    <select id="selectAlertNumberAndTotal" resultType="java.util.Map">
+        select (select count(1)
+        from (
+        select a.*
+        from b_monitor_point_alert a
+        left join b_equipment_assets b on a.equipment_id = b.asset_id and b.tenant_id = #{data.tenantId} and b.project_id = #{data.projectId}
+        left join b_equipment_type c on b.type_id = c.type_id and c.tenant_id = #{data.tenantId} and c.project_id = #{data.projectId}
+        <if test='data.selectType != null and data.selectType == "1"'>
+            INNER JOIN b_equipment_three_dimensional d on b.asset_id = d.equipment_id and d.tenant_id = #{data.tenantId} and d.project_id = #{data.projectId}
+        </if>
+        where a.alert_type = 1 and a.handle_state = 0 and c.monitor_type = #{data.monitorType}
+        and a.tenant_id = #{data.tenantId} and a.project_id = #{data.projectId}
+        group by a.equipment_id
+        ) as t
+        ) as alertNumber,
+        (select count(1)
+        from b_equipment_assets a
+        left join b_equipment_type b on a.type_id = b.type_id and b.tenant_id = #{data.tenantId} and b.project_id = #{data.projectId}
+        <if test='data.selectType != null and data.selectType == "1"'>
+            INNER JOIN b_equipment_three_dimensional c on a.asset_id = c.equipment_id and c.tenant_id = #{data.tenantId} and c.project_id = #{data.projectId}
+        </if>
+        where b.monitor_type = #{data.monitorType} and a.tenant_id = #{data.tenantId} and a.project_id = #{data.projectId}
+        ) as total
+    </select>
+
+    <select id="selectUntreatedData" resultType="java.util.Map">
+            SELECT
+            d.value,
+            d.unit ,
+            (
+                CASE
+                WHEN d.ifOverweightZs > 0 THEN
+                    '1'
+                ELSE
+                    '0'
+                END
+            ) AS ifOverweight
+            FROM
+            (
+                SELECT
+                    a.value,
+                    b.unit,
+                    c. count as ifOverweightZs
+                FROM
+                    b_equipment_monitor_data a
+                LEFT JOIN b_equipment_monitor_point b ON a.point_id = b.id
+                LEFT JOIN (
+                    SELECT
+                    count(a.id) AS count, b.monitor_type, b.monitor_son_type
+                    FROM
+                    b_monitor_point_alert a
+                    LEFT JOIN b_equipment_monitor_point b ON a.monitor_point_id = b.id
+                    WHERE
+                    b.monitor_type = 9
+                    AND b.monitor_son_type = #{data.monitorSonType ,jdbcType=VARCHAR}
+                    AND a.handle_state = '0'
+                ) AS c on c.monitor_type = b.monitor_type and c.monitor_son_type = b.monitor_son_type
+                WHERE
+                    b.monitor_type = 9
+                AND b.monitor_son_type = #{data.monitorSonType,jdbcType=VARCHAR}
+                ORDER BY
+                    a.create_time DESC
+                LIMIT 1
+            ) d
+    </select>
+
+    <select id="selectUntreatedDataList" resultType="java.util.Map">
+        select *
+        from (
+        select a.content, a.create_time as alertTime, a.alert_type as alertType, b.point_name as pointName, c.asset_name
+        ,'1' as dataType,a.id,c.asset_name as bjwz,monitor_data as monitorData,a.batch_id as bjtp,
+        DATE_FORMAT(a.create_time, '%m-%d %H:%i:%s') as alertTimeFormat
+        from b_monitor_point_alert a
+        left join b_equipment_monitor_point b on a.monitor_point_id = b.id
+        left join b_equipment_assets c on a.equipment_id = c.asset_id
+        where a.alert_type in ('0', '1')
+        <if test="data.handleState != null and data.handleState != ''">
+            and a.handle_state = #{data.handleState}
+        </if>
+        UNION ALL
+        select a2.alert_content as content, a2.alert_time, '1' as alertType, '车辆智能分析' as pointName, c2.asset_name
+        ,'2' as dataType ,a2.id,c2.asset_name as bjwz,'暂无' as monitorData,a2.alert_img as bjtp,
+        DATE_FORMAT(a2.alert_time, '%m-%d %H:%i:%s') as alertTimeFormat
+        from b_ai_dreg_car_alert a2
+        left join b_equipment_assets c2 on a2.equipment_id = c2.asset_id
+        <where>
+            <choose>
+                <when test='data.handleState != null and data.handleState == "0"'>
+                    and a2.handle_by is null
+                </when>
+                <when test='data.handleState != null and data.handleState == "1"'>
+                    and a2.handle_by is not null
+                </when>
+            </choose>
+        </where>
+        UNION ALL
+        select a3.alert_content as content, a3.alert_time, '1' as alertType, 'AI危险源识别' as pointName, c3.asset_name
+        ,'3' as dataType ,a3.id,a3.alert_position as bjwz,'暂无' as monitorData,a3.alert_img as bjtp,
+        DATE_FORMAT(a3.alert_time, '%m-%d %H:%i:%s') as alertTimeFormat
+        from b_ai_video_alert a3
+        left join b_equipment_assets c3 on a3.equipment_id = c3.asset_id
+        <where>
+            <choose>
+                <when test='data.handleState != null and data.handleState == "0"'>
+                    and a3.handle_by is null
+                </when>
+                <when test='data.handleState != null and data.handleState == "1"'>
+                    and a3.handle_by is not null
+                </when>
+            </choose>
+        </where>) t
+        order by t.alertTime desc
+    </select>
+
+    <select id="selectEarlyAndAlarmNumber" resultType="java.util.Map">
+        SELECT IFNULL(SUM(CASE WHEN TO_DAYS(a.create_time) = TO_DAYS(NOW()) and a.alert_type = 0 THEN 1 ELSE 0 END), 0) dayEarly,
+        IFNULL(SUM(CASE WHEN TO_DAYS(a.create_time) = TO_DAYS(NOW()) and a.alert_type = 1 THEN 1 ELSE 0 END), 0) dayAlarm,
+        IFNULL(SUM(CASE WHEN a.alert_type = 0 THEN 1 ELSE 0 END), 0) EarlyNumber,
+        IFNULL(SUM(CASE WHEN a.alert_type = 1 THEN 1 ELSE 0 END), 0) alarmNumber,
+        IFNULL(SUM(CASE WHEN a.handle_state = 1 THEN 1 ELSE 0 END), 0) handleNumber,
+        IFNULL(SUM(CASE WHEN a.handle_state = 0 THEN 1 ELSE 0 END), 0) untreatedNumber
+        FROM b_alert_view a
+        <where>
+            <if test="data.equipmentId != null and data.equipmentId != ''">
+                and a.equipment_id = #{data.equipmentId}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectAlertEquiInfo" resultType="java.util.Map">
+        select a.monitor_data as monitorData, a.content, a.create_time as alert_time, b.point_name as pointName, b.unit,
+        c.asset_name, c.location_name, e.xAxis, e.yAxis, e.zAxis, #{data.iconType} as iconType, f.dict_label as monitorTypeName,
+        '' as alertImg, '1' as dataType
+        from b_monitor_point_alert a
+        left join b_equipment_monitor_point b on a.monitor_point_id = b.id
+        left join equipmentassetandtype c on a.equipment_id = c.asset_id
+        inner join b_equipment_three_dimensional e on a.equipment_id = e.equipment_id
+        left join (select dict_value, dict_label from wk_admin_dict_data
+        where dict_type = 'b_equipment_monitor_type') f on c.monitor_type = f.dict_value
+        where a.handle_state = 0
+        <if test="data.alertType != null and data.alertType != ''">
+            and a.alert_type = #{data.alertType}
+        </if>
+        <if test='data.alertType == "1"'>
+            UNION ALL
+            select '车辆智能分析' as monitorData, a2.alert_content as content, a2.alert_time, '车辆智能分析' as pointName, '' as unit,
+            b2.asset_name, b2.location_name, e2.xAxis, e2.yAxis, e2.zAxis, #{data.iconType} as iconType, '车辆智能分析' as monitorTypeName,
+            '' as alertImg, '2' as dataType
+            from b_ai_dreg_car_alert a2
+            left join equipmentassetandtype b2 on a2.equipment_id = b2.asset_id
+            inner join b_equipment_three_dimensional e2 on a2.equipment_id = e2.equipment_id
+            where a2.handle_by is null
+            UNION ALL
+            select 'AI危险源识别' as monitorData, a3.alert_content as content, a3.alert_time, 'AI危险源识别' as pointName, '' as unit,
+            b3.asset_name, b3.location_name, e3.xAxis, e3.yAxis, e3.zAxis, #{data.iconType} as iconType, 'AI危险源识别' as monitorTypeName,
+            a3.alert_img as alertImg, '3' as dataType
+            from b_ai_video_alert a3
+            left join equipmentassetandtype b3 on a3.equipment_id = b3.asset_id
+            inner join b_equipment_three_dimensional e3 on a3.equipment_id = e3.equipment_id
+            where a3.handle_by is null
+        </if>
+    </select>
+    <insert id="saveAlertByList">
+        insert into b_monitor_point_alert
+        ( project_id,equipment_id,tenant_id,
+        monitor_data,content,create_time,alert_type,handle_state,monitor_point_id
+        )
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            ( #{item.projectId}, #{item.equipmentId}, #{item.tenantId},
+            #{item.monitorData}, #{item.content}, #{item.createTime},#{item.alertType},#{item.handleState},#{item.monitorPointId}
+            )
+        </foreach>
+    </insert>
+    <insert id="insertAlert">
+        insert into b_monitor_point_alert
+        ( project_id,equipment_id,tenant_id,
+        monitor_data,content,create_time,alert_type,handle_state,monitor_point_id
+        )
+        values
+        ( #{data.projectId}, #{data.equipmentId}, #{data.tenantId},
+            #{data.monitorData}, #{data.content}, #{data.createTime},#{data.alertType},#{data.handleState},#{data.monitorPointId}
+            )
+    </insert>
+    <select id="dayAndNightAlarmNumber" resultType="java.util.Map">
+        select a.curr_date as monitorDate, IFNULL(b.dayNum ,0) as dayNum,IFNULL(b.nightNum ,0) as nightNum from (
+        select date_format(date_add(curdate(),interval -t.help_topic_id ${data.dateType}),#{data.format}) as 'curr_date'
+        from mysql.help_topic t  where t.help_topic_id &lt; #{data.num}) a
+        left join (
+            select B.date,
+                sum(case when (B.create_time &gt; CONCAT(B.date,' 06:00:00') and  B.create_time &lt;= CONCAT(B.date,' 18:00:00')) then 1 else 0 end ) as 'dayNum',
+                sum(case when ((B.create_time &gt; CONCAT(B.date,' 18:00:00') and B.create_time &lt;= CONCAT(B.date,' 23:59:59')) or (B.create_time &gt;= CONCAT(B.date,' 00:00:00') and B.create_time &lt;= CONCAT(B.date,' 06:00:00')))then 1 else 0 end ) as 'nightNum'
+            from (
+                select A.create_time, DATE_FORMAT(A.create_time, #{data.format}) as date
+                from b_monitor_point_alert A
+                where alert_type=#{data.alertType}
+                UNION ALL
+                select A2.alert_time as create_time, DATE_FORMAT(A2.alert_time, #{data.format}) as date
+                from b_ai_dreg_car_alert A2
+                UNION ALL
+                select A3.alert_time as create_time, DATE_FORMAT(A3.alert_time, #{data.format}) as date
+                from b_ai_video_alert A3
+            )B
+            GROUP BY B.date) b on a.curr_date = b.date
+        order by monitorDate asc;
+    </select>
+
+    <select id="selectAlertListByEquiId" resultType="java.util.Map">
+        select a.content, a.create_time as alertTime, DATE_FORMAT(a.create_time,'%m-%d %h:%i:%s') as formatAlertTime,
+        a.asset_name as pointName, c.asset_name, a.alert_type
+        from b_alert_view a
+        left join b_equipment_assets c on a.equipment_id = c.asset_id
+        <where>
+            <if test="data.handleState != null and data.handleState != ''">
+                and a.handle_state = #{data.handleState}
+            </if>
+            <if test="data.equipmentId != null and data.equipmentId != ''">
+                and a.equipment_id = #{data.equipmentId}
+            </if>
+        </where>
+    </select>
+    <select id="getCountPieByScreenPolice" resultType="java.util.Map">
+        SELECT
+            c.dict_label AS NAME,
+            count(a.id) AS VALUE,
+            c.dict_value AS monitorType
+        FROM
+        b_alert_view a
+        INNER JOIN (
+            SELECT
+                dict_value,
+                dict_label
+            FROM
+                wk_admin_dict_data
+            WHERE
+                dict_type = 'b_equipment_monitor_type'
+        ) c ON a.monitor_type = c.dict_value
+        where a.alert_type = '1'
+        GROUP BY a.monitor_type
+        order by VALUE desc
+    </select>
+
+
+    <select id="getCountByPoliceEfficiency" resultType="java.util.Map">
+        SELECT
+        HOUR (
+        TIMEDIFF(
+        a.handle_time,
+        a.create_time
+        )
+        ) AS xffz
+        FROM
+        b_alert_view a
+        WHERE
+        a.handle_state = '1'
+        AND DATE_FORMAT(a.create_time, '%Y-%m-%d') >= date_sub(now(),interval 6 day)
+        AND DATE_FORMAT(a.create_time, '%Y-%m-%d') &lt;= now()
+        ORDER BY
+        xffz
+    </select>
+    <select id="getCountByPoliceEfficiencyAverage" resultType="java.util.Map">
+        SELECT
+            DATE_FORMAT(a.create_time,'%Y-%m-%d'),
+            count(1) as zs,
+            (
+                SELECT
+                    count(1)
+                FROM
+                    b_alert_view b
+                WHERE
+                    b.handle_state = '1'
+                and DATE_FORMAT(a.create_time, '%Y-%m-%d')=DATE_FORMAT(b.create_time, '%Y-%m-%d')
+                and DATE_FORMAT(a.create_time, '%Y-%m-%d') >= date_sub(now(),interval 6 day)
+                and DATE_FORMAT(a.create_time, '%Y-%m-%d') &lt;= now()
+            ) as cls
+        FROM
+            b_alert_view a
+        where
+        DATE_FORMAT(a.create_time, '%Y-%m-%d') >= date_sub(now(),interval 6 day)
+        and DATE_FORMAT(a.create_time, '%Y-%m-%d') &lt;= now()
+        GROUP BY
+        DATE_FORMAT(a.create_time,'%Y-%m-%d')
+    </select>
+
+    <select id="selectStateList" resultType="java.util.Map">
+        SELECT
+        a.monitor_point_id,a.equipment_id,
+        a.monitor_data,b.point_name,a.content,a.create_time,c.asset_name
+        FROM
+        b_monitor_point_alert a
+        LEFT JOIN b_equipment_monitor_point b ON a.monitor_point_id = b.id
+        LEFT JOIN b_equipment_assets c ON a.equipment_id = c.asset_id
+        LEFT JOIN b_equipment_type d on c.type_id = d.type_id
+        WHERE
+        1=1
+        <if test="data.monitorType != null and data.monitorType != ''">
+            AND  d.monitor_type = #{data.monitorType ,jdbcType=VARCHAR}
+        </if>
+        <if test="data.monitorSonType != null and data.monitorSonType != ''">
+            AND b.monitor_son_type = #{data.monitorSonType ,jdbcType=VARCHAR}
+        </if>
+        <if test="data.handleState != null and data.handleState != ''">
+            AND a.handle_state = #{data.handleState ,jdbcType=VARCHAR}
+        </if>
+
+
+        <if test="data.date != null and data.date != ''">
+            AND  DATE_FORMAT(a.create_time,'%Y-%m-%d') = #{data.date ,jdbcType=VARCHAR}
+        </if>
+        <if test="data.mouth != null and data.mouth != ''">
+            AND  DATE_FORMAT(a.create_time,'%Y-%m') = #{data.mouth ,jdbcType=VARCHAR}
+        </if>
+        <if test="data.year != null and data.year != ''">
+            AND  DATE_FORMAT(a.create_time,'%Y') = #{data.year ,jdbcType=VARCHAR}
+        </if>
+        <if test="data.dateState != null and data.dateState != ''">
+            AND  DATE_FORMAT(a.create_time,'%Y-%m-%d') >= #{data.dateState ,jdbcType=VARCHAR}
+        </if>
+        <if test="data.dateEnd != null and data.dateEnd != ''">
+            AND  DATE_FORMAT(a.create_time,'%Y-%m-%d') &lt;= #{data.dateEnd ,jdbcType=VARCHAR}
+        </if>
+        <if test="data.alertType != null and data.alertType != ''">
+            AND a.alert_type = #{data.alertType ,jdbcType=VARCHAR}
+        </if>
+        <if test="data.equipmentId != null and data.equipmentId != ''">
+            AND a.equipment_id = #{data.equipmentId ,jdbcType=VARCHAR}
+        </if>
+
+        ORDER BY a.create_time
+        LIMIT #{data.page} ,#{data.limit}
+    </select>
+    <select id="selectStateListCount" resultType="java.util.Map">
+        SELECT
+        count(1) as zs
+        FROM
+        b_monitor_point_alert a
+        LEFT JOIN b_equipment_monitor_point b ON a.monitor_point_id = b.id
+        LEFT JOIN b_equipment_assets c ON a.equipment_id = c.asset_id
+        LEFT JOIN b_equipment_type d on c.type_id = d.type_id
+        WHERE
+        1=1
+        <if test="data.monitorType != null and data.monitorType != ''">
+            AND  d.monitor_type = #{data.monitorType ,jdbcType=VARCHAR}
+        </if>
+        <if test="data.monitorSonType != null and data.monitorSonType != ''">
+            AND b.monitor_son_type = #{data.monitorSonType ,jdbcType=VARCHAR}
+        </if>
+        <if test="data.handleState != null and data.handleState != ''">
+            AND a.handle_state = #{data.handleState ,jdbcType=VARCHAR}
+        </if>
+
+
+        <if test="data.date != null and data.date != ''">
+            AND  DATE_FORMAT(a.create_time,'%Y-%m-%d') = #{data.date ,jdbcType=VARCHAR}
+        </if>
+        <if test="data.mouth != null and data.mouth != ''">
+            AND  DATE_FORMAT(a.create_time,'%Y-%m') = #{data.mouth ,jdbcType=VARCHAR}
+        </if>
+        <if test="data.year != null and data.year != ''">
+            AND  DATE_FORMAT(a.create_time,'%Y') = #{data.year ,jdbcType=VARCHAR}
+        </if>
+        <if test="data.dateState != null and data.dateState != ''">
+            AND  DATE_FORMAT(a.create_time,'%Y-%m-%d') >= #{data.dateState ,jdbcType=VARCHAR}
+        </if>
+        <if test="data.dateEnd != null and data.dateEnd != ''">
+            AND  DATE_FORMAT(a.create_time,'%Y-%m-%d') &lt;= #{data.dateEnd ,jdbcType=VARCHAR}
+        </if>
+        <if test="data.alertType != null and data.alertType != ''">
+            AND a.alert_type = #{data.alertType ,jdbcType=VARCHAR}
+        </if>
+        <if test="data.equipmentId != null and data.equipmentId != ''">
+            AND a.equipment_id = #{data.equipmentId ,jdbcType=VARCHAR}
+        </if>
+    </select>
+
+    <select id="selectDataList" resultType="java.util.Map">
+        select *
+        from (
+        select a.content, a.create_time as alertTime, a.alert_type as alertType, b.point_name as pointName, c.asset_name
+        from b_monitor_point_alert a
+        left join b_equipment_monitor_point b on a.monitor_point_id = b.id
+        left join b_equipment_assets c on a.equipment_id = c.asset_id
+        where a.alert_type in ('0', '1')
+        <if test="data.handleState != null and data.handleState != ''">
+            and a.handle_state = #{data.handleState}
+        </if>
+        UNION ALL
+        select a2.alert_content as content, a2.alert_time, '1' as alertType, '车辆智能分析' as pointName, c2.asset_name
+        from b_ai_dreg_car_alert a2
+        left join b_equipment_assets c2 on a2.equipment_id = c2.asset_id
+        <where>
+            <choose>
+                <when test='data.handleState != null and data.handleState == "0"'>
+                    and a2.handle_by is null
+                </when>
+                <when test='data.handleState != null and data.handleState == "1"'>
+                    and a2.handle_by is not null
+                </when>
+            </choose>
+        </where>
+        UNION ALL
+        select a3.alert_content as content, a3.alert_time, '1' as alertType, 'AI危险源识别' as pointName, c3.asset_name
+        from b_ai_video_alert a3
+        left join b_equipment_assets c3 on a3.equipment_id = c3.asset_id
+        <where>
+            <choose>
+                <when test='data.handleState != null and data.handleState == "0"'>
+                    and a3.handle_by is null
+                </when>
+                <when test='data.handleState != null and data.handleState == "1"'>
+                    and a3.handle_by is not null
+                </when>
+            </choose>
+        </where>) t
+        <where>
+            1=1
+            <if test="data.assetName!=null and data.assetName!=''">
+                and t.asset_name like  concat( '%', #{data.assetName}, '%' )
+            </if>
+            <if test="data.pointName!=null and data.pointName!=''">
+                and t.pointName like  concat( '%', #{data.pointName}, '%' )
+            </if>
+            <if test="data.startDate!=null and data.endDate!=null ">
+                and t.alertTime between #{data.startDate} and #{data.endDate}
+            </if>
+            <if test="data.alertType!=null and data.alertType!=''">
+                and t.alertType = #{data.alertType}
+            </if>
+        </where>
+        order by t.alertTime desc
+    </select>
+    <select id="selectMonitorDataList" resultType="java.util.Map">
+        SELECT a.content, a.create_time AS alertTime, a.alert_type AS alertType, b.point_name AS pointName, c.asset_name
+        FROM b_monitor_point_alert a
+        LEFT JOIN b_equipment_monitor_point b ON a.monitor_point_id = b.id
+        LEFT JOIN b_equipment_assets c ON a.equipment_id = c.asset_id
+        <where>
+            a.alert_type ='1'
+            <if test="data.handleState != null and data.handleState != ''">
+                and a.handle_state = #{data.handleState}
+            </if>
+            <if test="data.equipmentId != null and data.equipmentId != ''">
+                and a.equipment_id = #{data.equipmentId}
+            </if>
+            <if test="data.monitorType != null and data.monitorType != ''">
+                and b.monitor_type = #{data.monitorType}
+            </if>
+            <if test="data.assetName!=null and data.assetName!=''">
+                and c.asset_name like  concat( '%', #{data.assetName}, '%' )
+            </if>
+            <if test="data.pointName!=null and data.pointName!=''">
+                and b.point_name like  concat( '%', #{data.pointName}, '%' )
+            </if>
+            <if test="data.startDate!=null and data.endDate!=null ">
+                and a.create_time between #{data.startDate} and #{data.endDate}
+            </if>
+        </where>
+        order by a.create_time desc
+    </select>
+
+    <select id="alarmNumberByDay" resultType="java.util.Map">
+        select IFNULL(sum(case when a.alert_type = '0' then 1 else 0 end), 0) as earlyNumber,
+               IFNULL(sum(case when a.alert_type = '1' then 1 else 0 end), 0) as alarmNumber
+        from b_alert_view a
+        where DATE_FORMAT(a.create_time,'%Y-%m-%d')=DATE_FORMAT(now(),'%Y-%m-%d')
+    </select>
+
+    <select id="projectAlarmNumNew" resultType="java.util.Map">
+        SELECT B.id AS projectId,B.project_name AS projectName,
+               IFNULL(B.project_abbreviation,B.project_name) AS projectAbbreviation,
+               sum( CASE WHEN (DATE_FORMAT(A.create_time, '%Y-%m-%d') = DATE_FORMAT(NOW(), '%Y-%m-%d')) THEN 1 ELSE 0 END ) AS 'todayAlarmNum',
+               count(A.create_time) AS 'totalAlarmNum'
+        FROM b_project_info B
+        LEFT JOIN b_alert_view A ON A.project_id = B.id AND alert_type = '1'
+        WHERE  B.project_state = '2'
+        GROUP BY B.project_id
+        ORDER BY todayAlarmNum DESC,totalAlarmNum DESC,B.sort
+    </select>
+
+    <select id="selectPageByDay" resultType="java.util.Map">
+        select a.*, IFNULL(b.project_abbreviation,b.project_name) AS projectName, a.alert_value as valueUnit
+        from b_alert_view a
+        left join b_project_info b on a.project_id = b.id
+        <where>
+            <if test="data.handleState != null and data.handleState != ''">
+                and a.handle_state =#{data.handleState}
+            </if>
+            <if test="data.alertType != null and data.alertType != ''">
+                and a.alert_type =#{data.alertType}
+            </if>
+            <if test="data.monitorType != null and data.monitorType != ''">
+                and a.monitor_type =#{data.monitorType}
+            </if>
+            <if test="data.monitorSonType != null and data.monitorSonType != ''">
+                and a.monitor_son_type =#{data.monitorSonType}
+            </if>
+            <if test="data.projectId">
+                and a.project_id = #{data.projectId}
+            </if>
+            <if test="data.timeSlot != null and data.timeSlot != ''">
+                and DATE_FORMAT(a.create_time,'%Y-%m-%d') =DATE_FORMAT(now(),'%Y-%m-%d')
+            </if>
+        </where>
+        order by a.create_time desc
+    </select>
+
+    <select id="alarmsStatisticsNew" resultType="java.util.Map">
+        select IFNULL(sum(case when (DATE_FORMAT(create_time,'%Y-%m-%d')=DATE_FORMAT(#{data.time},'%Y-%m-%d')) then 1 else 0 end ),0)as 'dayNum',
+        IFNULL(sum(case when (YEARWEEK(date_format(create_time,'%Y-%m-%d')) = YEARWEEK(#{data.time})) then 1 else 0 end ),0)as 'weekNum',
+        IFNULL(sum(case when (DATE_FORMAT(create_time,'%Y-%m')=DATE_FORMAT(#{data.time},'%Y-%m')) then 1 else 0 end ),0)as 'monthNum',
+        IFNULL(sum(case when (DATE_FORMAT(create_time,'%Y')=DATE_FORMAT(#{data.time},'%Y')) then 1 else 0 end ),0)as 'yearNum'
+        from b_alert_view where  project_id=#{data.projectId} and alert_type='1';
+    </select>
+
+    <select id="selectAlarmPageNew" resultType="com.qdoner.datarecept.entity.PO.MonitorPointAlert">
+        select a.*, IFNULL(b.project_abbreviation,b.project_name) AS projectName, a.alert_value as valueUnit
+        from b_alert_view a
+        left join b_project_info b on a.project_id = b.id
+        <where>
+            <if test="data.handleState != null and data.handleState != ''">
+                and a.handle_state =#{data.handleState}
+            </if>
+            <if test="data.alertType != null and data.alertType != ''">
+                and a.alert_type =#{data.alertType}
+            </if>
+            <if test="data.monitorType != null and data.monitorType != ''">
+                and a.monitor_type =#{data.monitorType}
+            </if>
+            <if test="data.projectId != null and data.projectId != ''">
+                and a.project_id =#{data.projectId}
+            </if>
+            <if test="data.timeSlot != null and data.timeSlot != ''">
+                AND (
+                (#{data.timeSlot}='1' and DATE_FORMAT(a.create_time,'%Y-%m-%d')=DATE_FORMAT(now(),'%Y-%m-%d')) or -- 当天
+                (#{data.timeSlot}='2' and YEARWEEK(date_format(a.create_time,'%Y-%m-%d')) = YEARWEEK(now())) or -- 本周
+                (#{data.timeSlot}='3' and DATE_FORMAT(a.create_time,'%Y-%m')=DATE_FORMAT(now(),'%Y-%m')) or -- 本月
+                (#{data.timeSlot}='4' and YEAR(a.create_time)=YEAR(NOW()))-- 本年
+                )
+            </if>
+        </where>
+        order by a.create_time desc
+    </select>
+
+    <select id="selectAlertTrendNew" resultType="java.util.Map">
+        SELECT DATE_FORMAT(a.curr_date,'%c.%d') as monitorDate, IFNULL(b.earlyNumber ,0) as earlyNumber,
+        IFNULL(b.alertNumber ,0) as alertNumber from (
+        SELECT date_format(date_add(curdate(),interval -t.help_topic_id ${data.dateType}),#{data.format}) as 'curr_date'
+        from mysql.help_topic t where t.help_topic_id &lt; #{data.num}) a
+        left join (
+        SELECT DATE_FORMAT(create_time,#{data.format}) as date,
+        SUM(CASE WHEN alert_type = 0 THEN 1 ELSE 0 END) earlyNumber,
+        SUM(CASE WHEN alert_type = 1 THEN 1 ELSE 0 END) alertNumber
+        from b_alert_view
+        <where>
+            <if test="data.projectId != null and data.projectId != ''">
+                and project_id = #{data.projectId}
+            </if>
+        </where>
+        GROUP BY DATE_FORMAT(create_time,'%Y-%m-%d')
+        ) b on a.curr_date = b.date order by monitorDate asc;
+    </select>
+
+    <select id="selectAllAlert" resultType="java.util.Map">
+        SELECT t1.hourList as date, t1.hourList as hourNumber,
+        SUM(CASE WHEN t1.hourList = t2.alertHOUR then 1 else 0 end) son3
+        FROM ( SELECT DATE_FORMAT(DATE_ADD(now(), INTERVAL - help_topic_id HOUR ), '%H' ) as hourList
+        FROM mysql.help_topic where help_topic_id &lt; 24) t1
+        LEFT JOIN ( SELECT DATE_FORMAT(a.create_time , '%H' ) as alertHOUR
+        FROM b_alert_view a
+        WHERE a.alert_type = 1
+        <if test="data.date != null and data.date != ''">
+            and DATE_FORMAT(create_time, '%Y-%m-%d') = DATE_FORMAT(#{data.date}, '%Y-%m-%d')
+        </if>
+        ) t2 ON t1.hourList = t2.alertHOUR
+        GROUP BY t1.hourList ORDER BY t1.hourList;
+    </select>
+
+    <select id="selectAlertListZz" resultType="java.util.Map">
+        select a.*,b.project_name from b_alert_view  a
+        LEFT JOIN b_project_info b ON a.project_id = b.project_id
+        ORDER BY a.create_time DESC
+        LIMIT 6
+    </select>
+
+    <select id="selectProjectAlertNumberAll" resultType="java.util.Map">
+        SELECT IFNULL(a.project_abbreviation,a.project_name) AS projectName,
+        SUM(CASE WHEN b.alert_type = 0 THEN 1 ELSE 0 END) earlyNumber,
+        SUM(CASE WHEN b.alert_type = 1 THEN 1 ELSE 0 END) alarmNumber
+        FROM b_project_info a
+        LEFT JOIN (
+        SELECT c.* FROM b_alert_view c
+        WHERE DATE_FORMAT(c.create_time, '%Y-%m-%d') >= DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 30 DAY), '%Y-%m-%d')) b
+        ON a.id = b.project_id
+        GROUP BY a.id
+        ORDER BY alarmNumber DESC
+    </select>
+    <select id="selectProjectAlertNumberTop10" resultType="java.util.Map">
+        SELECT IFNULL(a.project_abbreviation,a.project_name) AS projectName,
+        SUM(CASE WHEN b.alert_type = 0 THEN 1 ELSE 0 END) earlyNumber,
+        SUM(CASE WHEN b.alert_type = 1 THEN 1 ELSE 0 END) alarmNumber
+        FROM b_project_info a
+        LEFT JOIN (
+        SELECT c.* FROM b_alert_view c
+        WHERE DATE_FORMAT(c.create_time, '%Y-%m-%d') >= DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 30 DAY), '%Y-%m-%d')) b
+        ON a.id = b.project_id
+        GROUP BY a.id
+        ORDER BY alarmNumber DESC
+        LIMIT 10
+    </select>
+
+    <select id="todayAirQualityAnalysisNew" resultType="java.util.Map">
+        SELECT   a.value as average, c.level_name as levelName,
+            DATE_FORMAT(a.monitor_time,'%Y-%m-%d') as date
+        FROM b_equipment_monitor_data_at a
+        LEFT JOIN b_equipment_monitor_point b ON a.point_id =b.id and b.monitor_type=#{data.monitorType} and
+            b.monitor_son_type=#{data.monitorSonType}
+        LEFT JOIN b_env_level c on a.value >= c.min and a.value &lt; c.max
+        WHERE b.point_name is not NUll
+        order by a.monitor_time desc
+        limit 1
+    </select>
+
+    <select id="hisAirQualityAnalysisNew" resultType="java.util.Map">
+        select a.level_name as levelName,IFNULL(b.num,0) as num
+        from b_env_level a
+        left join (
+            select c.level_name as levelName,count(point_id) as num
+            from b_equipment_monitor_data_month a
+            left join b_equipment_monitor_point b on a.point_id=b.id
+            LEFT JOIN b_env_level c on a.value >= c.min and a.value &lt; c.max
+            where b.monitor_type=#{data.monitorType} and b.monitor_son_type=#{data.monitorSonType}
+            GROUP BY levelName
+        )b on a.level_name=b.levelName
+    </select>
+
+    <select id="latelyAirQualityAnalysisNew" resultType="java.util.Map">
+        select DATE_FORMAT(a.curr_date,'%m-%d') as monitorDate, IFNULL(b.average ,'--') as average,IFNULL(b.levelName,'--') as levelName
+        from (
+            select date_format(date_add(curdate(),interval -t.help_topic_id  ${data.dateType}),#{data.format}) as 'curr_date' from mysql.help_topic t
+            where t.help_topic_id &lt; #{data.num}) a
+            left join (
+                select  DATE_FORMAT(a.start_time,#{data.format}) as date,a.value as average,
+                c.level_name as levelName,
+                b.point_name, b.monitor_type, b.unit from b_equipment_monitor_data_month a
+                LEFT JOIN b_equipment_monitor_point b ON a.point_id =b.id  and  b.monitor_type=#{data.monitorType} and b.monitor_son_type=#{data.monitorSonType}
+                LEFT JOIN b_env_level c on a.value >= c.min and a.value &lt; c.max
+            WHERE b.point_name is not NUll
+        ) b on a.curr_date = b.date order by monitorDate asc;
+    </select>
+
+    <select id="selectAlarmNumByMonitorType" resultType="java.util.Map">
+        select IFNULL(SUM(CASE WHEN TO_DAYS(a.create_time) = TO_DAYS(NOW()) and a.alert_type = 0 THEN 1 ELSE 0 END), 0) dayEarly,
+			 IFNULL(SUM(CASE WHEN TO_DAYS(a.create_time) = TO_DAYS(NOW()) and a.alert_type = 1 THEN 1 ELSE 0 END), 0) dayAlarm,
+			 IFNULL(SUM(CASE WHEN a.alert_type = 0 THEN 1 ELSE 0 END), 0) EarlyNumber,
+			 IFNULL(SUM(CASE WHEN a.alert_type = 1 THEN 1 ELSE 0 END), 0) alarmNumber
+        from b_monitor_point_alert a
+        left join b_equipment_assets b on a.equipment_id = b.asset_id
+        left join b_equipment_type c on b.type_id = c.type_id
+        where c.monitor_type = #{data.monitorType}
+    </select>
+
+    <select id="selectProjectAndEquiNum" resultType="java.util.Map">
+        select count(1) as ProjectNumber, IFNULL(sum(a.deviceQuantity),0) as deviceQuantity
+        from(
+            select a.project_id, count(1) as deviceQuantity
+            from b_equipment_assets a
+            inner join b_project_info b on a.project_id = b.id
+            left join b_equipment_type c on a.type_id = c.type_id
+            where a.status = '1' and b.project_state = '2'
+            and c.monitor_type = #{data.monitorType}
+            group by a.project_id) a
+    </select>
+
+    <select id="selectProejctNumberRank" resultType="java.util.Map">
+        select IFNULL( d.project_abbreviation, d.project_name ) AS projectName, count(1) as alarmNumber
+        from b_monitor_point_alert a
+        inner join b_project_info d on a.project_id = d.id
+        left join b_equipment_assets b on a.equipment_id = b.asset_id
+        left join b_equipment_type c on b.type_id = c.type_id
+        where d.project_state = '2' and c.monitor_type = #{data.monitorType}
+        group by a.project_id
+        order by alarmNumber desc
+    </select>
+
+    <select id="selectAlarmListByPro" resultType="java.util.Map">
+        select IFNULL( b.project_abbreviation, b.project_name ) AS projectName, a.id, c.asset_name, a.create_time,
+        (CASE WHEN e.id THEN CONCAT( a.monitor_data, e.unit ) ELSE a.monitor_data END) AS alert_value, a.content
+        from b_monitor_point_alert a
+        left join b_project_info b on a.project_id = b.id
+        left join b_equipment_assets c on a.equipment_id = c.asset_id
+        left join b_equipment_monitor_point e on a.monitor_point_id = e.id
+        <where>
+            <if test="data.handleState != null and data.handleState != ''">
+                and a.handle_state = #{data.handleState}
+            </if>
+            <if test="data.alertType != null and data.alertType != ''">
+                and a.alert_type = #{data.alertType}
+            </if>
+        </where>
+    </select>
+</mapper>

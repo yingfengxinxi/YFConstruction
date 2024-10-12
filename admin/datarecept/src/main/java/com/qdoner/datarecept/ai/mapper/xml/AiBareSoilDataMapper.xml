@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qdoner.datarecept.ai.mapper.AiBareSoilDataMapper">
+
+    <insert id="batchSaveData">
+        insert into b_ai_bare_soil_data
+        (id, project_id, alarm_location, alarm_type, alarm_content, alarm_time, alarm_img, alarm_video, only_number, create_time, tenant_id)
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.id}, #{item.projectId}, #{item.alarmLocation}, #{item.alarmType}, #{item.alarmContent}, #{item.alarmTime}, #{item.alarmImg},
+            #{item.alarmVideo}, #{item.onlyNumber}, #{item.createTime}, #{item.tenantId})
+        </foreach>
+    </insert>
+</mapper>

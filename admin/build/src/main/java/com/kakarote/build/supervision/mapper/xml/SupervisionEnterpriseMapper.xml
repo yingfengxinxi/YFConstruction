@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.supervision.mapper.SupervisionEnterpriseMapper">
+
+    <select id="selectByPage" resultType="java.util.Map">
+        select a.*, b.id as supervision_id, b.supe, IFNULL(b.state,'0') AS state, b.remark
+        from b_project_info a
+        left join b_supervision_enterprise b on a.id = b.project_id
+        <where>
+            <if test="data.projectId != null and data.projectId != ''">
+                and a.id = #{data.projectId,jdbcType=INTEGER}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectDataById" resultType="java.util.Map">
+        select a.*, b.id as supervision_id, b.supe, IFNULL(b.state,'0') AS state, b.remark
+        from b_project_info a
+        left join b_supervision_enterprise b on a.id = b.project_id
+        where a.id = #{id}
+    </select>
+
+    <select id="selectSupeList" resultType="java.util.Map">
+        select e.realname, sum(e.checkNum) as checkNum, sum(e.totalNum) as totalNum, count(1) as projectNum,
+            sum(e.total_area) as totalArea, e.check_time
+        from (
+            select d.user_id, d.realname, count(d.checkId) as totalNum, d.check_time, d.project_id, d.total_area,
+                sum(case when (d.inspection_type is not null and d.inspection_type != '0') then 1 else 0 end) as checkNum
+            from (
+                select a.project_id, a.supe, f.check_time, a.state, b.user_id, b.realname, c.total_area, f.id as checkId, f.inspection_type
+                from b_supervision_enterprise a
+                inner join wk_admin_user b on FIND_IN_SET(b.user_id,a.supe)
+                inner join b_project_info c on a.project_id = c.id
+								left join (
+									select f1.id, f1.inspection_type, f2.check_time, f1.project_id
+									from b_labour_inspection f1
+									left join b_labour_inspection_check f2 on f1.id = f2.inspection_id
+									) f on a.project_id = f.project_id
+                having 1 = 1
+                order by f.check_time desc
+            ) d
+            group by d.user_id, d.project_id
+        ) e
+        group by e.user_id
+    </select>
+
+    <select id="selectByProjectId" resultType="com.kakarote.build.supervision.entity.PO.SupervisionEnterprise">
+        select a.*
+          from  b_supervision_enterprise a
+        <where>
+            <if test="data.projectId != null and data.projectId != ''">
+                and a.project_id = #{data.projectId,jdbcType=INTEGER}
+            </if>
+        </where>
+    </select>
+</mapper>

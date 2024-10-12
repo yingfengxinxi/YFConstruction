@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.equipment.mapper.EquipmentHydropowerAlarmMapper">
+
+    <select id="selectByPage" resultType="com.kakarote.build.equipment.entity.PO.EquipmentHydropowerAlarm">
+        select a.*, l.location_name
+        from b_equipment_hydropower_alarm a
+        inner join b_equipment_location l on a.location_id = l.location_id
+        <where>
+            <if test="data.energyName != null and data.energyName != ''">
+                and a.energy_name = #{data.energyName}
+            </if>
+            <if test="data.transfiniteType != null and data.transfiniteType != ''">
+                and a.transfinite_type = #{data.transfiniteType}
+            </if>
+        </where>
+    </select>
+
+    <insert id="batchSaveData">
+        INSERT INTO b_equipment_hydropower_alarm
+        (location_id, energy_name, alarm_time, start_time, end_time, accumulative_previous, current_usage,
+        cumulative_usage, current_index, cumulative_index, transfinite_type, transfinite_number)
+        VALUES
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.locationId}, #{item.energyName}, #{item.alarmTime}, #{item.startTime}, #{item.endTime}, #{item.accumulativePrevious}, #{item.currentUsage},
+             #{item.cumulativeUsage}, #{item.currentIndex}, #{item.cumulativeIndex}, #{item.transfiniteType}, #{item.transfiniteNumber})
+        </foreach>
+    </insert>
+
+    <select id="selectByPageAndPro" resultType="com.kakarote.build.equipment.entity.PO.EquipmentHydropowerAlarm">
+        select a.*, l.location_name, IFNULL(i.project_abbreviation,i.project_name) AS projectName
+        from b_equipment_hydropower_alarm a
+        inner join b_equipment_location l on a.location_id = l.location_id
+        inner join b_project_info i on a.project_id = i.id
+        <where>
+            <if test="data.energyName != null and data.energyName != ''">
+                and a.energy_name = #{data.energyName}
+            </if>
+            <if test="data.transfiniteType != null and data.transfiniteType != ''">
+                and a.transfinite_type = #{data.transfiniteType}
+            </if>
+            <if test="data.projectId != null">
+                and a.project_id = #{data.projectId}
+            </if>
+        </where>
+    </select>
+</mapper>

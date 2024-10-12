@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.equipment.mapper.EquipmentHelmetMapper">
+
+    <select id="selectByPage" resultType="com.kakarote.build.equipment.entity.PO.EquipmentHelmet">
+        select a.*, b.name as peopleName
+        from b_equipment_helmet a
+        left join b_labour_infocollection b on a.people_id = b.id
+        <where>
+            <if test="data.imei != null and data.imei != ''">
+                AND a.imei like concat('%', #{data.imei}, '%')
+            </if>
+            <if test="data.peopleId != null and data.peopleId != ''">
+                AND a.people_id = #{data.peopleId}
+            </if>
+        </where>
+        /*order by a.create_time desc*/
+    </select>
+
+    <select id="selectProList" resultType="com.kakarote.build.equipment.entity.PO.EquipmentHelmet">
+        select a.*, b.name as peopleName, IFNULL(i.project_abbreviation,i.project_name) AS projectName
+        from b_equipment_helmet a
+        left join b_labour_infocollection b on a.people_id = b.id
+        left join b_project_info i on a.project_id = i.project_id
+        <where>
+            <if test="data.imei != null and data.imei != ''">
+                AND a.imei like concat('%', #{data.imei}, '%')
+            </if>
+            <if test="data.projectId != null and data.projectId != ''">
+                AND a.project_id like concat('%', #{data.projectId}, '%')
+            </if>
+            <if test="data.peopleId != null and data.peopleId != ''">
+                AND a.people_id = #{data.peopleId}
+            </if>
+        </where>
+--         order by a.create_time desc
+    </select>
+
+    <select id="selectLatestLocationList" resultType="java.util.Map">
+        select *
+        from (
+            select c.name, a.people_id, b.id, b.xAxis, b.yAxis, b.zAxis, DATE_FORMAT(b.upload_time,'%m-%d %H:%i:%s') as uploadTime
+            from b_equipment_helmet a
+            inner join b_equipment_helmet_gps b on a.id = b.helmet_id
+            inner join b_labour_infocollection c on a.people_id = c.id
+            where b.xAxis is not null and b.yAxis is not null and b.zAxis is not null
+            and b.upload_time >= DATE_FORMAT(NOW(),'%Y-%m-%d')
+            having 1 = 1
+            order by b.upload_time desc ) d
+        group by d.people_id
+    </select>
+
+    <select id="selectPeopleTrackList" resultType="java.util.Map">
+        select c.name, a.people_id, b.id, b.xAxis, b.yAxis, b.zAxis, DATE_FORMAT(b.upload_time,'%m-%d %H:%i:%s') as uploadTime
+        from b_equipment_helmet a
+        inner join b_equipment_helmet_gps b on a.id = b.helmet_id
+        inner join b_labour_infocollection c on a.people_id = c.id
+        where b.xAxis is not null and b.yAxis is not null and b.zAxis is not null
+        <if test="data.peopleId != null">
+            and a.people_id = #{data.peopleId}
+        </if>
+        <if test="data.startTime != null">
+            and b.upload_time >= #{data.startTime,jdbcType=TIMESTAMP}
+        </if>
+        <if test="data.endTime != null">
+            and b.upload_time &lt;= #{data.endTime,jdbcType=TIMESTAMP}
+        </if>
+        order by b.upload_time
+    </select>
+</mapper>

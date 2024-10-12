@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.safety.mapper.SafetyStaticRiskMapper">
+
+    <select id="selectPageList" resultType="com.kakarote.build.safety.entity.PO.SafetyStaticRisk">
+        select * from b_safety_static_risk
+        where 1=1
+        <if test="data.riskName != null and data.riskName != ''">
+            and risk_name like CONCAT('%',CONCAT(#{data.riskName},'%'))
+        </if>
+        <if test="data.controlLevel != null and data.controlLevel != ''">
+            and control_level = #{data.controlLevel}
+        </if>
+        <if test="data.relieveStatus != null and data.relieveStatus != ''">
+            and relieve_status = #{data.relieveStatus}
+        </if>
+        <if test="data.createBy != null and data.createBy != ''">
+            and publish_date between  CONCAT(#{data.createBy},' 00:00:00') and CONCAT(#{data.updateBy},' 23:59:59')
+        </if>
+        <if test="data.riskDesc != null and data.riskDesc != ''">
+            and risk_desc like CONCAT('%',CONCAT(#{data.riskDesc},'%'))
+        </if>
+
+        <!--order by publish_date desc-->
+    </select>
+</mapper>

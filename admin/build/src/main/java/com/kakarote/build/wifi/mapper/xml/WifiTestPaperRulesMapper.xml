@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.wifi.mapper.WifiTestPaperRulesMapper">
+
+    <select id="selectList" resultType="java.util.Map">
+        select * from b_wifi_test_paper_rules
+        where (project_id != 0 or project_id is null)
+        <if test="data.workTypeId != null and data.workTypeId != ''">
+          and  work_type_id = #{data.workTypeId}
+        </if>
+--         order by create_time desc
+    </select>
+
+    <select id="getPaperRuleByWorkTypeId" resultType="com.kakarote.build.wifi.entity.PO.WifiTestPaperRules">
+        select c.* from (SELECT (@sn  := @sn + 1) sn,a.* from b_wifi_test_paper_rules a,(select @sn:=0) b order by create_time desc)c
+        <where>
+            (project_id != 0 or project_id is null)
+            <if test="data.workTypeId != null">
+               and work_type_id = #{data.workTypeId}
+            </if>
+            <if test="data.tenantId != null">
+              and   tenant_id = #{data.tenantId}
+            </if>
+        </where>
+            GROUP BY work_type_id
+    </select>
+
+
+</mapper>

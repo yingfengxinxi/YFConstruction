@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.project.mapper.ProgressModelsetDetailsMapper">
+
+    <select id="queryByPidAndMid" resultType="com.kakarote.build.project.entity.PO.ProgressModelsetDetails">
+        SELECT
+        a.*, CASE
+        WHEN (
+        SELECT
+        count(1)
+        FROM
+        b_progress_modelset_details m
+        WHERE
+        m.pid = a.id
+        ) = 0 THEN
+        false
+        ELSE
+        true
+        END hasChildren
+        FROM
+        b_progress_modelset_details a
+        WHERE a.tenant_id != 0
+        and a.project_id != 0
+        and a.pid = #{data.pid}
+        and a.mid = #{data.mid}
+        ORDER BY serial_number asc ,create_time desc
+    </select>
+
+<!--    计划生成的时候使用-->
+    <select id="queryMapByPidAndMid" resultType="java.util.Map">
+        SELECT
+        a.id as mdid,a.mid,a.mname,a.serial_Number as serialNumber,a.level,a.name,a.pid as pmdid, a.plan_gqi_number as planGqiNumber,
+        a.if_Milestone as ifMilestone,a.if_critical_route as ifCriticalRoute,a.pre_Node as preNode,a.note
+        FROM
+        b_progress_modelset_details a
+        WHERE a.tenant_id != 0
+        and a.project_id != 0
+        and a.mid = #{data.mid}
+        ORDER BY serial_number asc ,create_time desc
+    </select>
+
+</mapper>

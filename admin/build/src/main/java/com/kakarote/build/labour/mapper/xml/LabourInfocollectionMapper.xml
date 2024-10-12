@@ -1,0 +1,455 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.labour.mapper.LabourInfocollectionMapper">
+
+    <select id="selectList" parameterType="com.kakarote.build.labour.entity.BO.LabourInfocollectionBO"
+            resultType="com.kakarote.build.labour.entity.PO.LabourInfocollection">
+        select A.*,B.dict_label as work_type_name,C.team_name as team_name_name,D.real_name as  real_name_name from b_labour_infocollection A
+        <!--left join b_labour_worktype B on A.work_type_id=B.id-->
+        left join (select dict_label, dict_value from wk_admin_dict_data where dict_type = 'b_labour_work_type') B on a.work_type_dict = B.dict_value
+        left join b_labour_team C on A.team_name=C.id
+        left join  b_labour_subcontractor D on A.subcontractor=D.id
+        <where>
+            <if test="data.idCard != null and data.idCard != ''">
+                AND A.id_Card like concat('%', #{data.idCard}, '%')
+            </if>
+            <if test="data.name != null and data.name != ''">
+                AND A.name like concat('%', #{data.name}, '%')
+            </if>
+            <if test="data.sex != null and data.sex != ''">
+                AND A.sex = #{data.sex}
+            </if>
+            <if test="data.nation != null and data.nation != ''">
+                AND A.nation = #{data.nation}
+            </if>
+            <if test="data.imgCardUrl != null and data.imgCardUrl != ''">
+                AND A.img_Card_Url = #{data.imgCardUrl}
+            </if>
+            <if test="data.birthday != null and data.birthday != ''">
+                AND A.birthday = #{data.birthday}
+            </if>
+            <if test="data.address != null and data.address != ''">
+                AND A.address = #{data.address}
+            </if>
+            <if test="data.issuingAuthority != null and data.issuingAuthority != ''">
+                AND A.Issuing_authority = #{data.issuingAuthority}
+            </if>
+            <!--<if test="data.workTypeId != null and data.workTypeId != ''">
+                AND A.work_Type_Id = #{data.workTypeId}
+            </if>-->
+            <if test="data.workTypeDict != null and data.workTypeDict != ''">
+                AND A.work_type_dict = #{data.workTypeDict}
+            </if>
+            <if test="data.subcontractor != null and data.subcontractor != ''">
+                AND A.subcontractor = #{data.subcontractor}
+            </if>
+            <if test="data.ifTeamLeader != null and data.ifTeamLeader != ''">
+                AND A.if_team_leader = #{data.ifTeamLeader,jdbcType=VARCHAR}
+            </if>
+            <if test="data.ifOddjob != null and data.ifOddjob != ''">
+                AND A.if_Oddjob = #{data.ifOddjob}
+            </if>
+            <if test="data.projectId != null and data.projectId != ''">
+                AND A.project_id = #{data.projectId}
+            </if>
+            <!-- wnj 设置此处note作为临沂大屏-项目人员中查询劳务人数的参数 -->
+            <if test="data.note != null and data.note != '' and  data.note=='1'.toString()">
+                and EXISTS(
+                SELECT id FROM b_labour_attendance_record blar
+                WHERE DATE_FORMAT(blar.clock_time, '%Y-%m-%d') = DATE_FORMAT(NOW(), '%Y-%m-%d')
+                AND A.id = blar.infocollection_id  GROUP BY blar.infocollection_id )
+            </if>
+            <if test="data.note != null and data.note != '' and  data.note=='2'.toString()">
+                AND A.enter_status = '1'  AND A.if_oddjob = '0' AND A.enter_date IS NOT NULL
+            </if>
+            <if test="data.workRole != null and data.workRole != ''">
+
+                and A.enter_status='1'
+                and A.if_oddjob='0'
+                and A.enter_date is not null
+                AND A.work_role = #{data.workRole}
+            </if>
+</where>
+</select>
+
+<select id="getTeamLeaderList" parameterType="com.kakarote.build.labour.entity.BO.LabourInfocollectionBO"
+    resultType="java.util.Map">
+select bli.*, bls.real_name subcontractorName
+from b_labour_infocollection bli
+left join b_labour_subcontractor bls on bli.subcontractor = bls.id
+<where>
+    <if test="data.idCard != null and data.idCard != ''">
+        AND bli.id_Card like concat('%', #{data.idCard}, '%')
+    </if>
+    <if test="data.name != null and data.name != ''">
+        AND bli.name = #{data.name}
+    </if>
+    <if test="data.ifTeamLeader != null and data.ifTeamLeader != ''">
+        AND bli.if_team_leader = #{data.ifTeamLeader,jdbcType=VARCHAR}
+    </if>
+    <if test="data.subcontractor != null and data.subcontractor != ''">
+        AND bli.subcontractor = #{data.subcontractor,jdbcType=VARCHAR}
+    </if>
+</where>
+</select>
+
+<!--根据分包商查询人员信息，nopage 证件管理使用-->
+    <!--wnj在原XML接口中添加特殊工种筛选-->
+    <select id="selectInfoByMapNoPage" resultType="java.util.Map"
+            parameterType="com.kakarote.build.labour.entity.BO.LabourInfocollectionBO">
+        select a.id,a.name,a.id_card,a.work_type_id,a.work_type_dict
+        from b_labour_infocollection a
+        <where>
+            <if test="data.subcontractor != null and data.subcontractor != ''">
+                AND a.subcontractor = #{data.subcontractor}
+            </if>
+<!--            <if test="data.workTypeIfspecial != null and data.workTypeIfspecial != ''">-->
+<!--                AND a.work_type_dict in ('130','270','170','080','180','030')-->
+<!--            </if>-->
+            <if test="data.projectId != null and data.projectId != ''">
+                AND a.project_id = #{data.projectId}
+            </if>
+        </where>
+    </select>
+
+    <!--安全教育培训管理新增 2021-04-11-->
+    <select id="selectListSafetyTraining" parameterType="com.kakarote.build.labour.entity.BO.LabourInfocollectionBO"
+            resultType="com.kakarote.build.labour.entity.PO.LabourInfocollection">
+        select bli.*
+        from b_labour_infocollection bli
+        <where>
+            1=1
+            <if test="data.idCard != null and data.idCard != ''">
+                AND id_Card like concat('%', #{data.idCard}, '%')
+            </if>
+            <if test="data.name != null and data.name != ''">
+                AND name  like concat('%', #{data.name}, '%')
+            </if>
+            <if test="data.sex != null and data.sex != ''">
+                AND sex = #{data.sex}
+            </if>
+            <if test="data.nation != null and data.nation != ''">
+                AND nation = #{data.nation}
+            </if>
+            <if test="data.imgCardUrl != null and data.imgCardUrl != ''">
+                AND img_Card_Url = #{data.imgCardUrl}
+            </if>
+            <if test="data.birthday != null and data.birthday != ''">
+                AND birthday = #{data.birthday}
+            </if>
+            <if test="data.address != null and data.address != ''">
+                AND address = #{data.address}
+            </if>
+            <if test="data.issuingAuthority != null and data.issuingAuthority != ''">
+                AND Issuing_authority = #{data.issuingAuthority}
+            </if>
+            <if test="data.workTypeId != null and data.workTypeId != ''">
+                AND work_Type_Id = #{data.workTypeId}
+            </if>
+            <if test="data.subcontractor != null and data.subcontractor != ''">
+                AND subcontractor = #{data.subcontractor}
+            </if>
+            <if test="data.ifTeamLeader != null and data.ifTeamLeader != ''">
+                AND if_team_leader = #{data.ifTeamLeader,jdbcType=VARCHAR}
+            </if>
+            <if test="data.teamName != null and data.teamName != ''">
+                AND team_name = #{data.teamName,jdbcType=VARCHAR}
+            </if>
+            <if test="data.note != null and data.note != ''">
+                AND id not in (select infocollection_id from b_safety_safety_training_members where  training_id = #{data.note,jdbcType=VARCHAR})
+            </if>
+        </where>
+    </select>
+
+    <!--统计班组人数 2021-04-15-->
+    <select id="ByTeamName" parameterType="java.lang.String" resultType="com.kakarote.build.labour.entity.PO.LabourInfocollection">
+        SELECT a.* FROM
+       b_labour_infocollection a
+        WHERE 1=1 and ( team_name = #{teamName} or
+        a.id in(select b.team_leader_id from b_labour_team b where b.id= #{teamName} ) )
+    </select>
+
+    <!--2021-04-16新增查询人员id-->
+    <select id="selectInfoRecord"  resultType="com.kakarote.build.labour.entity.PO.LabourInfocollection">
+        select bli.*
+        from b_labour_infocollection bli
+        <where>
+            1=1
+            <if test="idCard != null and idCard != ''">
+                AND id_Card = #{idCard}
+            </if>
+            <if test="attendanceNumber != null and attendanceNumber != ''">
+                AND attendance_number = #{attendanceNumber}
+            </if>
+            <if test="name != null and name != ''">
+                AND name = #{name}
+            </if>
+            <if test="tenantId != null and tenantId != ''">
+                AND tenant_id = #{tenantId}
+            </if>
+            <if test="projectId != null and projectId != ''">
+                AND project_id = #{projectId}
+            </if>
+
+        </where>
+    </select>
+
+    <!--2021-11-25新增查询当前租户下的全部人员-->
+    <select id="selectInfoRecordAll"  resultType="com.kakarote.build.labour.entity.PO.LabourInfocollection">
+        select bli.*
+        from b_labour_infocollection bli
+        <where>
+            1=1
+            <if test="idCard != null and idCard != ''">
+                AND id_Card = #{idCard}
+            </if>
+            <if test="attendanceNumber != null and attendanceNumber != ''">
+                AND attendance_number = #{attendanceNumber}
+            </if>
+            <if test="name != null and name != ''">
+                AND name = #{name}
+            </if>
+            <if test="workRole != null and workRole != ''">
+                AND work_role = #{workRole}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectAttendanceToday" resultType="java.util.Map">
+        select count(i.id) headcount, count(b.infocollection_id) attendanceNum from  b_labour_infocollection i
+        left join (
+            select r.infocollection_id, max(r.clock_time) clock_time, r.clock_direction
+            from b_labour_attendance_record r
+            where r.clock_direction = '0' and r.clock_time >= DATE(NOW())
+            <if test="data.projectId != null">
+                and r.project_id = #{data.projectId}
+            </if>
+            group by r.infocollection_id) b on i.id = b.infocollection_id
+        where i.if_oddjob='0'
+        <if test="data.projectId != null">
+            and i.project_id = #{data.projectId}
+        </if>
+    </select>
+
+    <!-- 集团数据 今日施工在场人数 -->
+    <select id="selectAttendanceTodayByProjectId" resultType="java.util.Map">
+        select count(i.id) headcount, count(b.infocollection_id) attendanceNum,i.project_id
+        from  b_labour_infocollection i
+        left join (
+            select r.infocollection_id, max(r.clock_time) clock_time, r.clock_direction from b_labour_attendance_record r
+            where r.clock_direction = '0' and r.clock_time >= DATE(NOW())
+            group by r.infocollection_id
+        )
+        b on i.id = b.infocollection_id
+        where i.project_id = #{projectId}
+    </select>
+
+    <select id="selectSceneWorkTypeList" resultType="java.util.Map">
+        select w.dict_label name, count(*) value from b_labour_infocollection i
+        <!--inner join b_labour_worktype w on i.work_type_id = w.id-->
+        inner join (select dict_label, dict_value
+                from wk_admin_dict_data where dict_type = 'b_labour_work_type') w on i.work_type_dict = w.dict_value
+        group by w.dict_value
+    </select>
+
+    <select id="selectTeamList" resultType="java.util.Map">
+        select t.team_name name, count(t.id) value from b_labour_infocollection i
+        inner join b_labour_team t on i.team_name = t.id
+        group by t.id
+    </select>
+
+    <select id="selectNationList" resultType="java.util.Map">
+        select b.dict_label name,  count(b.dict_value) value from b_labour_infocollection i
+        inner join (select * from wk_admin_dict_data d
+            where d.dict_type = 'b_nation') b on i.nation = b.dict_value
+        where i.if_oddjob='0'
+        group by b.dict_value
+    </select>
+
+    <select id="selectGenderList" resultType="java.util.Map">
+        select (CASE when i.sex  = '0' then '男' else '女' end) name,
+                count(*) value
+        from b_labour_infocollection i
+        where i.if_oddjob='0'
+        group by i.sex
+    </select>
+
+    <select id="selectOddIdAndName" resultType="java.util.Map">
+        select id , name
+        from b_labour_infocollection
+        where if_oddjob = '1'
+    </select>
+
+    <select id="queryProjectsByIdCard" resultType="java.util.Map">
+        select a.evaluation,a.id,a.project_id,
+                b.project_name,b.construction_unit_name,b.project_address,
+				b.actual_completion_date,b.contacts_name,b.contacts_tel
+        from b_labour_infocollection a
+        left join b_project_info b on a.project_id = b.id
+		where a.id_card = #{idCard}
+        and a.project_id != #{projectId}
+        order by a.project_id
+    </select>
+
+    <select id="getByIdCard" resultType="com.kakarote.build.labour.entity.PO.LabourInfocollection">
+        select * from b_labour_infocollection where id_card = #{idCard} and project_id = #{projectId} and tenant_id = #{tenantId}
+    </select>
+
+    <select id="selectAgeRange" resultType="java.util.Map">
+        select count(a.id_card) count,
+	    (case
+            when a.age &gt; '10' and a.age &lt;='20' then '10-20岁'
+            when a.age &gt; '20' and a.age &lt;='30' then '20-30岁'
+            when a.age &gt; '30' and a.age &lt;='40' then '30-40岁'
+            when a.age &gt; '40' and a.age &lt;='50' then '40-50岁'
+            when a.age &gt; '50' and a.age &lt;='60' then '50-60岁'
+            else '60岁以上'
+        end)
+        as ageRange
+        from b_labour_infocollection i
+        inner join (select id, id_card,tenant_id,project_id,
+            year(curdate())-if(length(id_card)=18,substring(id_card,7,4),if(length(id_card)=15,concat('19',substring(id_card,7,2)),null))  as age
+            from b_labour_infocollection
+            group by id_card) a on i.id = a.id
+        where i.if_oddjob='0'
+        group by ageRange
+    </select>
+
+    <select id="selectHeadCount" resultType="java.util.Map">
+        select count(a.id) headcount from(
+           select i.id, i.id_card
+           from b_labour_infocollection i
+           where i.if_oddjob='0'
+           group by i.id_card) a
+    </select>
+
+    <select id="selectEntryOrExitCount" resultType="java.util.Map">
+        select IFNULL(sum(case when r.clock_direction = '0' then 1 else 0 end),0) entryCount,
+               IFNULL(sum(case when r.clock_direction = '1' then 1 else 0 end),0) exitCount
+        from b_labour_attendance_record r
+        where DATE_FORMAT(r.clock_time,'%y-%m-%d') = CURDATE()
+    </select>
+
+    <select id="selectListByTeam" resultType="java.util.Map">
+        select a.id, a.name
+        from b_labour_infocollection a
+        where a.team_name = #{teamId}
+    </select>
+
+    <!--统计班组人数 2021-12-20-->
+    <select id="byManageType"  resultType="com.kakarote.build.labour.entity.PO.LabourInfocollection">
+        SELECT a.id ,a.name,a.project_id ,a.enter_date,
+        ( select c.project_name  from b_project_info c where a.project_id=c.id ) as note
+
+         FROM
+        b_labour_infocollection a
+        WHERE 1=1
+        and enter_status='1'
+        and if_oddjob='0'
+        and enter_date is not null
+
+        <if test="projectId != null and projectId != ''">
+            AND project_id = #{projectId}
+        </if>
+        <if test="workRole != null and workRole != ''">
+            AND work_role = #{workRole}
+        </if>
+
+    </select>
+
+    <!--统计班组人数 2021-12-31-->
+    <select id="byManageType2"  resultType="com.kakarote.build.labour.entity.PO.LabourInfocollection">
+<!--
+        SELECT a.id ,a.name,a.project_id ,a.enter_date,
+        b.project_name as note
+
+        FROM
+        b_labour_infocollection a ,b_project_info b
+        WHERE 1=1
+        and a.project_id =b.id
+        and b.project_state ='2'
+        and a.enter_status='1'
+        and a.if_oddjob='0'
+        and a.enter_date is not null
+
+-->
+
+        SELECT a.id ,a.name,a.project_id ,a.enter_date,
+        b.project_name as note
+        FROM
+        b_labour_infocollection a
+        inner join b_project_info b on a.project_id =b.id
+        WHERE 1=1
+        and b.project_state ='2'
+        and a.if_oddjob='0'
+
+        <if test="projectId != null and projectId != ''">
+            AND a.project_id = #{projectId}
+        </if>
+        <if test="workRole != null and workRole != ''">
+            AND a.work_role = #{workRole}
+        </if>
+
+    </select>
+    <!--统计班组人数 2021-12-31
+    2022-04-19 添加分页 -->
+    <select id="byManageType3"  resultType="java.util.Map">
+        SELECT a.id ,a.name,a.project_id ,a.enter_date,a.id_card,a.sex,a.phone,
+        b.project_name
+
+        FROM
+        b_labour_infocollection a ,b_project_info b
+        WHERE 1=1
+        and a.project_id =b.id
+        and b.project_state ='2'
+        and a.enter_status='1'
+        and a.if_oddjob='0'
+        and a.enter_date is not null
+
+        <if test="data.projectId != null and data.projectId != ''">
+            AND a.project_id = #{data.projectId}
+        </if>
+        <if test="data.workRole != null and data.workRole != ''">
+            AND a.work_role = #{data.workRole}
+        </if>
+
+    </select>
+    <update id="updateWorkerContract"   parameterType="com.kakarote.build.labour.entity.PO.LabourInfocollection">
+        UPDATE b_labour_infocollection SET
+        contract_period_type = #{contractPeriodType},effective_date = #{effectiveDate},expiration_date = #{expirationDate},attachments = #{attachments}
+        where  id = #{id} and project_id = #{projectId} and tenant_id = #{tenantId}
+    </update>
+
+
+    <select id="selectAttendanceDataList" resultType="java.util.Map">
+        select * from (
+		SELECT i.id,i.name,i.id_card,i.sex,b.clock_time,IFNULL(b.clock_direction,'-1') as isAttend from  b_labour_infocollection i
+        left join (select r.infocollection_id, max(r.clock_time) clock_time, r.clock_direction from b_labour_attendance_record r
+        where r.clock_direction = '0' and r.clock_time >= DATE(NOW())
+        group by r.infocollection_id) b on i.id = b.infocollection_id )a
+        <where>
+            1=1
+            <if test="data.isAttend!=null and data.isAttend!=''" >
+              and isAttend = #{data.isAttend}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectInfoByName" resultType="java.util.Map">
+        select a.id, a.name, a.phone, b.id as companyId, b.real_name as companyName
+        from b_labour_infocollection a
+        inner join b_labour_subcontractor b on a.subcontractor = b.id
+        where #{data.name} like CONCAT('%',a.name,'%') and a.if_team_leader = 'Y'
+    </select>
+    <select id="getInfocollectionByPhone" resultType="java.util.Map">
+        select *
+        from b_labour_infocollection
+        where phone = #{phone}  limit 1
+    </select>
+    <select id="getInfocollectionByNameAndPhone" resultType="com.kakarote.build.labour.entity.PO.LabourInfocollection">
+        select *
+        from b_labour_infocollection
+        where phone = #{phone} and name = #{name} GROUP BY create_time desc   limit 1
+    </select>
+
+</mapper>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.qual.mapper.QualStandardRearingRoomMapper">
+
+    <select id="selectByPage" resultType="com.kakarote.build.qual.entity.PO.QualStandardRearingRoom">
+        select a.*, b.asset_name, b.asset_code
+        from b_qual_standard_rearing_room a
+        left join b_equipment_assets b on a.equipment_id = b.asset_id
+        <where>
+            <if test="data.warnType != null and data.warnType != ''">
+                and a.warn_type = #{data.warnType,jdbcType=VARCHAR}
+            </if>
+            <if test="data.startTime != null">
+                and a.monitor_data_time >= #{data.startTime,jdbcType=TIMESTAMP}
+            </if>
+            <if test="data.endTime != null">
+                and a.monitor_data_time &lt;= #{data.endTime,jdbcType=TIMESTAMP}
+            </if>
+            <if test="data.assetName != null and data.assetName.length() > 0">
+                and b.asset_name like concat('%', #{data.assetName,jdbcType=VARCHAR}, '%')
+            </if>
+        </where>
+        order by a.monitor_data_time desc
+    </select>
+</mapper>

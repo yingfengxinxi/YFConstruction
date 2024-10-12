@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qdoner.datarecept.ai.mapper.AiDregCarMapper">
+
+    <insert id="batchSaveData">
+        insert into b_ai_dreg_car_cleaning
+        (id, create_by, create_time, update_by, update_time, tenant_id, project_id, license_plate_number, license_plate_color,
+        car_type, car_color, approach_time, approach_img, appearance_time, appearance_img, cleaning_time, cleaning_img, catch_no,
+        alarm_type, video_url)
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.id}, #{item.createBy}, #{item.createTime}, #{item.updateBy}, #{item.updateTime}, #{item.tenantId}, #{item.projectId},
+            #{item.licensePlateNumber}, #{item.licensePlateColor}, #{item.carType}, #{item.carColor}, #{item.approachTime}, #{item.approachImg},
+            #{item.appearanceTime}, #{item.appearanceImg}, #{item.cleaningTime}, #{item.cleaningImg}, #{item.catchNo}, #{item.alarmType},
+            #{item.videoUrl})
+        </foreach>
+    </insert>
+    <insert id="batchSaveDregCarData">
+        insert into b_ai_dreg_car
+        (tenant_id, project_id,transfer_time,equipment_id,
+        direction,license_plate_number,license_plate_color,car_color,img,car_type)
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.tenantId}, #{item.projectId},#{item.transferTime},#{item.equipmentId},
+            #{item.direction},#{item.licensePlateNumber},#{item.licensePlateColor},#{item.carColor},#{item.img},#{item.carType})
+        </foreach>
+    </insert>
+</mapper>

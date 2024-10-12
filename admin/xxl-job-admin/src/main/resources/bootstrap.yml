@@ -1,0 +1,51 @@
+server:
+  port: ${SERVER_PORT:8999}
+  servlet:
+    context-path:
+spring:
+  profiles:
+    include: core,dev
+  application:
+    name: xxl-job-admin
+  cloud:
+    nacos:
+      config:
+        enabled: true
+        server-addr: 127.0.0.1:8848
+        file-extension: yaml
+        prefix: job_admin
+      discovery:
+        enabled: true
+        server-addr: 127.0.0.1:8848
+  mail:
+    from: xxx@qq.com
+    host: smtp.qq.com
+    port: 25
+    username: xxx@qq.com
+    password: xxx
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          socketFactory:
+            class: javax.net.ssl.SSLSocketFactory
+### resources
+  mvc:
+    servlet:
+      load-on-startup: 0
+    static-path-pattern: /static/**
+  resources:
+    static-locations: classpath:/static/**
+
+### freemarker
+  freemarker:
+    templateLoaderPath: classpath:/templates/
+    suffix: .ftl
+    charset: UTF-8
+    request-context-attribute: request
+    settings:
+      number_format: 0.##########
+

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+  <head>
+      <meta charset="UTF-8"/>
+      <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+      <title>二三维联动</title>
+      <link rel="stylesheet" href="//static.bimface.com/attach/9aa6ee08a53d42639c6d867a81a05bed_common.css"/>
+      <link rel="stylesheet" href="//static.bimface.com/attach/c1791a1d6c914fedb88d3a04450e2053_2D3D.css"/>
+      <script src="//static.bimface.com/attach/257ed7db869147478d775d71ca0ed2fc_jquery-3.3.1.min.js"></script>
+    <script src="//static.bimface.com/api/BimfaceSDKLoader/BimfaceSDKLoader@latest-release.js" ></script>
+  </head>
+  <body>
+  <section class="wrap">
+  <section class="viewer-box">
+     <div class="viewer-2d" id="viewer2d"></div>
+     <div class="viewer-3d" id="viewer3d"></div>
+     </section>
+  </section>
+  <script type="text/javascript" >	
+    var viewToken = '476d1c82e9e8447aa9ab9c9a16ac0a1d';
+    var  viewerDrawing;
+    // 初始化显示组件
+    var options = new BimfaceSDKLoaderConfig();
+    options.viewToken = viewToken;
+    BimfaceSDKLoader.load(options, successCallback, failureCallback);
+  
+    function successCallback(viewMetaData) {
+    // 获取DOM元素
+     var dom3d = document.getElementById('viewer3d');
+    // 配置参数
+    var config = new Glodon.Bimface.Application.WebApplication3DConfig();
+     config.domElement = dom3d;
+      config.enableViewhouse = false;
+     //取消工具条
+     // config.Toolbars = [];
+     // 创建viewer3D对象
+     var app = new Glodon.Bimface.Application.WebApplication3D(config);
+     // 添加模型
+     app.addView(viewToken);
+     //模型点击监听事件
+     app.addEventListener(Glodon.Bimface.Viewer.Viewer3DEvent.MouseClicked,function(el){
+  //根据模型构件ID获取对应图纸的构件ID
+     var did = viewerDrawing.toDrawingId(el.objectId);
+      if(did){
+         //如果有对应的模型构件ID，就缩放到对应位置
+          viewerDrawing._drawingViewer.zoomToObject(did);
+          viewerDrawing._drawingViewer.update();
+   }
+   })
+     // 监听添加view完成的事件
+    app.addEventListener(Glodon.Bimface.Viewer.Viewer3DEvent.ViewAdded, function() {
+      
+     // 渲染3D模型
+     app.render();
+     var viewer3D = app.getViewer();
+      
+      //自适应屏幕大小
+ window.onresize=function(){
+  viewer3D.resize(document.documentElement.clientWidth,document.documentElement.clientHeight-40)
+}
+     //隐藏右上角viewhouse
+     //viewer3D.hideViewHouse();
+     var options2d = new BimfaceSDKLoaderConfig();
+      options2d.viewToken = viewToken;
+      options2d.viewType = BimfaceViewTypeOption.DrawingView;
+      BimfaceSDKLoader.load(options2d, successCallback2d, failureCallback2d);
+     function successCallback2d(viewMetaData) {
+       var dom2d = document.getElementById('viewer2d');
+       var config2d = new Glodon.Bimface.Viewer.ViewerDrawingConfig();
+       config2d.domElement = dom2d;
+      //添加图纸
+       viewerDrawing = new Glodon.Bimface.Viewer.ViewerDrawing(config2d);
+      var drawingUrl = viewMetaData.drawingUrl;
+      //如果是单模型的话，只需要传图纸id
+     var _id =582803;
+      viewerDrawing.load(viewToken,_id);
+
+      //如果是集成模型的话，需要传图纸id和单模型的fileid
+   	  //   var _id =1287057;
+      //   var _fileid =1628186476905664;
+      //   viewerDrawing.load(viewToken,_id,_fileid);
+       
+      
+
+     viewerDrawing.addEventListener(Glodon.Bimface.Viewer.ViewerDrawingEvent.ComponentsSelectionChanged,function(el){
+      if(el.length > 0){
+        //  var drawid=_fileid+'.'+el[0]
+        //  console.log(drawid);
+        //根据图纸点击的构件ID获取对应的模型构件ID
+       var rid = viewerDrawing.toModelId(el[0]);
+      viewer3D.clearIsolation();
+        //定位到该构件
+        viewer3D.setSelectedComponentsById([rid]);
+        //是否存在构件
+        var isExist = viewer3D.getViewer().getComponentInfoByUserId(rid);
+      if (isExist) {
+        //隔离构件，其他半透明
+        viewer3D.isolateComponentsById([rid], Glodon.Bimface.Viewer.IsolateOption.MakeOthersTranslucent);
+        //集成模型需要把fileid加进去
+        //viewer3D.isolateComponentsById([_fileid+'.'+rid], Glodon.Bimface.Viewer.IsolateOption.MakeOthersTranslucent);
+        //定位到该构件
+        //viewer3D.setSelectedComponentsById([_fileid+'.'+rid]);
+        viewer3D.zoomToSelectedComponents();
+      } else {
+     	viewer3D.clearIsolation();
+        viewer3D.render();
+      }
+  }
+  })
+  }
+  function failureCallback2d(error){
+   console.log(error);
+  }
+  })
+  }
+  function failureCallback(error) {
+    console.log(error);
+  };
+  </script>
+  </body>
+  </html>

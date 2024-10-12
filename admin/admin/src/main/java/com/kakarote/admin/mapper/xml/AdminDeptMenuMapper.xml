@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.admin.mapper.AdminDeptMenuMapper">
+
+    <select id="getDeptMenu" resultType="java.lang.Integer">
+        select b.menu_id
+        from wk_admin_dept_menu as a inner join wk_admin_menu as b on a.menu_id = b.menu_id and b.tenant_id = #{deptId}
+        where a.dept_id = #{deptId}
+        and (b.parent_id in (SELECT menu_id FROM wk_admin_menu WHERE parent_id = #{parentId}) or b.parent_id = #{parentId})
+    </select>
+    <select id="getDeptMenu2" resultType="java.lang.Integer">
+        select b.menu_id
+        from wk_admin_dept_menu as a inner join wk_admin_menu as b on a.menu_id = b.menu_id and b.tenant_id = #{deptId}
+        where a.dept_id = #{deptId}
+        and (b.parent_id in (SELECT menu_id FROM wk_admin_menu WHERE parent_id = #{parentId}) or b.parent_id = #{parentId})
+        and a.tenant_id != 0
+    </select>
+</mapper>

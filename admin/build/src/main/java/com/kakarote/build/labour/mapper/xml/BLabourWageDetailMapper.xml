@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.labour.mapper.BLabourWageDetailMapper">
+
+
+
+    <sql id="selectVo">
+        select id, create_by, create_time, update_by, update_time,tenant_id,project_id   ,wage_detail_team_name,wage_id,infocollection_id,
+        infocollection_name,infocollection_card,issue_date,day_price,man_days,quantities_price,quantities,wage_detail_should,wage_detail_advance
+        ,month_balance,cumulative_balance,remarks,wage_detail_month,
+        id_card_type,work_hours,actual_amount,is_back_pay,back_pay_month,
+        third_pay_roll_code,data_generation,wages_card_number,wages_bank_code,wages_bank_name
+        ,undertakes_card_number,undertakes_bank_code,undertakes_bank_name
+
+		from b_labour_wage_detail
+    </sql>
+
+
+    <select id="selectDataList" resultType="com.kakarote.build.labour.entity.PO.BLabourWageDetail">
+        <include refid="selectVo"/>
+        <where>
+            1=1
+            <if test="data.infocollectionName != null and data.infocollectionName != ''">
+                AND infocollection_name = #{data.infocollectionName}
+            </if>
+            <if test="data.infocollectionCard != null and data.infocollectionCard != ''">
+                AND infocollection_card = #{data.infocollectionCard}
+            </if>
+            <if test="data.createBy != null and data.createBy != ''">
+                AND DATE_FORMAT(issue_date,'%Y-%m-%d') &gt;= #{data.createBy}
+            </if>
+            <if test="data.updateBy != null and data.updateBy != ''">
+                AND #{data.updateBy} &gt;= DATE_FORMAT(issue_date,'%Y-%m-%d')
+            </if>
+            <if test="data.thirdPayRollCode != null and data.thirdPayRollCode != ''">
+                AND third_pay_roll_code = #{data.thirdPayRollCode}
+            </if>
+            <if test="data.dataGeneration != null and data.dataGeneration != ''">
+                AND data_generation = #{data.dataGeneration}
+            </if>
+            order by  issue_date desc
+        </where>
+    </select>
+
+    <select id="selectByPid" resultType="com.kakarote.build.labour.entity.PO.BLabourWageDetail">
+        <include refid="selectVo"/>
+        <where>
+            wage_id = #{pid}
+
+        </where>
+    </select>
+
+    <delete id="deleteByPid"  parameterType="java.lang.String">
+        delete from b_labour_wage_detail
+        where wage_id = #{pid}
+    </delete>
+
+    <select id="selectCumulativeBalance" resultType="java.lang.String">
+        SELECT SUM(month_balance) FROM b_labour_wage_detail
+        <where>
+            1=1
+            <if test="infocollectionId != null and infocollectionId != ''">
+                AND infocollection_id = #{infocollectionId}
+            </if>
+            <if test="createBy != null and createBy != ''">
+                AND  #{createBy}> DATE_FORMAT(wage_detail_month,'%Y-%m')
+            </if>
+
+        </where>
+    </select>
+
+    <select id="selectSumPid" parameterType="java.lang.String" resultType="com.kakarote.build.labour.entity.PO.BLabourWageDetail">
+        select
+        SUM(man_days) as man_days,
+        SUM(quantities) as quantities ,
+        SUM(wage_detail_should) as wage_detail_should ,
+        SUM(wage_detail_advance) as wage_detail_advance ,
+        SUM(cumulative_balance) as month_balance
+        from b_labour_wage_detail
+        <where>
+            wage_id = #{pid}
+        </where>
+    </select>
+    <select id="selectByWageId" resultType="java.util.Map">
+            select A.id, A.create_by,A.create_time,A.update_by,A.update_time,A.tenant_id,A.project_id,A.wage_detail_team_name,A.wage_id,A.infocollection_id,
+            A.infocollection_name,A.infocollection_card,DATE_FORMAT(A.issue_date,'%Y-%m-%d')as issue_date,A.day_price,A.man_days,A.quantities_price,A.quantities,A.wage_detail_should,A.wage_detail_advance,
+            A.month_balance,A.cumulative_balance,A.remarks,A.wage_detail_month,B.bank_account,B.bank_card_number
+            from b_labour_wage_detail A LEFT JOIN b_labour_infocollection B on A.infocollection_id=B.id
+        <where>
+            wage_id = #{pid}
+        </where>
+    </select>
+</mapper>

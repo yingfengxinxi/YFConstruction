@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.safety.mapper.SafetyInspectionInfoMapper">
+
+    <select id="selectByPage" resultType="com.kakarote.build.safety.entity.PO.SafetyInspectionInfo">
+        SELECT bsii.*, wad.name deptName, wau.realname
+        FROM b_safety_inspection_info bsii
+        LEFT JOIN wk_admin_dept wad on bsii.dept_id = wad.dept_id
+        LEFT JOIN wk_admin_user wau on bsii.inspector_id = wau.user_id
+        <where>
+            <if test="data.checkCode != null and data.checkCode != ''">
+                and bsii.check_code like concat('%', #{data.checkCode,jdbcType=VARCHAR}, '%')
+            </if>
+            <if test="data.planName != null and data.planName != ''">
+                and bsii.plan_name like concat('%', #{data.planName,jdbcType=VARCHAR}, '%')
+            </if>
+            <if test="data.beginDate != null">
+                and <![CDATA[ bsii.execute_date >= #{data.beginDate}]]>
+            </if>
+            <if test="data.endDate != null">
+                and <![CDATA[ bsii.execute_date <= #{data.endDate}]]>
+            </if>
+            <if test="data.inspectorId != null">
+                and bsii.inspector_id = #{data.inspectorId,jdbcType=BIGINT}
+            </if>
+            <if test="data.isExecute != null and data.isExecute != ''">
+                and bsii.is_execute = #{data.isExecute,jdbcType=VARCHAR}
+            </if>
+        </where>
+        <!--order by bsii.execute_date desc-->
+    </select>
+
+    <insert id="batchSaveInfo">
+        INSERT INTO b_safety_inspection_info
+        (check_code, plan_id, execute_date, plan_name, plan_level, dept_id, tenant_id, project_id)
+        VALUES
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.checkCode}, #{item.planId}, #{item.executeDate}, #{item.planName}, #{item.planLevel},
+            #{item.deptId}, #{item.tenantId}, #{item.projectId})
+        </foreach>
+    </insert>
+
+    <select id="getPrintData" resultType="java.util.Map">
+        select pi.company_name, pi.project_name, pi.project_address, pi.construction_unit_name,
+        DATE_FORMAT(i.repair_time_limit,"%Y年%m月%d日") repairTimeLimit, i.check_code
+        from b_safety_inspection_info i
+        left join b_project_info pi on i.project_id = pi.id
+        where i.id = #{id,jdbcType=INTEGER}
+    </select>
+
+<!--    集团数据总览-隐患-安全隐患-四个块数据 -->
+    <select id="getCountMapper" resultType="java.util.Map">
+        select
+        a.anQuan_jilu+a.zhiLiang_jilu jilu,
+        a.anQuan_wenti+a.zhiLiang_wenti wenti,
+        a.anQuan_zhenggai+a.zhiLiang_zhenggai zhenggai,
+        ROUND((a.anQuan_zhenggai+a.zhiLiang_zhenggai)/(a.anQuan_wenti+a.zhiLiang_wenti)*100)zhenggailV
+
+        from (
+        select
+
+        (select count(1) from b_safety_inspection_info where project_id = #{projectId}
+        ) anQuan_jilu,
+        (select count(1) from b_safety_inspection_detail where project_id = #{projectId}) anQuan_wenti,
+        (select count(1) from b_safety_inspection_detail where rectify_date is not null and project_id = #{projectId}) anQuan_zhenggai,
+
+        (select count(1) from b_qual_check where project_id = #{projectId}
+        ) zhiLiang_jilu,
+        (select count(1) from b_qual_hidden_trouble where project_id = #{projectId}) zhiLiang_wenti,
+        (select count(1) from b_qual_hidden_trouble where rectify_date is not null and project_id = #{projectId})
+        zhiLiang_zhenggai
+
+        ) a
+
+
+    </select>
+
+    <select id="selectTimeoutList" resultType="java.util.Map">
+        select i.*, d.id as detailId, d.place, d.problem_description, d.inspection_conclusion, d.level, d.danger_source_id,
+        wad.name deptName, wau.realname, s.danger_name
+        from b_safety_inspection_info i
+        inner join b_safety_inspection_detail d on i.id = d.inspection_info_id
+        left join b_safety_danger_source s on d.danger_source_id = s.danger_source_id
+        left join wk_admin_dept wad on i.dept_id = wad.dept_id
+        left join wk_admin_user wau on i.inspector_id = wau.user_id
+        where (d.rectify_effect = '' or d.rectify_effect is null)
+        and DATE_SUB(CURDATE(), INTERVAL 0 DAY) > i.repair_time_limit
+        <if test="data.checkCode != null and data.checkCode != ''">
+            and i.check_code like concat('%', #{data.checkCode,jdbcType=VARCHAR}, '%')
+        </if>
+        <if test="data.planName != null and data.planName != ''">
+            and i.plan_name like concat('%', #{data.planName,jdbcType=VARCHAR}, '%')
+        </if>
+        <if test="data.inspectorId != null">
+            and i.inspector_id = #{data.inspectorId,jdbcType=BIGINT}
+        </if>
+    </select>
+
+    <select id="getInspectionInfo" resultType="com.kakarote.build.safety.entity.PO.SafetyInspectionInfo">
+        select i.*, d.name deptName from b_safety_inspection_info i
+        left join wk_admin_dept d on i.dept_id = d.dept_id
+        where i.id = #{id}
+    </select>
+</mapper>

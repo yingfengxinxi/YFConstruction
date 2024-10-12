@@ -1,0 +1,57 @@
+xxl:
+  job:
+    admin:
+      addresses: http://127.0.0.1:8999
+    executor:
+      appname: datarecept-build
+      ip:
+      port: 9997
+      logpath: xxl-job/jobhandler
+      logretentiondays: 30
+    accessToken:
+#    是否开启job任务注册
+    isRegister: true
+spring:
+  redis:
+    host: ${REDIS_HOST:127.0.0.1}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    database: 13
+    lettuce:
+      pool:
+        max-active: 300
+  datasource:
+    url: jdbc:${DATASOURCE_DBTYPE:mysql}://${DATASOURCE_HOST:rm-m5eqdyah37h7a10si6o.mysql.rds.aliyuncs.com}:${DATASOURCE_PORT:3306}/wk_build_demo?characterEncoding=utf8&useSSL=false&zeroDateTimeBehavior=convertToNull&tinyInt1isBit=false&serverTimezone=Asia/Shanghai&allowMultiQueries=true
+    username: qdoner_123
+    password: qdoner_123
+  cloud:
+      nacos:
+        config:
+          enabled: true
+          server-addr: 127.0.0.1:8848
+          file-extension: yaml
+          prefix: ${spring.application.name}
+        discovery:
+          ip: 127.0.0.1
+          enabled: true
+          server-addr: 127.0.0.1:8848
+      sentinel:
+        filter:
+          enabled: false
+        transport:
+          dashboard: ${SENTINEL_DASHBOARD_HOST:127.0.0.1}:${SENTINEL_DASHBOARD_PORT:8079}
+        datasource:
+          flow:
+            server-addr: 127.0.0.1:8848
+            dataId: ${spring.application.name}-flow-rules
+            groupId: SENTINEL_GROUP
+            rule-type: flow
+wvp:
+  config:
+    urlPrefix: http://47.94.169.80:18080/
+ysy:
+  config:
+      urlPrefix: https://open.ys7.com
+      appKey: b
+      aecret: d
+      accessToken: a

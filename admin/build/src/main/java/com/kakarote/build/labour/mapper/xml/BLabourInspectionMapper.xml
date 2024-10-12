@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.labour.mapper.BLabourInspectionMapper">
+    <sql id="selectVo">
+        select id, create_by, create_time, update_by, update_time,tenant_id,project_id,
+        inspection_phase,inspection_content,batch_id,
+        inspection_type,rectification_info,remarks
+		from b_labour_inspection
+    </sql>
+
+    <select id="selectDataList" resultType="com.kakarote.build.labour.entity.BO.BLabourInspectionBO">
+        <include refid="selectVo"/>
+        <where>
+            1=1
+            <if test="data.inspectionPhase != null and data.inspectionPhase != ''">
+                AND inspection_phase = #{data.inspectionPhase}
+            </if>
+            <if test="data.inspectionType != null and data.inspectionType != ''">
+                AND inspection_type = #{data.inspectionType}
+            </if>
+--             order by  create_time desc
+
+        </where>
+    </select>
+
+    <select id="inspectionStatistical" resultType="java.util.Map">
+        select (select count(1) as xmzs from b_project_info a where a.tenant_id= #{data.tenantId}
+        )as xmzs ,
+        (select count(b.project_id) as sqzs from (select a.project_id from  b_labour_inspection a
+         where a.tenant_id= #{data.tenantId}
+         GROUP BY a.project_id) b
+        )as sqzs,
+        (select count(b.project_id) as wjzs from (select a.project_id from  b_labour_inspection a where
+        (a.inspection_type='2'or a.inspection_type='3') and a.tenant_id= #{data.tenantId}) b
+        )as wjzs
+    </select>
+    <select id="inspectionStatisticalHistogram" resultType="java.util.Map">
+       SELECT a.dict_value,a.dict_label,
+        (select count(1) from  b_labour_inspection b where b.inspection_phase = a.dict_value  and b.tenant_id= #{data.tenantId} ) as sqsl,
+        (select count(1) from  b_labour_inspection b where b.inspection_phase = a.dict_value  and b.tenant_id= #{data.tenantId}
+        and (b.inspection_type='2' or b.inspection_type='3')) as bjsl
+        FROM `wk_admin_dict_data` a
+        where a.dict_type='b_inspection_phase' and a.tenant_id= #{data.tenantId}
+    </select>
+
+    <select id="selectApplyList" resultType="java.util.Map">
+        select a.*, IFNULL(b.project_abbreviation,b.project_name) AS projectName, b.project_address, b.contract_commencement_date,
+            b.contract_completion_date, b.total_area, c.supe
+        from b_labour_inspection a
+        left join b_project_info b on a.project_id = b.id
+        inner join b_supervision_enterprise c on a.project_id = c.project_id
+        where FIND_IN_SET(#{userId},c.supe)
+            <if test="data.inspectionPhase != null and data.inspectionPhase != ''">
+                AND a.inspection_phase = #{data.inspectionPhase}
+            </if>
+            <if test="data.inspectionType != null and data.inspectionType != ''">
+                AND a.inspection_type = #{data.inspectionType}
+            </if>
+            <if test="data.projectId != null and data.projectId != ''">
+                AND a.project_id = #{data.projectId}
+            </if>
+--         order by  a.create_time desc
+    </select>
+
+    <select id="selectApplyAndProjectInfo" resultType="java.util.Map">
+        select a.*, b.construction_unit_name, b.construction_permit_code, b.construction_nature,
+            b.total_cost, b.total_area, b.project_address, b.contract_commencement_date,
+            b.contract_completion_date
+        from b_labour_inspection a
+        left join b_project_info b on a.project_id = b.id
+        where a.id = #{id}
+    </select>
+
+    <select id="selectAllDataList" resultType="java.util.Map">
+        select a.*, IFNULL(b.project_abbreviation,b.project_name) AS projectName, b.project_address, b.contract_commencement_date,
+            b.contract_completion_date, b.total_area, c.supe
+        from b_labour_inspection a
+        left join b_project_info b on a.project_id = b.id
+        inner join b_supervision_enterprise c on a.project_id = c.project_id
+        where 1=1
+        AND a.inspection_type != '0'
+        <if test="data.inspectionPhase != null and data.inspectionPhase != ''">
+            AND a.inspection_phase = #{data.inspectionPhase}
+        </if>
+        <if test="data.projectId != null and data.projectId != ''">
+            AND a.project_id = #{data.projectId}
+        </if>
+--         order by  a.create_time desc
+    </select>
+</mapper>

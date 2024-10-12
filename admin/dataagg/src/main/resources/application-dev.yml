@@ -1,0 +1,37 @@
+spring:
+  cloud:
+    nacos:
+      config:
+        enabled: true
+        server-addr: 127.0.0.1:8848
+        file-extension: yaml
+        prefix: ${spring.application.name}
+      discovery:
+        ip: 127.0.0.1
+        enabled: true
+        server-addr: 127.0.0.1:8848
+    sentinel:
+      filter:
+        enabled: false
+      transport:
+        dashboard: ${SENTINEL_DASHBOARD_HOST:127.0.0.1}:${SENTINEL_DASHBOARD_PORT:8079}
+      datasource:
+        flow:
+          server-addr: 127.0.0.1:8848
+          dataId: ${spring.application.name}-flow-rules
+          groupId: SENTINEL_GROUP
+          rule-type: flow
+  redis:
+    host: ${REDIS_HOST:127.0.0.1}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    database: 13
+    lettuce:
+      pool:
+        max-active: 300
+  datasource:
+    url: jdbc:${DATASOURCE_DBTYPE:mysql}://${DATASOURCE_HOST:rm-m5eqdyah37h7a10si6o.mysql.rds.aliyuncs.com}:${DATASOURCE_PORT:3306}/wk_build_demo?characterEncoding=utf8&useSSL=false&zeroDateTimeBehavior=convertToNull&tinyInt1isBit=false&serverTimezone=Asia/Shanghai
+    username: ${DATASOURCE_USERNAME:qdoner_123}
+    password: ${DATASOURCE_PASSWORD:qdoner_123}
+
+

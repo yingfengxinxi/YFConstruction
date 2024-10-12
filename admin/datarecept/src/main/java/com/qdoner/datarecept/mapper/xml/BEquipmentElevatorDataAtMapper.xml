@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qdoner.datarecept.mapper.BEquipmentElevatorDataAtMapper">
+    <insert id="batchSaveData">
+        insert into b_equipment_elevator_data_at
+        ( project_id, monitor_time, height, speed, lifting_direction, load_alarm, x_angle_ratio, y_angle_ratio, x_angle, y_angle,
+        number_alarm,wind_speed_alarm,altitude_alarm,tilt_alarm,roof_flushing_alarm,upper_limit_alarm,lower_limit_alarm,speed_warning,
+        equipment_id, tenant_id,weight,number_of_people,wind,before_lock,after_lock,weight_percent)
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            ( #{item.projectId}, #{item.monitorTime}, #{item.height}, #{item.speed},#{item.liftingDirection}, #{item.loadAlarm}, #{item.xAngleRatio}, #{item.yAngleRatio}, #{item.xAngle}, #{item.yAngle},
+            #{item.numberAlarm},#{item.windSpeedAlarm},#{item.altitudeAlarm},#{item.tiltAlarm},#{item.roofFlushingAlarm},#{item.upperLimitAlarm},#{item.lowerLimitAlarm},#{item.speedWarning},
+            #{item.equipmentId}, #{item.tenantId}, #{item.weight}, #{item.numberOfPeople}, #{item.wind}, #{item.beforeLock}, #{item.afterLock},#{item.weightPercent}
+            )
+        </foreach>
+    </insert>
+    <select id="selectPage" resultType="java.util.Map">
+        SELECT
+        a.*,b.asset_name,b.asset_code, IFNULL(c.project_abbreviation,c.project_name) AS projectName
+        FROM
+        b_equipment_elevator_data_at a
+        LEFT JOIN b_equipment_assets b ON b.asset_id = a.equipment_id
+        LEFT JOIN b_project_info c ON b.project_id = c.id
+        <where>
+            <if test="data.equipmentName!=null and data.equipmentName != ''">
+                and b.asset_name like concat('%', #{data.equipmentName}, '%')
+            </if>
+            <if test="data.startTime != null">
+                and a.monitor_time >= #{data.startTime,jdbcType=TIMESTAMP}
+            </if>
+            <if test="data.endTime != null">
+                and a.monitor_time &lt;= #{data.endTime,jdbcType=TIMESTAMP}
+            </if>
+            <if test="data.assetId != null">
+                and a.asset_id = #{data.assetId,jdbcType=TIMESTAMP}
+            </if>
+            <if test="data.projectName!=null and data.projectName != ''">
+                and c.project_name like concat('%', #{data.projectName}, '%')
+            </if>
+            <if test="data.alertType==3">
+                and
+                (CONCAT_WS(',',
+                a.load_alarm,
+                a.number_alarm,
+                a.wind_speed_alarm,
+                a.altitude_alarm,
+                a.tilt_alarm,
+                a.roof_flushing_alarm,
+                a.upper_limit_alarm,
+                a.lower_limit_alarm,
+                a.speed_warning,
+                a.weight_alarm,
+                a.bedoor_warn,
+                a.afdoor_warn
+                ) LIKE CONCAT( '%', '1', '%' )
+                OR CONCAT_WS(',',
+                a.load_alarm,
+                a.number_alarm,
+                a.wind_speed_alarm,
+                a.altitude_alarm,
+                a.tilt_alarm,
+                a.roof_flushing_alarm,
+                a.upper_limit_alarm,
+                a.lower_limit_alarm,
+                a.speed_warning,
+                a.weight_alarm,
+                a.bedoor_warn,
+                a.afdoor_warn
+                ) LIKE CONCAT( '%', '2', '%' )
+                )
+            </if>
+            <if test="data.alertType==1">
+                and
+                (CONCAT_WS(',',
+                a.load_alarm,
+                a.number_alarm,
+                a.wind_speed_alarm,
+                a.altitude_alarm,
+                a.tilt_alarm,
+                a.roof_flushing_alarm,
+                a.upper_limit_alarm,
+                a.lower_limit_alarm,
+                a.speed_warning,
+                a.weight_alarm,
+                a.bedoor_warn,
+                a.afdoor_warn
+                ) LIKE CONCAT( '%', '1', '%' )
+                )
+            </if>
+            <if test="data.alertType==0">
+                and
+                (CONCAT_WS(',',
+                a.load_alarm,
+                a.number_alarm,
+                a.wind_speed_alarm,
+                a.altitude_alarm,
+                a.tilt_alarm,
+                a.roof_flushing_alarm,
+                a.upper_limit_alarm,
+                a.lower_limit_alarm,
+                a.speed_warning,
+                a.weight_alarm,
+                a.bedoor_warn,
+                a.afdoor_warn
+                ) LIKE CONCAT( '%', '2', '%' )
+                and CONCAT_WS(',',
+                a.load_alarm,
+                a.number_alarm,
+                a.wind_speed_alarm,
+                a.altitude_alarm,
+                a.tilt_alarm,
+                a.roof_flushing_alarm,
+                a.upper_limit_alarm,
+                a.lower_limit_alarm,
+                a.speed_warning,
+                a.weight_alarm,
+                a.bedoor_warn,
+                a.afdoor_warn
+                ) not  LIKE CONCAT( '%', '1', '%' )
+                )
+            </if>
+        </where>
+        order  by  a.monitor_time desc
+    </select>
+</mapper>

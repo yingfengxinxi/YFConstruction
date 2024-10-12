@@ -1,0 +1,7 @@
+.el-table__virtual-wrapper .el-table__body {
+  width: 100%;
+}
+
+.el-table--fixed__virtual-wrapper {
+  width: auto!important;
+}

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.equipment.mapper.EquipmentPitReportMapper">
+    <select id="selectPage" resultType="com.qdoner.build.equipment.entity.PO.EquipmentPitReport">
+        select * from b_equipment_pit_report a where 1 = 1
+        <if test="data.code != null and data.code != ''">
+            and a.code like concat('%', #{data.code,jdbcType=VARCHAR}, '%')
+        </if>
+        <if test="data.observeBy != null and data.observeBy != ''">
+            and a.observe_by like concat('%', #{data.observeBy,jdbcType=VARCHAR}, '%')
+        </if>
+        <if test="data.countBy != null and data.countBy != ''">
+            and a.count_by like concat('%', #{data.countBy,jdbcType=VARCHAR}, '%')
+        </if>
+        <if test="data.calibrationBy != null and data.calibrationBy != ''">
+            and a.calibration_by like concat('%', #{data.calibrationBy,jdbcType=VARCHAR}, '%')
+        </if>
+        <if test="data.observeUnit != null and data.observeUnit != ''">
+            and a.observe_unit like concat('%', #{data.observeUnit,jdbcType=VARCHAR}, '%')
+        </if>
+        <if test="data.startDate != null ">
+            and a.observe_time <![CDATA[ >= ]]> #{data.startDate}
+        </if>
+        <if test="data.endDate != null ">
+            and a.observe_time <![CDATA[ <= ]]>  #{data.endDate}
+        </if>
+    </select>
+</mapper>

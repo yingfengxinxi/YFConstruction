@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.qual.mapper.QualEnterprisecheckfillMainGrpMapper">
+    <sql id="selectVo">
+        select id, create_by, create_time, update_by, update_time, tenant_id, project_id, check_status, examine_record_id,
+        owner_user_id, check_template_id, check_project, check_person_id, check_person_name, check_date, check_score, evaluate_result
+        from b_qual_enterprisecheckfill_main_grp
+    </sql>
+    <select id="selectDataList" resultType="com.kakarote.build.qual.entity.PO.QualEnterprisecheckfillMainGrp">
+        <include refid="selectVo"/>
+        <where>1=1
+            <if test="data.checkTemplateId != null and data.checkTemplateId != ''">
+                AND check_template_id = #{data.checkTemplateId}
+            </if>
+            <if test="data.checkProject != null and data.checkProject != ''">
+                AND check_project = #{data.checkProject}
+            </if>
+            <if test="data.checkDate != null and data.checkDate != ''">
+                AND check_date = #{data.checkDate,jdbcType=VARCHAR}
+            </if>
+            <if test="data.checkScoreStart != null and data.checkScoreStart != ''">
+                AND check_score  &gt;= #{data.checkScoreStart,jdbcType=VARCHAR}
+            </if>
+            <if test="data.checkScoreEnd != null and data.checkScoreEnd != ''">
+                AND check_score  &lt;= #{data.checkScoreEnd,jdbcType=VARCHAR}
+            </if>
+            <if test="data.evaluateResult != null and data.evaluateResult != ''">
+                AND evaluate_result like concat('%', #{data.evaluateResult}, '%')
+            </if>
+        </where>
+           /* order by check_date desc*/
+    </select>
+</mapper>

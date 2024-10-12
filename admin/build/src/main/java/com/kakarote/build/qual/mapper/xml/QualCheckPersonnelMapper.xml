@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.qual.mapper.QualCheckPersonnelMapper">
+    <select id="selectByPage" resultType="com.kakarote.build.qual.entity.PO.QualCheckPersonnel">
+        select id, person_name, person_phone, person_sex, person_com, work_duty, accept_content, person_seniority,
+        batch_id, create_by, create_time, update_by, update_time from b_qual_check_personnel A
+        <where>
+            <if test="data.personName!=null and data.personName !=''">
+               and  A.person_name like concat('%',#{data.personName},'%')
+            </if>
+            <if test="data.personPhone!=null and data.personPhone !=''">
+                and A.person_phone like concat('%',#{data.personPhone},'%')
+            </if>
+            <if test="data.personSex!=null and data.personSex !=''">
+                and A.person_sex=#{data.personSex}
+            </if>
+            <if test="data.personCom!=null and data.personCom !=''">
+                and  A.person_com like concat('%',#{data.personCom},'%')
+            </if>
+            <if test="data.workDuty!=null and data.workDuty !=''">
+                and A.work_duty like concat('%',#{data.workDuty},'%')
+            </if>
+            <if test="data.acceptContent!=null and data.acceptContent !=''">
+                and  A.accept_content like concat('%',#{data.acceptContent},'%')
+            </if>
+            <if test="data.personSeniority!=null and data.personSeniority !=''">
+                and A.person_seniority like concat('%',#{data.personSeniority},'%')
+            </if>
+            <if test="data.createTime!=null ">
+                and  A.create_time=#{data.createTime}
+            </if>
+        </where>
+       /* order by A.create_time desc*/
+    </select>
+    <select id="selectWxList" resultType="com.kakarote.build.qual.entity.PO.QualCheckPersonnel" >
+        select id, person_name, person_phone, person_sex, person_com, work_duty, accept_content, person_seniority,
+        batch_id, create_by, create_time, update_by, update_time from b_qual_check_personnel A
+        <where>
+            <if test="data.personName!=null and data.personName !=''">
+                and  A.person_name like concat('%',#{data.personName},'%')
+            </if>
+            <if test="data.personPhone!=null and data.personPhone !=''">
+                and A.person_phone like concat('%',#{data.personPhone},'%')
+            </if>
+            <if test="data.personSex!=null and data.personSex !=''">
+                and A.person_sex=#{data.personSex}
+            </if>
+            <if test="data.personCom!=null and data.personCom !=''">
+                and  A.person_com like concat('%',#{data.personCom},'%')
+            </if>
+            <if test="data.workDuty!=null and data.workDuty !=''">
+                and A.work_duty like concat('%',#{data.workDuty},'%')
+            </if>
+            <if test="data.acceptContent!=null and data.acceptContent !=''">
+                and  A.accept_content like concat('%',#{data.acceptContent},'%')
+            </if>
+            <if test="data.personSeniority!=null and data.personSeniority !=''">
+                and A.person_seniority like concat('%',#{data.personSeniority},'%')
+            </if>
+            <if test="data.createTime!=null ">
+                and  A.create_time=#{data.createTime}
+            </if>
+            <if test="data.projectId!=null ">
+                and  A.project_id=#{data.projectId}
+            </if>
+        </where>
+        order by A.create_time desc
+    </select>
+</mapper>

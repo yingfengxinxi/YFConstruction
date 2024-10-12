@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.equipment.mapper.EquipmentDriverIdentMapper">
+
+    <select id="selectDriverIdentList" resultType="java.util.Map">
+        select a.id,a.equ_code,a.id_card,a.starting_date,a.ending_date,e.cer_name,e.cer_number,e.position_title,e.cer_useend_date,
+        b.asset_name,(select type_name from b_equipment_type where type_id = b.type_id) typeName,
+        c.name,c.phone,c.batch_id,a.photo_url as img_card_url
+        ,TIMESTAMPDIFF(HOUR,a.starting_date,IFNULL(a.ending_date,now())) workLength,
+        IFNULL(d.project_abbreviation,d.project_name) AS projectName,
+        (select cer_name from b_labour_speworktype d where 1=1
+        and  c.id = d.infocol_id
+        and a.certificate_id= d.cer_category_type ) as cer_name,
+
+        (select cer_category_type from b_labour_speworktype d where 1=1
+        and  c.id = d.infocol_id
+        and a.certificate_id= d.cer_category_type ) as cer_category_type,
+
+        (select cer_number from b_labour_speworktype d where 1=1
+        and  c.id = d.infocol_id
+        and a.certificate_id= d.cer_category_type ) as cer_number,
+
+        (select cer_useend_date from b_labour_speworktype d where 1=1
+        and  c.id = d.infocol_id
+        and a.certificate_id= d.cer_category_type ) as cer_useend_date,
+        a.certificate_id
+        from b_equipment_driver_ident a
+        left join b_equipment_assets b on a.equ_code = b.asset_code
+        left join b_labour_infocollection c on a.id_card = c.id_card
+        left join b_labour_speworktype e on c.id = e.infocol_id
+        left join b_project_info d on a.project_id = d.id
+
+        <where>
+
+            <if test="data.equCode != null and data.equCode != ''">
+                and a.equ_code like concat(#{data.equCode},'%')
+            </if>
+            <if test="data.idCard != null and data.idCard != ''">
+                and a.id_Card like concat(#{data.idCard},'%')
+            </if>
+            <if test="data.projectId != null and data.projectId != ''">
+                and a.project_id = #{data.projectId}
+            </if>
+        </where>
+        order by
+        starting_date desc
+    </select>
+
+    <select id="selectListNew" resultType="java.util.Map">
+        select a.id,a.equ_code,a.id_card,a.starting_date,a.ending_date, IFNULL(e.project_abbreviation,e.project_name) AS projectName,
+        b.asset_name,(select type_name from b_equipment_type where type_id = b.type_id) typeName,
+        c.name,c.phone,c.batch_id,c.img_card_url
+        ,TIMESTAMPDIFF(HOUR,a.starting_date,IFNULL(a.ending_date,now())) workLength,
+        (select cer_name from b_labour_speworktype d where 1=1
+        and  c.id = d.infocol_id
+        and a.certificate_id= d.cer_category_type ) as cer_name,
+
+        (select cer_category_type from b_labour_speworktype d where 1=1
+        and  c.id = d.infocol_id
+        and a.certificate_id= d.cer_category_type ) as cer_category_type,
+
+        (select cer_number from b_labour_speworktype d where 1=1
+        and  c.id = d.infocol_id
+        and a.certificate_id= d.cer_category_type ) as cer_number,
+
+        (select cer_useend_date from b_labour_speworktype d where 1=1
+        and  c.id = d.infocol_id
+        and a.certificate_id= d.cer_category_type ) as cer_useend_date,
+        a.certificate_id
+        from b_equipment_driver_ident a
+        left join b_equipment_assets b on a.equ_code = b.asset_code
+        left join b_labour_infocollection c on a.id_card = c.id_card
+        left join b_project_info e on a.project_id = e.id
+
+        <where>
+
+            <if test="data.equCode != null and data.equCode != ''">
+                and a.equ_code like concat(#{data.equCode},'%')
+            </if>
+            <if test="data.idCard != null and data.idCard != ''">
+                and a.id_Card like concat(#{data.idCard},'%')
+            </if>
+            <if test="data.projectId != null and data.projectId != ''">
+                and a.project_id like concat(#{data.projectId},'%')
+            </if>
+        </where>
+       /* order by  ending_date desc ,
+        starting_date desc*/
+    </select>
+    <select id="getByIdInApp" resultType="java.util.Map">
+        SELECT
+            a.id,
+            a.equ_code,
+            a.id_card,
+            a.starting_date,
+            a.ending_date,
+            b.asset_name,
+            ( SELECT type_name FROM b_equipment_type WHERE type_id = b.type_id ) typeName,
+            c.NAME,
+            c.phone,
+            c.batch_id,
+            c.img_card_url,
+            TIMESTAMPDIFF( HOUR, a.starting_date, IFNULL( a.ending_date, now( ) ) ) workLength,
+            ( SELECT cer_name FROM b_labour_speworktype d WHERE 1 = 1 AND c.id = d.infocol_id AND a.certificate_id = d.cer_category_type ) AS cer_name,
+            ( SELECT cer_category_type FROM b_labour_speworktype d WHERE 1 = 1 AND c.id = d.infocol_id AND a.certificate_id = d.cer_category_type ) AS cer_category_type,
+            ( SELECT cer_number FROM b_labour_speworktype d WHERE 1 = 1 AND c.id = d.infocol_id AND a.certificate_id = d.cer_category_type ) AS cer_number,
+            ( SELECT cer_useend_date FROM b_labour_speworktype d WHERE 1 = 1 AND c.id = d.infocol_id AND a.certificate_id = d.cer_category_type ) AS cer_useend_date,
+            a.certificate_id
+        FROM
+            b_equipment_driver_ident a
+            LEFT JOIN b_equipment_assets b ON a.equ_code = b.asset_code
+            LEFT JOIN b_labour_infocollection c ON a.id_card = c.id_card
+            where a.id = #{id}
+
+    </select>
+    <insert id="batchSaveData">
+        insert into b_equipment_driver_ident
+        ( project_id,equ_code, tenant_id,
+        device_type,id_card,certificate_id,starting_date,ending_date,photo_url
+        )
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            ( #{item.projectId}, #{item.equCode}, #{item.tenantId},
+            #{item.deviceType}, #{item.idCard}, #{item.certificateId},#{item.startingDate}, #{item.endingDate},
+            #{item.photoUrl}
+            )
+        </foreach>
+    </insert>
+</mapper>

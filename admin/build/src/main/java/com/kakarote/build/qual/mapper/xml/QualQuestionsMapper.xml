@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.qual.mapper.QualQuestionsMapper">
+    <select id="queryByParentId" resultType="com.kakarote.build.qual.entity.PO.QualQuestions">
+        SELECT
+        a.*, CASE
+        WHEN (
+        SELECT
+        count(1)
+        FROM
+        b_qual_questions m
+        WHERE
+        m.parent_id = a.question_id
+        ) = 0 THEN
+        false
+        ELSE
+        true
+        END hasChildren
+        FROM
+        b_qual_questions a
+        WHERE
+        a.parent_id = #{parentId}
+        ORDER BY sort
+    </select>
+
+    <select id="queryTextList" resultType="java.util.Map">
+        SELECT bqq.question_id, bqq.question_name, bqq.question_name value
+        FROM b_qual_questions bqq
+    </select>
+
+    <select id="selectQualHiddenDanger" resultType="java.util.Map">
+        select a.question_name name,
+            count(c.question_id) count,
+            sum(case when
+                (c.question_id is not null) and (c.receipt_info = '' or c.receipt_info is null) then 1 else 0 end) unfinished
+        from
+        (select * from b_qual_questions parent
+            where parent.parent_id = '0' ) a
+        left join
+        (select child.*, getQuestionParentList(child.question_id) as p from b_qual_questions child ) b
+        on find_in_set(a.question_id, b.p)
+        left join
+        (select q.question_id, h.receipt_info from b_qual_questions q
+            inner join b_qual_hidden_trouble h on q.question_id = h.question_id
+            inner join b_qual_check c on h.check_id = c.check_id ) c
+        on b.question_id = c.question_id
+        where a.project_id = #{data.projectId}
+        group by a.question_id
+    </select>
+
+    <select id="selectHiddenDangerNumber" resultType="java.util.Map">
+        select a.question_name name,
+            count(*) count,
+            sum(case when
+                (c.question_id is not null) and (c.info_state = '' or c.info_state is null) then 1 else 0 end) unfinished
+        from
+            (select * from b_qual_questions parent
+            where parent.parent_id = '0' ) a
+        inner join
+            (select child.*, getQuestionParentList(child.question_id) as p from b_qual_questions child ) b
+        on find_in_set(a.question_id, b.p)
+        inner join
+            (select q.question_id, h.info_state from b_qual_questions q
+            inner join b_qual_risk_detection h on q.question_id = h.question_id) c
+            on b.question_id = c.question_id
+        <where>
+            <if test='data.projectId != null and data.projectId != ""'>
+                a.project_id = #{data.projectId}
+            </if>
+        </where>
+        group by a.question_id
+    </select>
+</mapper>

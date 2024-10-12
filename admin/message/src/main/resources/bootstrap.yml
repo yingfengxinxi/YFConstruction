@@ -1,0 +1,7 @@
+server:
+  port: ${SERVER_PORT:8159}
+spring:
+  profiles:
+    include: core,dev
+  application:
+    name: message

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.wx.mapper.WxAppointmentMapper">
+    <insert id="add" useGeneratedKeys="true" keyProperty="id">
+      INSERT INTO b_wx_appointment(
+       project_name, building, floor, room_number, appointment_date, name,
+      tel,tenant_id,project_id,open_id)
+      VALUES ( #{data.projectName}, #{data.building}, #{data.floor}, #{data.roomNumber}, #{data.appointmentDate}, #{data.name},
+       #{data.tel},#{data.tenantId},#{data.projectId},#{data.openId});
+    </insert>
+    <select id="wxSelectByPage" resultType="com.kakarote.build.wx.entity.BO.WxAppointmentBO">
+      select *  from b_wx_appointment where open_id = #{data.openId}
+    </select>
+    <select id="wxGetById"  resultType="com.kakarote.build.wx.entity.BO.WxAppointmentBO">
+      SELECT
+            a.id,a.project_name,b.building_name as building,c.building_name as floor,d.building_name as room_number,a.appointment_date,a.`name`,a.tel
+        FROM
+            b_wx_appointment a
+            LEFT JOIN b_qual_build_mange b ON a.building = b.building_id
+            LEFT JOIN b_qual_build_mange c on a.floor = c.building_id
+            LEFT JOIN b_qual_build_mange d ON a.room_number = d.building_id
+            where a.id = #{id}
+    </select>
+</mapper>

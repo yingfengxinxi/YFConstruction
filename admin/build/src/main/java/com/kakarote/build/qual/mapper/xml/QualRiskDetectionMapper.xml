@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.qual.mapper.QualRiskDetectionMapper">
+
+    <select id="selectByPage" resultType="com.kakarote.build.qual.entity.PO.QualRiskDetection">
+        select a.*
+        from b_qual_risk_detection a
+        where a.is_delete = '0'
+        <if test="data.hiddenNum != null and data.hiddenNum != ''">
+            and a.hidden_num like concat('%', #{data.hiddenNum}, '%')
+        </if>
+        <if test="data.inspectionPosition != null and data.inspectionPosition != ''">
+            and a.inspection_position like concat('%', #{data.inspectionPosition}, '%')
+        </if>
+        <if test="data.dataType != null and data.dataType != ''">
+            and a.data_type = #{data.dataType}
+        </if>
+        <if test="data.problemLevel != null and data.problemLevel != ''">
+            and a.problem_level = #{data.problemLevel}
+        </if>
+        <if test="data.urgency != null and data.urgency != ''">
+            and a.level = #{data.urgency}
+        </if>
+        <if test="data.infoState != null and data.infoState != ''">
+            and a.info_state = #{data.infoState}
+        </if>
+        <!--order by a.create_time desc-->
+    </select>
+
+    <select id="getQueuesUserList" resultType="java.lang.Long">
+        select b.user_id
+        from b_qual_risk_detection a
+        inner join wk_admin_user b on a.rectify_person_phone = b.username
+        where a.id = #{id}
+    </select>
+
+    <select id="selectPieData" resultType="java.util.Map">
+        select q.question_name name, q.question_id id, count(1) value
+        from b_qual_risk_detection a
+        inner join b_qual_questions q on a.question_id = q.question_id
+        where a.is_delete = '0' and a.info_state != '0'
+        group by q.question_id
+        order by value desc
+        limit 10
+    </select>
+
+    <select id="selectBarData" resultType="java.util.Map">
+        select a.curr_date clickDate, IFNULL(b.value ,0) value
+        from (
+            select date_format(date_add(curdate(),interval -t.help_topic_id ${data.dateType}),#{data.format}) as 'curr_date'
+            from mysql.help_topic t
+            where t.help_topic_id &lt; #{data.num}) a
+        left join (
+            select count(1) value , DATE_FORMAT(d.create_time, #{data.format}) dateTime
+            from b_qual_risk_detection d
+            where d.is_delete = '0' and d.info_state != '0'
+            group by dateTime) b on a.curr_date = b.dateTime
+        order by clickDate
+    </select>
+
+    <select id="selectRectifyDateWarning" resultType="java.util.Map">
+        select count(1) count,
+		    IFNULL(sum(case when
+				(a.rectify_complete_time = '' or a.rectify_complete_time is null)
+				and DATE_SUB(CURDATE(), INTERVAL 0 DAY) > a.rectify_time then 1 else 0 end), 0) timeoutNumber,
+		    IFNULL(sum(case when
+				(a.rectify_complete_time = '' or a.rectify_complete_time is null)
+				and DATE_SUB(CURDATE(), INTERVAL 0 DAY) &lt;= a.rectify_time then 1 else 0 end), 0) underwayNumber,
+            IFNULL(sum(case when
+                (a.rectify_complete_time != '' and a.rectify_complete_time is not null) then 1 else 0 end), 0) completeNumber
+        from b_qual_risk_detection a
+        where a.is_delete = '0' and a.info_state != '0'
+    </select>
+
+    <select id="selectQualDataByPrinipal" resultType="java.util.Map">
+        select b.name_new name,
+            count(*) count,
+            sum(case
+                when t.info_state = '' or t.info_state is null then 1 else 0 end) unfinished
+        from b_qual_risk_detection t
+                inner join (select t2.id,
+                (case
+                    when (t2.actual_rectify_person_name = '' or t2.actual_rectify_person_name is null)
+                    then '未分配'
+                else t2.actual_rectify_person_name
+                END)
+                as name_new
+                from b_qual_risk_detection t2) b on t.id = b.id
+        group by b.name_new
+    </select>
+
+    <select id="selectQualQuestionsQuantity" resultType="java.util.Map">
+        select count(*) count,
+        IFNULL(sum(case when a.info_state = '' or a.info_state is null then 1 else 0 end), 0) unfinished
+        from b_qual_risk_detection a
+    </select>
+</mapper>

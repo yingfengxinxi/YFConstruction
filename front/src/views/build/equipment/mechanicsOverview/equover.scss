@@ -1,0 +1,119 @@
+.dom{
+  width: 100%;
+  height: 100%;
+  font-size: 0.14rem;
+  padding: 0 10px;
+  margin-top: 10px;
+
+}
+  .dom_1{
+    margin-right: 10px;
+    display: inline-block;
+    width: calc(72% - 10px);
+    height: 98%;
+    box-shadow: 0px 0px 10px 0px rgba(145, 180, 241, 0.29);
+    border-radius: 5px;
+    float: left;
+    padding: 10px;
+    position: relative;
+  }
+  .dom_2{
+    display: inline-block;
+    width: calc(28% - 10px);
+    height: 98%;
+  }
+  .dom_2_t{
+    height: calc(40% - 10px);
+    margin-bottom: 10px;
+    box-shadow: 0px 0px 10px 0px rgba(145, 180, 241, 0.29);
+    border-radius: 5px;
+    padding: 10px;
+  }
+.dom_2_b{
+  height: 58%;
+  box-shadow: 0px 0px 10px 0px rgba(145, 180, 241, 0.29);
+  border-radius: 5px;
+  padding: 10px;
+}
+.subject {
+  height: 15px;
+  font-size: 0.16rem;
+  font-weight: 500;
+  color: #404040;
+  display: flex;
+  align-items: center;
+  img {
+    margin-right: 0.1rem;
+    height: 0.16rem;
+    width: 0.16rem;
+  }
+}
+  .gzxq_dom{
+    height: 100%;
+    margin: 10px;
+  }
+  .gzxq_doms{
+    height: calc(25% - 5px);
+    border-bottom: 1px solid #E5EDFF;
+  }
+  .gzxq_doms_img{
+    display: inline-block;
+    width: 50px;
+    position: relative;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .gzxq_doms_txt1{
+    width: calc(40% - 50px);
+    display: inline-block;
+    position: relative;
+    top: 35%;
+    transform: translateY(-50%);
+    p:nth-child(1){
+      font-size: 0.18rem;
+      color: #3477FF;
+    }
+  }
+.gzxq_doms_txt2{
+  display: inline-block;
+  width: 25%;
+  position: relative;
+  top: 35%;
+  transform: translateY(-50%);
+}
+.gzxq_doms_txt3{
+  display: inline-block;
+  width:25%;
+  position: relative;
+  top: 35%;
+  transform: translateY(-50%);
+  text-align: center;
+}
+.text_red{
+  color: red;
+}
+.text_green{
+  color: green;
+}
+.table_dom{
+  padding: 10px;
+  width: 100%;
+  height: calc(100% - 20px);
+}
+  .my_table{
+    width: 100%;
+    tr{
+      td{
+        height: 50px;
+        padding-left: 10px;
+        border: 0;
+      }
+    }
+    tr:nth-child(odd){
+      background-color: #F2F8FF;
+    }
+
+  }
+  .dtimg{
+    position: absolute;
+  }

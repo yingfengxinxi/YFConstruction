@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.ai.mapper.BAiDregCarCleaningMapper">
+
+
+    <select id="selectByPage" resultType="com.kakarote.build.ai.entity.PO.BAiDregCarCleaning">
+        select c.* ,IFNULL(xm.project_abbreviation,xm.project_name) AS projectName
+        from b_ai_dreg_car_cleaning c
+        left join b_project_info xm on c.project_id = xm.id
+        <where>
+            <if test="data.licensePlateNumber != null and data.licensePlateNumber != ''">
+                and c.license_plate_number like concat('%', #{data.licensePlateNumber}, '%')
+            </if>
+            <if test="data.startTime != null and data.startTime != ''">
+                and c.cleaning_time >= #{data.startTime,jdbcType=TIMESTAMP}
+            </if>
+            <if test="data.endTime != null and data.endTime != ''">
+                and c.cleaning_time &lt;= #{data.endTime,jdbcType=TIMESTAMP}
+            </if>
+            <if test="data.projectId != null and data.projectId != ''">
+                and c.project_id = #{data.projectId,jdbcType=TIMESTAMP}
+            </if>
+        </where>
+--         order by c.cleaning_time desc
+    </select>
+
+    <select id="selectReportData" resultType="java.util.Map">
+        select DATE_FORMAT(a.cleaning_time,'%Y年%m月%e %k点') as time, a.project_id, IFNULL(b.project_abbreviation,b.project_name) AS projectName,
+            a.license_plate_number as content, '1' as dataType
+        from b_ai_dreg_car_cleaning a
+        left join b_project_info b on a.project_id = b.id
+        <where>
+            <if test="data.startDate != null and data.startDate != ''">
+                and DATE_FORMAT(a.cleaning_time,'%Y-%m-%d') <![CDATA[ >= ]]> #{data.startDate}
+            </if>
+            <if test="data.endDate != null and data.endDate != ''">
+                and DATE_FORMAT(a.cleaning_time,'%Y-%m-%d') <![CDATA[ <= ]]>  #{data.endDate}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectTypeProportion" resultType="java.util.Map">
+        SELECT a.dict_label, count(b.id) AS value
+        FROM(SELECT dict_label, dict_value FROM wk_admin_dict_data
+                WHERE dict_type = 'b_catch_type') a
+        LEFT JOIN b_ai_dreg_car_cleaning b on a.dict_value = b.alarm_type
+        GROUP BY a.dict_value
+    </select>
+
+    <select id="selectTop10List" resultType="java.util.Map">
+        select a.license_plate_number as label, count(*) as alarmNum
+        from b_ai_dreg_car_cleaning a
+        group by a.license_plate_number
+        order by alarmNum desc
+        limit 10
+    </select>
+</mapper>

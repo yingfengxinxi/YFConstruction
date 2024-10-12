@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.project.mapper.ProgressPlanModelMapper">
+
+    <select id="selectModelListByPlanId" resultType="java.util.Map">
+        select b.model_id, b.model_name, b.model_url, b.model_x, b.model_y, b.model_z, b.rotation_angle, a.delay_time, a.operation_type
+        from b_progress_plan_model a
+        inner join b_equipment_three_dimensional b on a.model_id = b.model_id
+        where a.operation_type is not null and a.plan_id = #{id}
+        order by delay_time
+    </select>
+
+    <select id="selectModelNumberByPlanId" resultType="java.lang.Integer">
+        select count(1)
+        from b_progress_plan_model a
+        inner join b_progress_plan_manage_details b on a.plan_id = b.id
+        where a.operation_type is not null and b.mid = #{data.mid}
+    </select>
+</mapper>

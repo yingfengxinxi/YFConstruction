@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.equipment.mapper.EquipmentTowerCraneMapper">
+    <select id="getByDeviceId" resultType="com.kakarote.build.equipment.entity.PO.EquipmentTowerCrane">
+      select * from b_equipment_tower_crane where device_id = #{deviceId} limit 1
+    </select>
+    <select id="getTowerCraneNumber" resultType="java.lang.Integer">
+        select COUNT(0) from  (SELECT
+        asset_name
+        FROM
+        b_equipment_assets a
+        LEFT JOIN b_equipment_monitor_point b ON a.asset_id = b.equipment_id
+        LEFT JOIN b_equipment_monitor_data c on b.id= c.point_id
+        WHERE
+        a.type_id = '10' and c.value is not null and c.value != '0' and c.monitor_time &gt; CONCAT(#{data.sDate},' 00:00:00') and c.monitor_time &lt;  CONCAT(#{data.eDate},' 23:59:59')
+        GROUP BY asset_name) w
+    </select>
+    <select id="getTowerCraneFrequency" resultType="java.lang.Integer">
+        SELECT
+            COUNT( 0 )
+        FROM
+            (
+        SELECT
+            COUNT( id ),
+            GROUP_CONCAT( id ),
+            monitor_time
+        FROM
+            (
+        SELECT
+            a.id,
+            a.c,
+            a.monitor_time
+        FROM
+            (select a.*,( a.id - ( @i := @i + 1 ) ) AS c from b_equipment_monitor_data a,
+            ( SELECT @i := 0 ) it where a.value  != '0') a
+            LEFT JOIN b_equipment_monitor_point b ON a.point_id = b.id
+        WHERE
+            b.monitor_type = 2
+            AND b.monitor_son_type = 4
+            AND a.value  != '0'
+            AND a.monitor_time &gt; CONCAT(#{data.sDate},' 00:00:00') and a.monitor_time &lt;  CONCAT(#{data.eDate},' 23:59:59')
+            AND a.project_id  = #{data.projectId}
+        ORDER BY
+            a.id
+            ) w
+        GROUP BY
+            c
+            ) y
+    </select>
+    <select id="getTowerCraneWeight"  resultType="java.lang.Double">
+        SELECT round(sum(dz),2)   from (SELECT
+            COUNT( id ),
+            GROUP_CONCAT( id ),
+            monitor_time ,
+            avg(value) as dz
+        FROM
+            (
+        SELECT
+            a.id,
+            a.c,
+            a.monitor_time,
+            a.value
+        FROM
+            (select a.*,( a.id - ( @i := @i + 1 ) ) AS c from b_equipment_monitor_data a,
+            ( SELECT @i := 0 ) it where a.value  != '0') a
+            LEFT JOIN b_equipment_monitor_point b ON a.point_id = b.id
+        WHERE
+            b.monitor_type = 2
+            AND b.monitor_son_type = 4
+            AND a.value != '0'
+            AND a.monitor_time &gt; CONCAT(#{data.sDate},' 00:00:00') and a.monitor_time &lt;  CONCAT(#{data.eDate},' 23:59:59')
+            AND a.project_id  = #{data.projectId}
+        ORDER BY
+            a.id
+            ) w
+        GROUP BY
+            c ) y
+    </select>
+    <select id="getTowerCraneTime"  resultType="java.lang.Integer">
+        select sum(sj) from (SELECT
+            COUNT( id ),
+            GROUP_CONCAT( id ),
+            monitor_time ,
+            min(monitor_time) as zd,
+            max(monitor_time) as zx,
+            timestampdiff(MINUTE,min(monitor_time),max(monitor_time)) as sj
+        FROM
+            (
+        SELECT
+            a.id,
+            a.c,
+            a.monitor_time,
+            a.value
+        FROM
+            (select a.*,( a.id - ( @i := @i + 1 ) ) AS c from b_equipment_monitor_data a,
+            ( SELECT @i := 0 ) it  where a.value  != '0') a
+            LEFT JOIN b_equipment_monitor_point b ON a.point_id = b.id
+        WHERE
+            b.monitor_type = 2
+            AND b.monitor_son_type = 4
+            AND a.value != '0'
+            AND a.monitor_time &gt; CONCAT(#{data.sDate},' 00:00:00') and a.monitor_time &lt;  CONCAT(#{data.eDate},' 23:59:59')
+            AND a.project_id  = #{data.projectId}
+        ORDER BY
+            a.id
+            ) w
+        GROUP BY
+            c ) y
+    </select>
+    <select id="getQTDZXLFX"  resultType="java.util.Map">
+        SELECT
+        l.hourList as name ,
+        l.value
+        FROM
+        (
+        SELECT
+        sum( IF ( k.monitor_time IS NULL, 0, 1 ) ) as value,
+        j.hourList
+        FROM
+        (
+        SELECT
+        DATE_FORMAT( DATE_ADD( NOW( ), INTERVAL - help_topic_id DAY ), '%Y-%m-%d' ) AS hourList
+        FROM
+        mysql.help_topic
+        WHERE
+        DATE_FORMAT( DATE_ADD( NOW( ), INTERVAL - help_topic_id DAY ), '%Y-%m-%d' )&lt;=  #{data.eDate} and DATE_FORMAT( DATE_ADD( NOW( ), INTERVAL - help_topic_id DAY ), '%Y-%m-%d' )&gt;=#{data.sDate}
+        ) j
+        LEFT JOIN (
+        SELECT
+        COUNT( id ),
+        GROUP_CONCAT( id ),
+        monitor_time
+        FROM
+        (
+        SELECT
+        a.id,
+        a.c,
+        a.monitor_time
+        FROM
+        (select a.*,( a.id - ( @i := @i + 1 ) ) AS c from b_equipment_monitor_data a,
+            ( SELECT @i := 0 ) it where a.value  != '0') a
+        LEFT JOIN b_equipment_monitor_point b ON a.point_id = b.id
+        WHERE
+        b.monitor_type = 2
+        AND b.monitor_son_type = 4
+        AND a.value != '0'
+        AND a.project_id  = #{data.projectId}
+        ORDER BY
+        a.id
+        ) w
+        GROUP BY
+        c
+        ) k ON DATE_FORMAT( j.hourList, '%Y-%m-%d' ) = DATE_FORMAT( k.monitor_time, '%Y-%m-%d' )
+        GROUP BY
+        j.hourList
+        ) l ORDER BY name
+    </select>
+    <select id="getQTDZXLFXSJ"   resultType="java.util.Map">
+        SELECT
+        l.hourList AS name,
+        l.value
+        FROM
+        (
+        SELECT
+        sum( IF ( k.sj IS NULL, 0, sj ) ) AS value,j.hourList
+        FROM
+        (
+        SELECT
+        DATE_FORMAT( DATE_ADD( NOW( ), INTERVAL - help_topic_id DAY ), '%Y-%m-%d' ) AS hourList
+        FROM
+        mysql.help_topic
+        WHERE
+        DATE_FORMAT( DATE_ADD( NOW( ), INTERVAL - help_topic_id DAY ), '%Y-%m-%d' ) &lt;= #{data.eDate} AND DATE_FORMAT( DATE_ADD( NOW( ), INTERVAL - help_topic_id DAY ), '%Y-%m-%d' ) &gt;= #{data.sDate}
+        ) j
+        LEFT JOIN (
+        SELECT
+        COUNT( id ),
+        GROUP_CONCAT( id ),
+        monitor_time,
+        min( monitor_time ) AS zd,
+        max( monitor_time ) AS zx,
+        timestampdiff( MINUTE, min( monitor_time ), max( monitor_time ) ) AS sj
+        FROM
+        (
+        SELECT
+        a.id,
+        a.c,
+        a.monitor_time,
+        a.value
+
+        FROM
+        (select a.*,( a.id - ( @i := @i + 1 ) ) AS c from b_equipment_monitor_data a,
+        ( SELECT @i := 0 ) it where a.value  != '0') a
+        LEFT JOIN b_equipment_monitor_point b ON a.point_id = b.id
+        WHERE
+        b.monitor_type = 2
+        AND b.monitor_son_type = 4
+        ORDER BY
+        a.id
+        ) w
+        GROUP BY
+        c
+        ) k ON DATE_FORMAT( j.hourList, '%Y-%m-%d' ) = DATE_FORMAT( k.monitor_time, '%Y-%m-%d' )
+        GROUP BY
+        j.hourList
+        ) l
+        ORDER BY name
+    </select>
+    <select id="getDZPHB"   resultType="java.util.Map">
+
+
+
+select name ,COUNT(0) value from (SELECT
+            *
+        FROM
+            (
+        SELECT
+            a.id,
+            a.c,
+            a.monitor_time,
+						a.name
+        FROM
+            (SELECT
+		a.*,(SELECT
+	e.name
+FROM
+	b_equipment_driver_ident c
+	LEFT JOIN b_equipment_assets d ON c.equ_code = d.asset_code
+	LEFT JOIN b_labour_infocollection e ON c.id_card = e.id_card where b.equipment_id = d.asset_id and a.monitor_time > c.starting_date ORDER BY abs(UNIX_TIMESTAMP(a.monitor_time) - UNIX_TIMESTAMP(c.starting_date)) asc LIMIT 1) name
+FROM
+(select a.*,( a.id - ( @i := @i + 1 ) ) AS c from b_equipment_monitor_data a,
+				( SELECT @i := 0 ) it where a.value  != '0') a
+LEFT JOIN b_equipment_monitor_point b on a.point_id = b.id) a
+				LEFT JOIN b_equipment_monitor_point b ON a.point_id = b.id
+		WHERE
+				b.monitor_type = 2
+				AND b.monitor_son_type = 4
+                AND a.project_id  = #{data.projectId}
+                <if test="data.sDate != null  and data.sDate != ''and data.eDate != null  and data.eDate != ''">
+                    AND a.monitor_time &gt; CONCAT(#{data.sDate},' 00:00:00') and a.monitor_time &lt;  CONCAT(#{data.eDate},' 23:59:59')
+                </if>
+		ORDER BY
+				a.id
+				) w
+		GROUP BY
+				c) y  GROUP BY name  LIMIT 5
+    </select>
+    <select id="getDZZL"   resultType="java.util.Map">
+        SELECT
+                monitor_time as time,
+                round(avg(value),2) as dz,
+                round(avg(value)/max_load,2) as zzb
+        FROM
+                (
+        SELECT
+                a.id,
+                a.c,
+                a.monitor_time,
+                a.value,
+                c.max_load
+        FROM
+                (select a.*,( a.id - ( @i := @i + 1 ) ) AS c from b_equipment_monitor_data a,
+                ( SELECT @i := 0 ) it where a.value  != '0') a
+                LEFT JOIN b_equipment_monitor_point b ON a.point_id = b.id
+                LEFT JOIN b_equipment_tower_crane c on b.equipment_id = c.device_id
+        WHERE
+                b.monitor_type = 2
+                AND b.monitor_son_type = 4
+                AND a.project_id  = #{data.projectId}
+        ORDER BY
+                a.id
+                ) w
+
+        GROUP BY
+                c
+                ORDER BY monitor_time
+    </select>
+    <select id="getJSZTDCS" resultType="java.lang.Integer">
+        SELECT COUNT( 0 ) as value  FROM (SELECT COUNT( id ), GROUP_CONCAT( id ), monitor_time
+        FROM (
+        SELECT a.id, a.c, a.monitor_time
+        FROM (
+        SELECT a.*, ( a.id - ( @i := @i + 1 ) ) AS c
+        FROM b_equipment_monitor_data a,
+            ( SELECT @i := 0 ) it
+        WHERE a. VALUE != '0' ) a
+            LEFT JOIN b_equipment_monitor_point b ON a.point_id = b.id
+        WHERE
+            b.monitor_type = 2
+            AND b.monitor_son_type = 4
+            AND a.VALUE != '0'
+            AND YEARWEEK( date_format( a.monitor_time, '%Y-%m-%d' ) ) = YEARWEEK( now( ) )
+            AND b.equipment_id = #{data.equId}
+        ORDER BY a.id ) w
+        GROUP BY c ) y
+        UNION ALL
+        SELECT COUNT( 0 ) as value  FROM (SELECT COUNT( id ), GROUP_CONCAT( id ), monitor_time
+        FROM (
+        SELECT a.id, a.c, a.monitor_time
+        FROM (
+        SELECT a.*, ( a.id - ( @i := @i + 1 ) ) AS c
+        FROM b_equipment_monitor_data a,
+            ( SELECT @i := 0 ) it
+        WHERE a. VALUE != '0' ) a
+            LEFT JOIN b_equipment_monitor_point b ON a.point_id = b.id
+        WHERE
+            b.monitor_type = 2
+            AND b.monitor_son_type = 4
+            AND a.VALUE != '0'
+            AND YEARWEEK( date_format( a.monitor_time, '%Y-%m-%d' ) ) = YEARWEEK( now( ) ) -1
+            AND b.equipment_id = #{data.equId}
+        ORDER BY a.id ) w
+        GROUP BY c ) y
+        UNION ALL
+        SELECT COUNT( 0 ) as value  FROM (SELECT COUNT( id ), GROUP_CONCAT( id ), monitor_time
+        FROM (
+        SELECT a.id, a.c, a.monitor_time
+        FROM (
+        SELECT a.*, ( a.id - ( @i := @i + 1 ) ) AS c
+        FROM b_equipment_monitor_data a,
+            ( SELECT @i := 0 ) it
+        WHERE a. VALUE != '0' ) a
+            LEFT JOIN b_equipment_monitor_point b ON a.point_id = b.id
+        WHERE
+            b.monitor_type = 2
+            AND b.monitor_son_type = 4
+            AND a.VALUE != '0'
+            AND YEARWEEK( date_format( a.monitor_time, '%Y-%m-%d' ) ) = YEARWEEK( now( ) ) -2
+            AND b.equipment_id = #{data.equId}
+        ORDER BY a.id ) w
+        GROUP BY c ) y
+        UNION ALL
+        SELECT COUNT( 0 ) as value  FROM (SELECT COUNT( id ), GROUP_CONCAT( id ), monitor_time
+        FROM (
+        SELECT a.id, a.c, a.monitor_time
+        FROM (
+        SELECT a.*, ( a.id - ( @i := @i + 1 ) ) AS c
+        FROM b_equipment_monitor_data a,
+            ( SELECT @i := 0 ) it
+        WHERE a. VALUE != '0' ) a
+            LEFT JOIN b_equipment_monitor_point b ON a.point_id = b.id
+        WHERE
+            b.monitor_type = 2
+            AND b.monitor_son_type = 4
+            AND a.VALUE != '0'
+            AND YEARWEEK( date_format( a.monitor_time, '%Y-%m-%d' ) ) = YEARWEEK( now( ) ) -3
+            AND b.equipment_id = #{data.equId}
+        ORDER BY a.id ) w
+        GROUP BY c ) y
+    </select>
+    <select id="selectAllTowerCranr" resultType="java.util.Map" >
+        select asset_id as assetId ,asset_name as assetName from b_equipment_assets  where type_id = 10
+    </select>
+</mapper>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qdoner.message.mapper.QueuesMapper">
+    <!-- 分页查询 -->
+    <select id="selectByPage" resultType="com.qdoner.message.entity.PO.Queues">
+        SELECT a.* FROM wm_queues a
+        <where>
+            1=1
+            <if test="data.descr != null and data.descr != ''">
+                and a.descr like concat('%',concat(#{data.descr},'%'))
+            </if>
+            <if test="data.code != null and data.code != ''">
+                and a.code like concat('%',concat(#{data.code},'%'))
+            </if>
+            <if test="data.targetConfigType != null and data.targetConfigType != ''">
+                and a.target_config_type = #{data.targetConfigType}
+            </if>
+        </where>
+        order by a.create_time desc
+    </select>
+</mapper>

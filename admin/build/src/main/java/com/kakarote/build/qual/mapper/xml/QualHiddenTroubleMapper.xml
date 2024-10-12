@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.qual.mapper.QualHiddenTroubleMapper">
+
+    <select id="selectPieData" resultType="java.util.Map">
+        select q.question_name name, q.question_id id, count(1) value from b_qual_hidden_trouble t
+        inner join b_qual_questions q on t.question_id = q.question_id
+        group by q.question_id
+        order by value desc
+        limit 10
+    </select>
+
+    <select id="selectBarData" resultType="java.util.Map">
+        select a.curr_date clickDate, IFNULL(b.value ,0) value
+        from (
+                select date_format(date_add(curdate(),interval -t.help_topic_id ${data.dateType}),#{data.format}) as 'curr_date'
+                from mysql.help_topic t
+                where t.help_topic_id &lt; #{data.num}) a left join (
+        select count(1) value , DATE_FORMAT(t.create_time, #{data.format}) dateTime
+        from b_qual_hidden_trouble t
+        group by dateTime) b on a.curr_date = b.dateTime
+        order by clickDate
+    </select>
+
+    <select id="selectRectifyDateWarning" resultType="java.util.Map">
+        select count(*) count,
+        IFNULL(sum(case when
+            (t.receipt_info = '' or t.receipt_info is null)
+            and DATE_SUB(CURDATE(), INTERVAL 0 DAY) > c.qual_repair_time_limit then 1 else 0 end),0) timeoutNumber,
+        IFNULL(sum(case when
+            (t.receipt_info = '' or t.receipt_info is null)
+            and DATE_SUB(CURDATE(), INTERVAL 0 DAY) &lt;= c.qual_repair_time_limit then 1 else 0 end),0) underwayNumber,
+        IFNULL(sum(case when
+            (t.receipt_info != '' and t.receipt_info is not null) then 1 else 0 end),0) completeNumber
+        from b_qual_hidden_trouble t
+        inner join b_qual_check c on t.check_id = c.check_id
+    </select>
+
+    <select id="selectQualDataByPrinipal" resultType="java.util.Map">
+        select b.actual_corrector_name_new name,
+            count(t.hidden_trouble_id) count,
+            sum(case
+                when t.receipt_info = '' or t.receipt_info is null then 1 else 0 end) unfinished
+        from b_qual_hidden_trouble t
+                inner join (select t2.hidden_trouble_id,
+                (case
+                    when (t2.actual_corrector_name = '' or t2.actual_corrector_name is null)
+                    then '未分配'
+                else t2.actual_corrector_name
+                END)
+                as actual_corrector_name_new
+                from b_qual_hidden_trouble t2) b on t.hidden_trouble_id = b.hidden_trouble_id
+        group by b.actual_corrector_name_new
+
+    </select>
+
+    <select id="selectQualQuestionsQuantity" resultType="java.util.Map">
+        select count(t.hidden_trouble_id) count,
+        IFNULL(sum(case when t.receipt_info = '' or t.receipt_info is null then 1 else 0 end), 0) unfinished
+        from b_qual_hidden_trouble t
+    </select>
+</mapper>

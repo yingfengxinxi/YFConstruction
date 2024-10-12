@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.labour.mapper.LabourTeamMapper">
+
+    <select id="selectList" parameterType="com.kakarote.build.labour.entity.BO.LabourTeamBO" resultType="java.util.Map">
+        select blt.*, blw.dict_label
+        from b_labour_team blt
+        <!--left join b_labour_worktype blw on blt.work_type_id = blw.id-->
+        left join (select dict_label, dict_value
+            from wk_admin_dict_data where dict_type = 'b_labour_work_type') blw on blt.work_type_id = blw.dict_value
+        <where>
+            <if test="data.subcontractorId != null and data.subcontractorId != ''">
+                blt.subcontractor_id = #{data.subcontractorId,jdbcType=VARCHAR}
+            </if>
+            <if test="data.workTypeId != null and data.workTypeId.size() > 0">
+                and blt.work_type_id in
+                <foreach collection="data.workTypeId" item="item" index="index" separator="," open="(" close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="data.teamLeaderName != null and data.teamLeaderName != ''">
+                and blt.team_leader_name like concat('%',#{data.teamLeaderName}, '%')
+            </if>
+            <if test="data.projectId != null and data.projectId != ''">
+                AND blt.project_id = #{data.projectId}
+            </if>
+            <if test="data.isSendStatus != null and data.isSendStatus.size() > 0">
+                and blt.is_send_status in
+                <foreach collection="data.isSendStatus" item="item" index="index" separator="," open="(" close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <select id="selcetIdsAndName" resultType="com.kakarote.build.labour.entity.PO.LabourTeam">
+        select
+        blt.team_name
+        ,blt.team_leader_name
+        ,blt.id
+        from b_labour_team blt
+    </select>
+
+    <select id="selectListByName" resultType="com.kakarote.build.labour.entity.PO.LabourTeam">
+        select *
+        from b_labour_team
+        <where>
+            <if test="data.teamName != null and data.teamName != ''">
+                and team_name = #{data.teamName}
+            </if>
+            <if test="data.id != null and data.id != ''">
+                and id != #{data.id}
+            </if>
+        </where>
+    </select>
+
+    <insert id="saveFile">
+         INSERT INTO wk_admin_file
+        (file_id,
+        name, size, create_user_id, create_time,path,file_type, type,is_public,
+        batch_id,tenant_id)
+        VALUES(
+         #{data.fileId},
+         #{data.name},
+         #{data.size},
+         #{data.createUserId},
+         #{data.createTime},
+         #{data.path},
+         #{data.fileType},
+         #{data.type},
+         #{data.isPublic},
+         #{data.batchId},
+         #{data.tenantId}
+        )
+    </insert>
+
+    <select id="selectByIdData" resultType="com.kakarote.build.labour.entity.PO.LabourTeam">
+        select *
+        from b_labour_team where id = #{id}
+        and tenant_id = #{tenantId}
+        AND project_id = #{projectId}
+    </select>
+
+    <delete id="deleteDetailsGrp">
+        delete from b_labour_team
+        where id = #{id}
+        and tenant_id = #{tenantId}
+        AND project_id = #{projectId}
+    </delete>
+
+    <delete id="deleteFileData">
+        delete from wk_admin_file
+        where batch_id = #{batchId}
+        and tenant_id = #{tenantId}
+    </delete>
+</mapper>

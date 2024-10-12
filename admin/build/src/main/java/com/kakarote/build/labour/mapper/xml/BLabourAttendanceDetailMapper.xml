@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.labour.mapper.BLabourAttendanceDetailMapper">
+
+
+    <sql id="selectVo">
+        select id, create_by, create_time, update_by, update_time,tenant_id,project_id,attendance_id,infocollection_id,infocollection_name,
+        infocollection_card,attendance_number,attendance_date,info_holiday,info_abnormal,info_attendance,data_statistical_judge
+		from b_labour_attendance_detail
+    </sql>
+
+    <select id="selectDataList" resultType="com.kakarote.build.labour.entity.PO.BLabourAttendanceDetail">
+        <include refid="selectVo"/>
+        <where>
+            1=1
+
+        </where>
+    </select>
+
+
+    <select id="selectMonth" resultType="com.kakarote.build.labour.entity.PO.BLabourAttendanceDetailMonth">
+        SELECT
+        b.infocollection_id,
+        b.infocollection_name,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m'
+        ) WHEN #{createBy} THEN b.info_attendance ELSE 0 END) as 'zs' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-01') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri01' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-02') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri02' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-03') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri03' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-04') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri04' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-05') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri05' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-06') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri06' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-07') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri07' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-08') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri08' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-09') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri09' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-10') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri10' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-11') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri11' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-12') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri12' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-13') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri13' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-14') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri14' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-15') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri15' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-16') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri16' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-17') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri17' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-18') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri18' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-19') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri19' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-20') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri20' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-21') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri21' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-22') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri22' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-23') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri23' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-24') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri24' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-25') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri25' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-26') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri26' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-27') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri27' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-28') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri28' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-29') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri29' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-30') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri30' ,
+        SUM(CASE DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) WHEN CONCAT( #{createBy},'-31') THEN (case when b.info_holiday = '1' then b.info_attendance-2 else b.info_attendance end) ELSE 0 END) as 'ri31'
+        FROM
+        b_labour_attendance_detail b
+        <where>
+            1=1
+            <if test="attendanceId != null and attendanceId != ''">
+                AND attendance_id = #{attendanceId}
+            </if>
+
+        </where>
+
+        GROUP BY b.infocollection_name
+    </select>
+
+
+    <select id="countByattendance" parameterType="java.lang.String" resultType="java.lang.Long">
+       select sum(info_attendance) from b_labour_attendance_detail
+        <where>
+           attendance_id = #{id}
+        </where>
+    </select>
+
+    <select id="selectUpdate" resultType="com.kakarote.build.labour.entity.PO.BLabourAttendanceDetail">
+        <include refid="selectVo"/>
+        <where>
+            1=1
+            <if test="infocollectionId != null and infocollectionId != ''">
+                AND infocollection_id = #{infocollectionId}
+            </if>
+            <if test="attendanceId != null and attendanceId != ''">
+                AND attendance_id = #{attendanceId}
+            </if>
+            <if test="createBy != null and createBy != ''">
+                AND  DATE_FORMAT(attendance_date,'%Y-%m-%d') = #{createBy}
+            </if>
+
+        </where>
+    </select>
+
+    <delete id="deletePid"  parameterType="java.lang.String">
+        delete from b_labour_attendance_detail
+        where attendance_id = #{pid}
+    </delete>
+
+
+    <select id="selectWageDetail"   resultType="java.lang.String">
+       SELECT COUNT(1) FROM b_labour_attendance_detail
+        <where>
+            1=1
+            <if test="infocollectionId != null and infocollectionId != ''">
+                AND infocollection_id = #{infocollectionId}
+            </if>
+            <if test="createBy != null and createBy != ''">
+                AND  DATE_FORMAT(attendance_date,'%Y-%m') = #{createBy}
+            </if>
+             AND info_attendance='1'
+        </where>
+    </select>
+
+</mapper>

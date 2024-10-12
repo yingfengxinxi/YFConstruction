@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.wifi.mapper.WifiTestMapper">
+    <select id="MySelectById" resultType="java.util.Map">
+        SELECT test_id, paper_rules_id, work_type_id, paper_score, paper_count, answer_id, answer_name, answer_phone,
+        quest_score,past_scope, create_by,
+        create_time, update_by,
+        update_time, project_id, tenant_id FROM b_wifi_test
+        <where>
+            <if test=" data.testId != null and data.testId != '' ">
+                test_id=#{data.testId}
+            </if>
+        </where>
+    </select>
+    <select id="selectTestPaperList" resultType="java.util.Map">
+        SELECT test_id, paper_rules_id, work_type_id, paper_score, paper_count, answer_id, answer_name, answer_phone,
+        quest_score,past_scope, create_by,
+        create_time, update_by,
+        update_time, project_id, tenant_id FROM b_wifi_test
+        <where>
+            (project_id != 0 or project_id is null)
+            <if test=" data.testId != null and data.testId != '' ">
+                and test_id=#{data.testId}
+            </if>
+            <if test=" data.paperRulesId != null and data.paperRulesId != '' ">
+                and paper_rules_id=#{data.paperRulesId}
+            </if>
+            <if test=" data.workTypeId != null and data.workTypeId != '' ">
+                and work_type_id=#{data.workTypeId}
+            </if>
+            <if test=" data.paperScore != null and data.paperScore != '' ">
+                and paper_score=#{data.paperScore}
+            </if>
+            <if test=" data.paperCount != null and data.paperCount != '' ">
+                and paper_count=#{data.paperCount}
+            </if>
+            <if test=" data.answerId != null and data.answerId != '' ">
+                and answer_id=#{data.answerId}
+            </if>
+            <if test=" data.questScore != null and data.questScore != '' ">
+                and quest_score=#{data.questScore}
+            </if>
+            <if test=" data.questScoreStart != null and data.questScoreStart != '' ">
+                and quest_score<![CDATA[ >= ]]>#{data.questScoreStart}
+            </if>
+            <if test=" data.questScoreEnd != null and data.questScoreEnd != '' ">
+                and quest_score<![CDATA[ <= ]]>#{data.questScoreEnd}
+            </if>
+        </where>
+--         order by create_time desc
+    </select>
+    <insert id="savePaper">
+INSERT INTO b_wifi_test(test_id, paper_rules_id, work_type_id, paper_score, paper_count, answer_id,
+ answer_name, answer_phone, quest_score, create_by, create_time, update_by, update_time, project_id, tenant_id)
+ VALUES ('1', '1', 5, 100, 5, '14773', '管理员', '13969782210', 20, NULL, '2021-05-27 11:30:07', NULL, NULL, 4, 1);
+
+    </insert>
+
+    <!--    1、工种答题占比分析 -->
+    <select id="getTestWorkTypeId" resultType="java.util.Map">
+        select count(1) value,if(b.dict_label is null,'无工种',b.dict_label) name
+        from b_wifi_test a
+        <!--left join b_labour_worktype b on a.work_type_id = b.id-->
+        left join (select dict_label, dict_value from wk_admin_dict_data where dict_type = 'b_labour_work_type') B on a.work_type_id = B.dict_value
+		GROUP BY a.work_type_id
+    </select>
+
+    <!--    2、试题得分分析-按试题类型分类，柱状图代表总分，折线图代表平均分-->
+    <select id="getScopeByTestType" resultType="java.util.Map">
+    select a.type_name,a.allScope,t.avgScop from (
+        select count(b.id) as allScope ,b.type_id,c.type_name
+        from b_wifi_questions b
+        inner join b_wifi_quest_type c  on b.type_id = c.id
+		AND c.tenant_id !='0'
+		AND c.project_id !='0'
+		WHERE
+		b.tenant_id !='0'
+		AND b.project_id !='0'
+        GROUP BY b.type_id,c.type_name
+    ) a inner join (
+        select ROUND(sum(c.if_true)/count(c.if_true)*100,2) as avgScop,q.type_id
+        from b_retire_test_quest c inner join b_wifi_questions q on c.from_quest_id = q.id
+        AND q.tenant_id !='0'
+	    AND q.project_id !='0'
+        where c.if_true is not null
+        GROUP BY q.type_id
+    ) t on a.type_id = t.type_id
+    </select>
+
+    <!--    3、答题人员排名，前10-横向柱状图-->
+    <select id="getScopeByTen" resultType="java.util.Map">
+        select a.answer_name,ROUND(avg(a.quest_score),2) as questScore
+        from b_wifi_test a
+        where a.quest_score is not null and a.answer_name is not null
+        group by a.answer_name
+        order by avg(a.quest_score) desc LIMIT 10
+    </select>
+
+    <!--    4、视频观看次数占比-饼状图 -->
+    <select id="getVideoWatchCounts" resultType="java.util.Map">
+--         select count(1) value,c.name
+--         from b_wifi_video_watch_record a
+--         left join wk_admin_file c on a.vd_id = c.file_id
+--         group by vd_id
+        select sum(a.value) as value,a.name from ( select count(1) value,if(d.course_video_name is NULL,'未知课程库',d.course_video_name) as name
+          from b_wifi_video_watch_record a LEFT JOIN b_wifi_video_detail c ON a.vd_id = c.id
+          left join b_wifi_course_library d on c.batch_id=d.batch_id group by vd_id )a group by a.name ORDER BY a.value desc limit 10
+    </select>
+
+</mapper>

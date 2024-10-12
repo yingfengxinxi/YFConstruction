@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qdoner.datarecept.mapper.EquipmentOfflineMapper">
+    <select id="getOfflineTower" resultType="java.util.Map">
+        SELECT
+        *
+        FROM
+        b_equipment_tower_data_at
+        WHERE
+        TIME_TO_SEC( timediff( NOW( ), monitor_time ) ) &lt; ( SELECT VALUE FROM wk_admin_config WHERE NAME = 'mechanicalEquipmentOffline' ) and equipment_id = #{id}
+    </select>
+    <select id="getOfflineElevator" resultType="java.util.Map">
+        SELECT
+        *
+        FROM
+        b_equipment_elevator_data_at
+        WHERE
+        TIME_TO_SEC( timediff( NOW( ), monitor_time ) ) &lt; ( SELECT VALUE FROM wk_admin_config WHERE NAME = 'mechanicalEquipmentOffline' ) and equipment_id = #{id}
+    </select>
+    <select id="selectOfflineTower" resultType="java.util.Map">
+        SELECT
+            a.equipment_id,a.monitor_time,b.status,a.tenant_id,a.project_id
+        FROM
+            ( SELECT equipment_id, MAX( monitor_time ) AS monitor_time,tenant_id,project_id FROM b_equipment_tower_data_at GROUP BY equipment_id ) a
+            LEFT JOIN ( SELECT * FROM b_equipment_offline WHERE id IN ( SELECT MAX( id ) FROM b_equipment_offline GROUP BY equipment_id ) ) b ON a.equipment_id = b.equipment_id
+        WHERE
+            TIME_TO_SEC( timediff( NOW( ), a.monitor_time ) ) > ( SELECT VALUE FROM wk_admin_config WHERE NAME = 'mechanicalEquipmentOffline' )
+            AND ( b.STATUS IS NULL OR b.STATUS = 1 )
+    </select>
+    <select id="selectOfflineElevator" resultType="java.util.Map">
+        SELECT
+            a.equipment_id,a.monitor_time,b.status,a.tenant_id,a.project_id
+        FROM
+            ( SELECT equipment_id, MAX( monitor_time ) AS monitor_time,tenant_id,project_id FROM b_equipment_elevator_data_at GROUP BY equipment_id ) a
+            LEFT JOIN ( SELECT * FROM b_equipment_offline WHERE id IN ( SELECT MAX( id ) FROM b_equipment_offline GROUP BY equipment_id ) ) b ON a.equipment_id = b.equipment_id
+        WHERE
+            TIME_TO_SEC( timediff( NOW( ), a.monitor_time ) ) > ( SELECT VALUE FROM wk_admin_config WHERE NAME = 'mechanicalEquipmentOffline' )
+            AND ( b.STATUS IS NULL OR b.STATUS = 1 )
+    </select>
+</mapper>

@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.safety.mapper.SafetyInspectionDetailMapper">
+
+    <select id="selectDanger" resultType="com.kakarote.build.safety.entity.PO.SafetyInspectionDetail">
+        select * from b_safety_inspection_detail a
+        <where>
+            and batch_id is not null and batch_id != ''
+            <if test="data.dangerSourceIds != null">
+                and danger_source_id in
+                <foreach collection="data.dangerSourceIds" item="id" index="index" open="(" close=")" separator=",">
+                    #{id}
+                </foreach>
+            </if>
+            and (SELECT COUNT(0) FROM wk_admin_file b where a.batch_id = b.batch_id) != 0
+        </where>
+    </select>
+
+    <select id="selectPieData" resultType="java.util.Map">
+        select bsds.danger_source_id id,  bsds.danger_name name, count(1) value
+        from b_safety_inspection_detail as bsid
+        inner join b_safety_danger_source bsds on bsid.danger_source_id = bsds.danger_source_id
+        group by bsds.danger_source_id
+        order by value desc
+        limit 10
+    </select>
+
+    <select id="selectBarData" resultType="java.util.Map">
+        select p.plan_name name, p.id id, count(d.id) value from b_safety_inspection_plan p
+        left join b_safety_inspection_info i on p.id = i.plan_id
+        left join b_safety_inspection_detail d on i.id = d.inspection_info_id
+        group by p.id
+    </select>
+
+    <select id="selectCurveData" resultType="java.util.Map">
+        select a.curr_date dateTime, IFNULL(b.value ,0) value
+        from (
+             select date_format(date_add(curdate(),interval -t.help_topic_id day),'%Y-%m-%d') as 'curr_date'
+             from mysql.help_topic t
+             where t.help_topic_id &lt;= '29'
+        ) a left join (
+        select count(1) value, d.rectify_date from b_safety_inspection_detail d
+        left join b_safety_inspection_info i on d.inspection_info_id = i.id
+        left join b_safety_inspection_plan p on i.plan_id = p.id
+        where p.id = #{id,jdbcType=INTEGER}
+        GROUP BY d.rectify_date
+        ) b on a.curr_date = b.rectify_date
+        order by dateTime
+    </select>
+
+    <select id="selectRectifyDateWarning" resultType="java.util.Map">
+        select count(*) count,
+        IFNULL(sum(case when
+            (d.rectify_effect = '' or d.rectify_effect is null)
+            and DATE_SUB(CURDATE(), INTERVAL 0 DAY) > i.repair_time_limit then 1 else 0 end), 0) timeoutNumber,
+        IFNULL(sum(case when
+            (d.rectify_effect = '' or d.rectify_effect is null)
+            and DATE_SUB(CURDATE(), INTERVAL 0 DAY) &lt;= i.repair_time_limit then 1 else 0 end), 0) underwayNumber,
+        IFNULL(sum(case when
+            (d.rectify_effect != '' and d.rectify_effect is not null) then 1 else 0 end), 0) completeNumber
+        from b_safety_inspection_detail d
+        inner join b_safety_inspection_info i on d.inspection_info_id = i.id
+    </select>
+
+    <select id="selectSafetyDataByPrinipal" resultType="java.util.Map">
+        select b.rectification_people_new name,
+            count(d.id) count,
+		    sum(case
+		        when d.rectify_effect = '' or d.rectify_effect is null then 1 else 0 end) unfinished
+        from b_safety_inspection_detail d
+        inner join (select d2.id,
+            (case
+                when (d2.rectification_people = '' or d2.rectification_people is null) then '未分配'
+                else d2.rectification_people
+            END)
+            as rectification_people_new from b_safety_inspection_detail d2) b on d.id = b.id
+        group by b.rectification_people_new
+    </select>
+
+    <select id="selectSafetyQuestionsQuantity" resultType="java.util.Map">
+        select count(d.id) count,
+        IFNULL(sum(case when d.rectify_effect = '' or d.rectify_effect is null then 1 else 0 end), 0) unfinished
+        from b_safety_inspection_detail d
+    </select>
+
+    <select id="selectNumByType" resultType="java.util.Map">
+        select a.curr_date clickDate, IFNULL(b.value ,0) value
+        from (
+        select date_format(date_add(curdate(),interval -t.help_topic_id ${data.dateType}),#{data.format}) as 'curr_date'
+        from mysql.help_topic t
+        where t.help_topic_id &lt; #{data.num}) a left join (
+        select count(1) value , DATE_FORMAT(d.rectify_date, #{data.format}) changeDate
+        from b_safety_inspection_detail d
+        group by changeDate) b on a.curr_date = b.changeDate
+        order by clickDate
+    </select>
+
+    <select id="selectListByPro" resultType="com.kakarote.build.safety.entity.PO.SafetyInspectionDetail">
+        select a.*, b.inspector_id, b.check_date, b.repair_time_limit, IFNULL(c.project_abbreviation,c.project_name) AS projectName,
+            (case when a.rectify_date is null or a.rectify_date = '' then '1'
+                  when a.recheck_date is null or a.recheck_date = '' then '2'
+                  else '3' end) hiddenState
+        from b_safety_inspection_detail a
+        left join b_safety_inspection_info b on a.inspection_info_id = b.id
+        left join b_project_info c on a.project_id = c.id
+        <where>
+            <if test="data.projectId != null">
+                and a.project_id = #{data.projectId}
+            </if>
+            <if test="data.problemDescription != null and data.problemDescription != ''">
+                and a.problem_description like concat('%', #{data.problemDescription}, '%')
+            </if>
+            <if test='data.hiddenState != null and data.hiddenState == "1"'>
+                and (a.rectify_date is null or a.rectify_date = '')
+            </if>
+            <if test='data.hiddenState != null and data.hiddenState == "2"'>
+                and (a.recheck_date is null or a.recheck_date = '')
+            </if>
+            <if test='data.hiddenState != null and data.hiddenState == "3"'>
+                and (a.rectify_date is not null or a.rectify_date != '')
+                and (a.recheck_date is not null or a.recheck_date != '')
+            </if>
+            <if test="data.inspectStartDate != null ">
+                and b.check_date >= #{data.inspectStartDate}
+            </if>
+            <if test="data.inspectEndDate != null ">
+                and b.check_date &lt;= #{data.inspectEndDate}
+            </if>
+            <if test="data.timeSlot != null and data.timeSlot != ''">
+                and DATE_FORMAT(b.check_date,'%Y-%m-%d') =DATE_FORMAT(now(),'%Y-%m-%d')
+            </if>
+        </where>
+        order by b.check_date desc
+    </select>
+
+    <select id="selectDetailByIdPro" resultType="com.kakarote.build.safety.entity.PO.SafetyInspectionDetail">
+        select a.*, b.inspector_id, b.check_date, b.repair_time_limit
+        from b_safety_inspection_detail a
+        left join b_safety_inspection_info b on a.inspection_info_id = b.id
+        where a.id = #{id}
+    </select>
+
+    <select id="selectProDangerNumber" resultType="java.util.Map">
+        select count(*) as count,
+        sum(case when a.rectify_date is not null or a.rectify_date = !'' then 1 else 0 end) as completeNumber,
+        sum(case when a.rectify_date is null or a.rectify_date = '' then 1 else 0 end) as unfinishNumber
+        from b_safety_inspection_detail a
+    </select>
+
+    <select id="selectProDangerLevelProportion" resultType="java.util.Map">
+        select sum(case when a.level = 'general' then 1 else 0 end) as generalNumber,
+               sum(case when a.level = 'serious' then 1 else 0 end) as seriouslNumber
+        from b_safety_inspection_detail a
+    </select>
+
+    <select id="selectProDangerTypeProportion" resultType="java.util.Map">
+        select sum(case when a.category = 'basic' then 1 else 0 end) as basiclNumber,
+               sum(case when a.category = 'production' then 1 else 0 end) as productionlNumber
+        from b_safety_inspection_detail a
+    </select>
+
+    <select id="selectAvgRectifyTime" resultType="java.util.Map">
+        select ifnull(cast( avg(timestampdiff(day,b.check_date,a.rectify_date)) as DECIMAL(10, 2)), 0) as avgTime
+        from b_safety_inspection_detail a
+        left join b_safety_inspection_info b on a.inspection_info_id = b.id
+        where a.rectify_date is not null and a.rectify_date != ''
+    </select>
+
+    <select id="selectQuantityCompletion" resultType="java.util.Map">
+        select count(*) quantityCompletion from b_safety_inspection_detail a
+        where a.recheck_date is not null and a.recheck_date != ''
+    </select>
+
+    <select id="selectTrendAnalyses" resultType="java.util.Map">
+        select c.curr_date as checkDate, IFNULL(d.number ,0) as number, c.formatDate
+        from (
+            select DATE_FORMAT(date_add(curdate(),interval -t.help_topic_id ${data.dateType}),#{data.format}) as 'curr_date',
+            DATE_FORMAT(date_add(curdate(),interval -t.help_topic_id ${data.dateType}),#{data.formatStyle}) as 'formatDate'
+            from mysql.help_topic t  where t.help_topic_id &lt; #{data.num}
+        ) c
+        left join (
+            select DATE_FORMAT(b.check_date,#{data.format}) as date, count(*) as number from b_safety_inspection_detail a
+            left join b_safety_inspection_info b on a.inspection_info_id = b.id
+            group by DATE_FORMAT(b.check_date,#{data.format})
+        ) d on c.curr_date = d.date
+        order by c.curr_date
+    </select>
+
+    <select id="selectProDangerRank" resultType="java.util.Map">
+        select IFNULL(a.project_abbreviation,a.project_name) AS projectName,  sum(case when b.id and b.rectify_date is null or b.rectify_date = '' then 1 else 0 end) as notRectifyCount,
+               sum(case when date_format(c.check_date , '%Y-%m-%d') = date_format(now(), '%Y-%m-%d') then 1 else 0 end) as todayCount, count(b.id) as total
+        from b_project_info a
+        left join b_safety_inspection_detail b on a.id = b.project_id
+        left join b_safety_inspection_info c on b.inspection_info_id = c.id
+        group by a.id
+        order by notRectifyCount desc, todayCount desc, total desc
+    </select>
+
+    <select id="selectDangerNumberProportion" resultType="java.util.Map">
+        select c.curr_date as checkDate, DATE_FORMAT(c.curr_date,'%d日') as formatDate,
+               IFNULL(d.notRectify,0) as notRectify, IFNULL(d.notRecheck,0) as notRecheck, IFNULL(d.complete,0) as complete
+        from (
+            select DATE_FORMAT(date_add(curdate(),interval -t.help_topic_id day),"%Y-%m-%d") as 'curr_date'
+            from mysql.help_topic t  where t.help_topic_id &lt; 7
+        ) c
+        left join (
+            select sum(case when a.rectify_date is null or a.rectify_date = '' then 1 else 0 end) notRectify,
+            sum(case when a.rectify_date is not null and a.rectify_date != '' and (a.recheck_date is null or a.recheck_date = '') then 1 else 0 end) notRecheck,
+            sum(case when a.rectify_date is not null and a.rectify_date != ''and a.recheck_date is not null and a.recheck_date != '' then 1 else 0 end) complete,
+            DATE_FORMAT(b.check_date,'%Y-%m-%d') as check_date
+            from b_safety_inspection_detail a
+            left join b_safety_inspection_info b on a.inspection_info_id = b.id
+            <where>
+                <if test="data.projectId != null">
+                    and a.project_id = #{data.projectId}
+                </if>
+            </where>
+            group by DATE_FORMAT(b.check_date,'%Y-%m-%d')
+        ) d on c.curr_date = d.check_date
+        order by checkDate
+    </select>
+
+    <select id="selectProAgingAnalysis" resultType="java.util.Map">
+          SELECT a.id, IFNULL(a.project_abbreviation, a.project_name) AS projectName,
+                sum(CASE WHEN b.rectify_date IS NOT NULL AND b.rectify_date != '' THEN 1 ELSE 0 END) completeCount,
+                count(b.id) total,
+                IFNULL(CAST(avg(timestampdiff(day, c.check_date, b.rectify_date))AS DECIMAL (10, 2)),0) as avgTime
+                FROM b_project_info a
+                LEFT JOIN b_safety_inspection_detail b ON a.id = b.project_id
+                LEFT JOIN b_safety_inspection_info c on b.inspection_info_id = c.id
+                 GROUP BY a.id order by total desc,completeCount desc,avgTime desc
+    </select>
+
+    <select id="selectSafetyLevelAnalysis" resultType="java.util.Map">
+        select a.dict_label, sum(case when b.id is not null then 1 else 0 end) as number
+        from (select dict_label, dict_value from wk_admin_dict_data where dict_type = 'b_hazard_level') a
+        left join b_safety_inspection_detail b on a.dict_value = b.level
+        group by a.dict_value
+    </select>
+
+    <select id="selectHiddenDangerInfo" resultType="java.util.Map">
+        select a.*, b.check_code, b.plan_name, b.check_date, b.repair_time_limit,
+            c.name as deptName, ifnull(d.realName, d.username) as realName, #{iconType} as iconType,
+            '3342' as xAxis, '-219' as yAxis, '-1573' as zAxis
+        from b_safety_inspection_detail a
+        left join b_safety_inspection_info b on a.inspection_info_id = b.id
+        left join wk_admin_dept c on b.dept_id = c.dept_id
+        left join wk_admin_user d on b.inspector_id = d.user_id
+        where (a.rectify_effect = '' or a.rectify_effect is null)
+    </select>
+
+    <select id="selectQuestionList" resultType="java.util.Map">
+        select *
+        from b_safety_inspection_detail d
+        inner join b_safety_inspection_info i on d.inspection_info_id = i.id
+        <where>
+            1=1
+            <if test="data.type!='' and data.type!=null and data.type=='1'.toString()">
+                and (d.rectify_effect = '' OR d.rectify_effect IS NULL) AND DATE_SUB(CURDATE(), INTERVAL 0 DAY) &gt; i.repair_time_limit
+            </if>
+            <if test="data.type!='' and data.type!=null and data.type=='2'.toString()">
+                and (d.rectify_effect = '' OR d.rectify_effect IS NULL) AND  DATE_SUB(CURDATE(), INTERVAL 0 DAY) &lt;= i.repair_time_limit
+            </if>
+            <if test="data.type!='' and data.type!=null and data.type=='3'.toString()">
+                and (d.rectify_effect != '' AND d.rectify_effect IS NOT NULL)
+            </if>
+        </where>
+
+    </select>
+
+    <select id="proDangerNumList" resultType="java.util.Map">
+        SELECT B.id AS projectId,B.project_name AS projectName,
+               IFNULL( B.project_abbreviation,B.project_name) AS projectAbbreviation,
+               sum( CASE WHEN (DATE_FORMAT(C.check_date, '%Y-%m-%d') = DATE_FORMAT(NOW(), '%Y-%m-%d')) THEN 1 ELSE 0 END ) AS 'todayDangerNum',
+               count(C.check_date) AS 'totalDangerNum'
+        FROM b_project_info_view B
+        LEFT JOIN b_safety_inspection_detail A ON A.project_id = B.id
+        LEFT JOIN b_safety_inspection_info C on A.inspection_info_id = C.id
+        WHERE  b.project_state = '2'
+        GROUP BY B.project_id
+        ORDER BY todayDangerNum DESC,totalDangerNum DESC,B.sort
+    </select>
+</mapper>

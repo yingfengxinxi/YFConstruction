@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qdoner.message.mapper.MessageMapper">
+    <select id="selectByPage" resultType="com.qdoner.message.entity.PO.Message">
+        SELECT
+        a.*,q.icon,q.click_open,q.url,q.is_sys
+        FROM wm_message a,wm_queues q
+        where a.type = q.code
+        <if test="data.toUser != null">
+            and a.to_user = #{data.toUser}
+        </if>
+        <if test="data.ifRead != null and data.ifRead != ''">
+            and a.if_read = #{data.ifRead}
+        </if>
+        order by a.create_time desc
+    </select>
+</mapper>

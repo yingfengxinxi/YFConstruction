@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.safety.mapper.BSafetySafetyTrainingMapper">
+
+
+    <sql id="selectVo">
+        select id, create_by, create_time, update_by, update_time,tenant_id,project_id,training_plan_id,training_type,training_time,training_address,
+        training_content,training_teaching,training_teaching_time,training_teaching_address,training_people
+		from b_safety_safety_training
+    </sql>
+
+    <select id="selectDataList" resultType="com.kakarote.build.safety.entity.PO.BSafetySafetyTraining">
+        <include refid="selectVo"/>
+        <where>
+            1=1
+            <if test="data.trainingType != null and data.trainingType != ''">
+                AND training_type =  #{data.trainingType}
+            </if>
+            <if test="data.trainingTeaching != null and data.trainingTeaching != ''">
+                AND training_teaching like concat('%', #{data.trainingTeaching}, '%')
+            </if>
+            <if test="data.createBy != null and data.createBy != ''">
+                AND DATE_FORMAT( training_time, '%Y-%m-%d' ) &gt;= #{data.createBy}
+            </if>
+            <if test="data.updateBy != null and data.updateBy != ''">
+                AND DATE_FORMAT( training_time, '%Y-%m-%d' )  &lt;= #{data.updateBy}
+            </if>
+            <if test="data.trainingPlanId != null and data.trainingPlanId != ''">
+                AND training_plan_id = #{data.trainingPlanId}
+            </if>
+            <if test="data.projectId != null and data.projectId != ''">
+                AND project_id =  #{data.projectId}
+            </if>
+        </where>
+        /*order by  create_time desc*/
+    </select>
+
+</mapper>

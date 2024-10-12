@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.qual.mapper.BQualSamplingWitnessMapper">
+
+
+    <sql id="selectVo">
+        select id, create_by, create_time, update_by, update_time,tenant_id,project_id, samplers,sampling_unit,witness,
+        witness_unit,sampling_date,specimen_type,specimen_details,batch_id,client,client_unit,client_date,testing_unit,
+        accepting_client,client_batch_id
+		from b_qual_sampling_witness
+    </sql>
+
+    <select id="selectDataList" resultType="com.kakarote.build.qual.entity.BO.BQualSamplingWitnessBO">
+        <include refid="selectVo"/>
+        <where>
+            1=1
+
+            <if test="data.samplers != null and data.samplers != ''">
+                AND samplers like concat('%', #{data.samplers}, '%')
+            </if>
+            <if test="data.samplingUnit != null and data.samplingUnit != ''">
+                AND sampling_unit like concat('%', #{data.samplingUnit}, '%')
+            </if>
+            <if test="data.witness != null and data.witness != ''">
+                AND witness like concat('%', #{data.witness}, '%')
+            </if>
+            <if test="data.witnessUnit != null and data.witnessUnit != ''">
+                AND witness_unit like concat('%', #{data.witnessUnit}, '%')
+            </if>
+            <if test="data.createBy != null and data.createBy != ''">
+                AND sampling_date  &gt;= #{data.createBy}
+            </if>
+            <if test="data.updateBy != null and data.updateBy != ''">
+                AND #{data.updateBy} &gt;= sampling_date
+            </if>
+            <if test="data.specimenType != null and data.specimenType != ''">
+                AND specimen_type = #{data.specimenType}
+            </if>
+
+            /*order by  create_time desc*/
+
+        </where>
+    </select>
+
+    <select id="selectListNew" resultType="com.kakarote.build.qual.entity.BO.BQualSamplingWitnessBO">
+        select a.id, a.create_by, a.create_time, a.update_by, a.update_time,a.tenant_id,a.project_id, a.samplers,a.sampling_unit,a.witness,
+        a.witness_unit,a.sampling_date,a.specimen_type,a.specimen_details,a.batch_id, IFNULL(i.project_abbreviation,i.project_name) AS projectName
+        from b_qual_sampling_witness a
+        left join b_project_info i on a.project_id = i.project_id
+        <where>
+            1=1
+
+            <if test="data.samplers != null and data.samplers != ''">
+                AND a.samplers like concat('%', #{data.samplers}, '%')
+            </if>
+            <if test="data.samplingUnit != null and data.samplingUnit != ''">
+                AND a.sampling_unit like concat('%', #{data.samplingUnit}, '%')
+            </if>
+            <if test="data.witness != null and data.witness != ''">
+                AND a.witness like concat('%', #{data.witness}, '%')
+            </if>
+            <if test="data.witnessUnit != null and data.witnessUnit != ''">
+                AND a.witness_unit like concat('%', #{data.witnessUnit}, '%')
+            </if>
+            <if test="data.createBy != null and data.createBy != ''">
+                AND a.sampling_date  &gt;= #{data.createBy}
+            </if>
+            <if test="data.updateBy != null and data.updateBy != ''">
+                AND #{data.updateBy} &gt;= a.sampling_date
+            </if>
+            <if test="data.specimenType != null and data.specimenType != ''">
+                AND a.specimen_type = #{data.specimenType}
+            </if>
+            <if test="data.projectId != null and data.projectId != ''">
+                AND a.project_id = #{data.projectId}
+            </if>
+
+            /*order by  a.create_time desc*/
+
+        </where>
+    </select>
+</mapper>

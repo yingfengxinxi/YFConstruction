@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.admin.mapper.AdminMenuMapper">
+    <select id="queryMenuList" resultType="com.kakarote.admin.entity.PO.AdminMenu">
+        SELECT a.*
+        FROM wk_admin_menu as a
+        WHERE menu_id IN
+            (
+              SELECT menu_id FROM wk_admin_role_menu AS a INNER JOIN wk_admin_user_role as b ON a.role_id = b.role_id
+              WHERE b.user_id = #{userId} group by a.menu_id
+            ) and a.status = 1 and a.menu_type != 5 and a.tenant_id != 0
+        order by a.sort
+    </select>
+    <select id="queryAppMenuList" resultType="com.kakarote.admin.entity.PO.AdminMenu">
+        SELECT a.*
+        FROM wk_admin_menu as a
+        WHERE menu_id IN
+        (
+        SELECT menu_id FROM wk_admin_role_menu AS a INNER JOIN wk_admin_user_role as b ON a.role_id = b.role_id
+        WHERE b.user_id = #{userId} group by a.menu_id
+        ) and a.status = 1 and a.menu_type = 5 and a.is_disabled = '0' and a.is_hide = '0'
+        order by a.parent_id asc, a.sort
+    </select>
+    <select id="queryPoolReadAuth" resultType="java.util.HashMap">
+        SELECT
+               count( CASE WHEN find_in_set( #{userId}, admin_user_id ) THEN 1 ELSE NULL END ) AS adminNum ,
+               count( CASE WHEN find_in_set( #{userId},member_user_id ) or find_in_set( #{deptId},member_dept_id ) THEN 1 ELSE NULL END ) AS userNum
+        FROM
+             wk_crm_customer_pool
+        WHERE `status` = '1'
+    </select>
+    <select id="queryMenuId" resultType="java.lang.Integer">
+        select a.menu_id from wk_admin_menu as a inner join wk_admin_menu as b on a.parent_id = b.menu_id
+                                                    inner join wk_admin_menu as c on b.parent_id = c.menu_id
+        where c.realm = #{realm1} and b.realm = #{realm2} and a.realm = #{realm3}
+    </select>
+
+    <select id="queryByParentId" resultType="com.kakarote.admin.entity.PO.AdminMenu">
+        SELECT
+        a.*, CASE
+        WHEN (
+        SELECT
+        count(1)
+        FROM
+        wk_admin_menu m
+        WHERE
+        m.parent_id = a.menu_id
+        ) = 0 THEN
+        false
+        ELSE
+        true
+        END hasChildren
+
+        FROM
+        wk_admin_menu a
+        WHERE
+        a.parent_id = #{parentId}
+        ORDER BY
+        status desc,sort
+    </select>
+    <!-- 租户 -->
+    <select id="queryByParentIdTenant" resultType="com.kakarote.admin.entity.PO.AdminMenu">
+        SELECT
+        a.*, CASE
+        WHEN (
+        SELECT
+        count(1)
+        FROM
+        wk_admin_menu m
+        WHERE
+        m.parent_id = a.menu_id and m.menu_type in (1,2) and m.is_hide = 0 and m.is_disabled = 0
+        ) = 0 THEN
+        false
+        ELSE
+        true
+        END hasChildren
+
+        FROM
+        wk_admin_menu a
+        WHERE
+        a.parent_id = #{parentId} and a.menu_type in (1,2) and a.is_hide = 0 and a.is_disabled = 0
+        ORDER BY
+        status desc,sort
+    </select>
+    <select id="getMenuById" resultType="com.kakarote.admin.entity.PO.AdminMenu">
+        SELECT
+        a.*, CASE
+        WHEN (
+        SELECT
+        count(1)
+        FROM
+        wk_admin_menu m
+        WHERE
+        m.parent_id = a.menu_id
+        ) = 0 THEN
+        false
+        ELSE
+        true
+        END hasChildren
+
+        FROM
+        wk_admin_menu a
+        WHERE
+        a.menu_id = #{menuId}
+    </select>
+
+    <!-- 获取置顶启用应用 -->
+    <select id="queryHeaderMenuList" resultType="com.kakarote.admin.entity.PO.AdminMenu">
+        SELECT a.*
+        FROM wk_admin_menu as a
+        WHERE
+        <!-- 置顶 -->
+        a.menu_id IN
+            (
+              SELECT s.model FROM wk_admin_model_sort s
+              WHERE s.user_id = #{userId} AND
+                <!-- 权限 -->
+                s.model IN
+                (
+                SELECT r.menu_id FROM wk_admin_role_menu AS r INNER JOIN wk_admin_user_role as b ON r.role_id = b.role_id
+                WHERE b.user_id = #{userId}
+                )
+            )
+        <!-- 启用 -->
+        and a.status = 1
+        order by a.sort
+    </select>
+    <!-- 获取置顶启用应用 -->
+    <select id="queryAdminHeaderMenuList" resultType="com.kakarote.admin.entity.PO.AdminMenu">
+        SELECT a.*
+        FROM wk_admin_menu as a
+        WHERE
+        <!-- 置顶 -->
+        a.menu_id IN
+        (
+        SELECT s.model FROM wk_admin_model_sort s
+        WHERE s.user_id = #{userId}
+        )
+        <!-- 启用 -->
+        and a.status = 1
+        order by a.sort
+    </select>
+    <!-- 获取全部启用应用 -->
+    <select id="queryAllAppList" resultType="com.kakarote.admin.entity.PO.AdminMenu">
+        SELECT a.*
+        FROM wk_admin_menu as a
+        WHERE a.parent_id = 0 AND
+        <!-- 权限 -->
+        a.menu_id IN
+        (
+        SELECT r.menu_id FROM wk_admin_role_menu AS r INNER JOIN wk_admin_user_role as b ON r.role_id = b.role_id
+        WHERE b.user_id = #{userId}
+        )
+        <!-- 启用 -->
+        and a.status = 1
+        order by a.sort
+    </select>
+    <!-- 获取全部启用应用 -->
+    <select id="queryAdminAllAppList" resultType="com.kakarote.admin.entity.PO.AdminMenu">
+        SELECT a.*
+        FROM wk_admin_menu as a
+        where a.parent_id = 0
+        <!-- 启用 -->
+        and a.status = 1
+        order by a.sort
+    </select>
+    <!-- 获取全部应用 -->
+    <select id="queryAppList" resultType="com.kakarote.admin.entity.PO.AdminMenu">
+        SELECT a.*
+        FROM wk_admin_menu as a
+        WHERE a.parent_id = 0 AND
+        <!-- 权限 -->
+        a.menu_id IN
+        (
+        SELECT r.menu_id FROM wk_admin_role_menu AS r INNER JOIN wk_admin_user_role as b ON r.role_id = b.role_id
+        WHERE b.user_id = #{userId}
+        )
+        order by a.sort
+    </select>
+
+    <select id="getMenuListByTenant" resultType="com.kakarote.admin.entity.PO.AdminMenu">
+        SELECT a.*
+        FROM wk_admin_menu as a
+        INNER JOIN wk_admin_dept_menu d on a.menu_id = d.menu_id and d.dept_id = #{tenantId}
+        WHERE a.status = 1
+        order by a.sort
+    </select>
+
+    <update id="updatePidForNewTenant" parameterType="integer">
+        update wk_admin_menu a inner join wk_admin_menu b on b.copy_id = a.parent_id and b.tenant_id = a.tenant_id
+        set a.parent_id = b.menu_id
+        where a.tenant_id = #{tenantId}
+    </update>
+
+    <select id="queryMenuListByPath" resultType="com.kakarote.admin.entity.PO.AdminMenu">
+        select a.*
+        from wk_admin_menu a
+        inner join wk_admin_role_menu b on a.menu_id = b.menu_id
+        where a.path = #{adminMenu.path} and a.is_hide = '0' and a.status = '1'
+        and b.role_id in
+        <foreach collection="roles" item="roleId" open="(" separator="," close=")">
+            #{roleId}
+        </foreach>
+    </select>
+</mapper>

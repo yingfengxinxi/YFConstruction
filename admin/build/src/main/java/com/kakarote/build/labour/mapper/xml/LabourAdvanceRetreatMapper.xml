@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.labour.mapper.LabourAdvanceRetreatMapper">
+    <select id="selectPageList" resultType="java.util.Map">
+        SELECT
+        a.*,b.team_name,c.real_name,c.corp_code,d.`name`
+        FROM
+        b_labour_advance_retreat a
+        LEFT JOIN b_labour_team b ON a.team_id = b.id
+        LEFT JOIN b_labour_subcontractor c on a.subcon_id = c.id
+        LEFT JOIN b_labour_infocollection d on a.id_card_number = d.id_card
+        <where>
+            <if test="data.corpName != null and data.corpName != ''">
+                and c.real_name like concat('%', #{data.corpName}, '%')
+            </if>
+            <if test="data.idCardNumber != null and data.idCardNumber != ''">
+                and a.id_card_number = #{data.idCardNumber,jdbcType=VARCHAR}
+            </if>
+            <if test="data.name != null and data.name != ''">
+                and d.`name` like concat('%', #{data.name}, '%')
+            </if>
+            <if test="data.startTime != null">
+                and a.date >= #{data.startTime,jdbcType=TIMESTAMP}
+            </if>
+            <if test="data.endTime != null">
+                and a.date &lt;= #{data.endTime,jdbcType=TIMESTAMP}
+            </if>
+            <if test="data.type != null and data.type != ''">
+                and a.type = #{data.type,jdbcType=VARCHAR}
+            </if>
+        </where>
+    </select>
+</mapper>

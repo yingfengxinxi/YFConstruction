@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qdoner.datarecept.equipment.mapper.EquipmentPitDataAtBakMapper">
+    <insert id="batchSaveData">
+        insert into b_equipment_pit_data_at_bak
+        ( project_id,point_id, tenant_id,monitor_time,
+        device_type,value,init_value,variation,aggregate_value,
+        rate_change,crack,max_cumulative_displacement_position,equipment_id,alarm_status
+        )
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            ( #{item.projectId},#{item.pointId}, #{item.tenantId},#{item.monitorTime},
+            #{item.deviceType},#{item.value}, #{item.initValue},#{item.variation},#{item.aggregateValue},
+            #{item.rateChange},#{item.crack}, #{item.maxCumulativeDisplacementPosition},#{item.equipmentId},#{item.alarmStatus}
+            )
+        </foreach>
+    </insert>
+</mapper>

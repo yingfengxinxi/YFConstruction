@@ -1,0 +1,1228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.equipment.mapper.EquipmentAssetsMapper">
+
+    <select id="selectByPage" resultType="com.kakarote.build.equipment.entity.PO.EquipmentAssets">
+        select e.device_channel_id,e.url,e.ysy_flv_url,e.wvp_open_url,e.hook_check_box,e.ptz_check_box,
+        a.*, l.location_name,t.type_name,d.name as dept_name, IFNULL(f.project_abbreviation,f.project_name) AS projectName
+        from b_equipment_assets a
+        inner join b_equipment_type t on a.type_id = t.type_id
+        left join b_equipment_location l on a.location_id = l.location_id
+        left join wk_admin_dept d on a.dept_id = d.dept_id
+        left JOIN device_project_relation e on a.asset_id=e.business_id
+        left join b_project_info f on a.project_id = f.id
+        <where>
+            <if test="data.typeId != null">
+                AND (t.type_id = #{data.typeId} or t.type_pid = #{data.typeId})
+            </if>
+            <if test="data.locationId != null">
+                AND a.location_id = #{data.locationId}
+            </if>
+            <if test="data.projectId != null and data.projectId != ''">
+                AND a.project_id = #{data.projectId}
+            </if>
+            <if test="data.status != null">
+                AND a.status = #{data.status}
+            </if>
+            <if test="data.monitorType != null">
+                AND t.monitor_type = #{data.monitorType}
+            </if>
+            <if test="data.search != null and data.search != ''">
+                AND (a.asset_code like concat('%', #{data.search}, '%')
+                OR a.asset_name like concat('%', #{data.search}, '%'))
+            </if>
+
+            <if test="data.hookCheckBox != null and data.hookCheckBox != ''">
+                and EXISTS(select * from device_project_relation dpr where a.asset_id=dpr.business_id and
+                dpr.hook_check_box= #{data.hookCheckBox})
+            </if>
+        </where>
+        /*order by a.status desc,a.sort,a.create_time desc*/
+    </select>
+
+    <select id="listByLocationId" resultType="java.util.Map">
+        select asset_id as value,asset_name as label
+        from b_equipment_assets
+        where location_id = #{locationId} and status = '1'
+        order by sort
+    </select>
+
+    <select id="selectEquList" resultType="com.kakarote.build.equipment.entity.PO.EquipmentAssets">
+        select a.asset_id, a.asset_name
+        from b_equipment_assets a
+        where a.status = '1'
+            <if test="data.typeId != null">
+                a.type_id = #{data.typeId,jdbcType=INTEGER}
+            </if>
+            <if test="data.locationId != null">
+                a.location_id = #{data.locationId,jdbcType=INTEGER}
+            </if>
+            <if test="data.status != null and data.status != ''">
+                AND a.status = #{data.status}
+            </if>
+            <if test="data.projectId != null and data.projectId != ''">
+                AND a.project_id = #{data.projectId}
+            </if>
+        order by a.sort asc
+    </select>
+    <!-- getEqListByMoType -->
+    <select id="getEqListByMoType" resultType="com.kakarote.build.equipment.entity.PO.EquipmentAssets">
+        select a.asset_id, a.asset_name
+        from b_equipment_assets a
+        <where>
+            a.type_id in (select t.type_id from b_equipment_type t
+            where t.monitor_type = #{moType} )
+        </where>
+    </select>
+
+
+    <!-- 判断 机械设备司机导入数据是否是塔吊或者升降机类型-->
+    <select id="selectEquipTypeByMap" resultType="java.util.Map">
+
+        select a.*
+        from b_equipment_type a
+        left join b_equipment_assets b on a.type_id = b.type_id
+        where b.asset_code = #{data}
+        and (a.monitor_type = '2' or a.monitor_type = '3')
+
+    </select>
+
+    <select id="selectSprayList" resultType="java.util.Map">
+
+    select a.asset_id, a.asset_code, a.asset_name, a.location_id, b.operation_time,
+        (case when b.operation_type = '1' then '1' else '0' end) isStart
+    from b_equipment_assets a
+    left join (select *from
+            (select * from b_equipment_spray_system
+            order by operation_time desc limit 10000000000) s
+            group by s.equipment_id)  b on a.asset_id = b.equipment_id
+    left join b_equipment_type c on a.type_id = c.type_id
+    where a.status = 1 and c.monitor_type = #{data.monitorType}
+    order by operation_time desc
+    </select>
+    <select id="selectVideoMonitor" resultType="java.util.Map">
+    select a.app,a.stream,b.ip,b.${data.portType} from gb_stream a left join media_server b on a.mediaServerId=b.id where app=#{data.app} and stream=#{data.stream}
+    </select>
+
+    <select id="selectByPageGroup" resultType="com.kakarote.build.equipment.entity.PO.EquipmentAssets">
+        select a.*,
+        t.type_name,d.name as dept_name, i.project_name
+        from b_equipment_assets a
+        inner join (select equt.*, getEquipmentTypeParent(equt.type_id) as typePath
+        from b_equipment_type equt) t on a.type_id = t.type_id
+        left join wk_admin_dept d on a.dept_id = d.dept_id
+        inner join b_project_info i on a.project_id = i.id
+        <where>
+            <if test="data.typeId != null">
+                AND find_in_set(#{data.typeId}, t.typePath)
+            </if>
+            <if test="data.status != null">
+                AND a.status = #{data.status}
+            </if>
+            <if test="data.search != null and data.search != ''">
+                AND (a.asset_code like concat('%', #{data.search}, '%')
+                OR a.asset_name like concat('%', #{data.search}, '%'))
+            </if>
+            <if test="data.projectId != null">
+                AND a.project_id = #{data.projectId}
+            </if>
+            <if test="data.projectId == null">
+                AND a.project_id != '0'
+            </if>
+        </where>
+        /*order by a.status desc,a.sort,a.create_time desc*/
+    </select>
+
+    <select id="EquipmentNum" resultType="java.util.Map">
+      select c.type_id,c.type_name,count(*) as TotalNum,(
+				case when a.type_id=(case when c.monitor_type='99' then c.type_id end) then sum(case when ((select a.status from device_project_relation a  where business_id=a.asset_id limit 1)='1') then 1 else 0 end )
+				else sum(case when online='1' then 1 else 0 end ) end
+				)as onLineNum from EquOnlineView a
+				left join EquAssetsProjectView b on a.asset_id=b.asset_id
+				left join b_equipment_type c on b.type_id=c.type_id
+				where b.project_state = '2'
+        GROUP BY b.type_id
+    </select>
+    <select id="videoEquiByPro" resultType="java.util.Map">
+        select *,((case when a.onLineNum>0 then 1 else 0 end)* (case when a.sort= 0 then -1 else a.sort end )) as 'osd'
+        from (
+        select a.project_name as projectName,a.project_abbreviation as projectAbbreviation,a.sort,
+        a.id as projectId,
+        <choose>
+            <when test="data.hookCheckBox != null and data.hookCheckBox != ''">
+                sum(CASE WHEN c.hook_check_box='1' THEN 1 ELSE 0 END)
+            </when>
+            <otherwise>
+                IFNULL(b.totalNum,0)
+            </otherwise>
+        </choose>
+        as totalNum ,sum(case when c.status='1' then 1 else 0 end) as onLineNum
+        from b_project_info a
+        inner join (select count(*) as totalNum,a.project_id from b_equipment_assets a
+                    left join  b_equipment_type b on a.type_id = b.type_id
+                    where b.monitor_type='99' and a.status='1' GROUP BY project_id) b on
+        a.id=b.project_id
+        left join (select c1.*
+            from device_project_relation c1
+            inner join b_equipment_assets c2 on c1.business_id = c2.asset_id
+            where c2.status = '1') c on a.id=c.project_id
+        <if test="data.hookCheckBox != null and data.hookCheckBox != ''">
+            AND c.hook_check_box = #{data.hookCheckBox}
+        </if>
+        where a.project_state='2'
+
+        GROUP BY a.id
+        )a order by (osd=0 or a.sort>=10000),osd asc,a.sort asc
+    </select>
+    <select id="videoEquiByProByCheckHox" resultType="java.util.Map">
+        SELECT
+            a.project_name AS projectName,
+            a.project_abbreviation AS projectAbbreviation,
+            a.id AS projectId,
+            sum( CASE WHEN c.hook_check_box = '1' THEN 1 ELSE 0 END ) AS totalNum,
+            sum( CASE WHEN c.hook_check_box = '1' AND c.STATUS = '1' THEN 1 ELSE 0 END ) AS onLineNum
+        FROM
+            b_project_info a
+            LEFT JOIN (
+        SELECT
+            count( * ) AS totalNum,
+            a.project_id
+        FROM
+            b_equipment_assets a
+        WHERE
+            type_id = ( SELECT type_id FROM b_equipment_type WHERE monitor_type = '99' LIMIT 1 )
+        GROUP BY
+            project_id
+            ) b ON a.id = b.project_id
+            LEFT JOIN device_project_relation c ON a.id = c.project_id
+        WHERE
+            a.project_state = '2'
+
+        GROUP BY
+            a.id
+        ORDER BY
+            a.sort ASC
+    </select>
+    <select id="getDeviceId" resultType="java.util.Map">
+      select * from device_project_relation where business_id=#{assectId}
+    </select>
+
+    <select id="equiStateList" resultType="com.kakarote.build.equipment.entity.PO.EquipmentAssets">
+        select * from (
+        SELECT (case when a.type_id=c.type_id and a.type_id = 30 then
+                (case when ((select a.status from device_project_relation a where business_id=d.asset_id limit 1)='1') then 1
+                else 0 end )
+        else a.online end) as online,
+        (case when a.type_id=c.type_id and a.type_id = 30 then
+            (select a.create_time from device_project_relation a where business_id=d.asset_id limit 1)
+        else (
+            select max(monitor_time) from b_equipment_monitor_point p
+            left join b_equipment_monitor_data_at m on p.id = m.point_id
+            where p.equipment_id = a.asset_id)
+        end) as offline_date,
+        a.asset_id,b.project_name,b.project_state,c.type_name,d.asset_code,d.asset_name,d.brand,d.model,e.location_name,c.monitor_type
+        FROM EquOnlineView a
+        left join EquAssetsProjectView b on a.asset_id=b.asset_id
+        left join b_equipment_type c on b.type_id=c.type_id
+        left join b_equipment_assets d on a.asset_id=d.asset_id
+        left join b_equipment_location e on a.location_id=e.location_id
+        <where>
+            b.project_state = '2'
+            <if test="data.typeId !=null and data.typeId!=''">
+                and (a.type_id in(select type_id from b_equipment_type where type_pid=#{data.typeId})
+                or a.type_id =#{data.typeId})
+            </if>
+
+            <if test="data.projectId !=null and data.projectId!=''">
+                and a.project_id=#{data.projectId}
+            </if>
+            <if test="data.monitorTypeList !=null and data.monitorTypeList.size != 0">
+                and c.monitor_type in
+                <foreach collection="data.monitorTypeList" item="id" index="index" open="(" close=")" separator=",">
+                    #{id}
+                </foreach>
+            </if>
+        </where>
+        )a
+        <where>
+            <if test="data.online !=null and data.online!=''">
+                and a.online=#{data.online}
+            </if>
+        </where>
+        order by a.offline_date desc
+    </select>
+
+
+    <select id="selectPlaneByType" resultType="com.kakarote.build.equipment.entity.PO.EquipmentAssets">
+        select * from b_equipment_assets where type_id = #{typeId}
+    </select>
+
+    <select id="videoMonitorDevices" resultType="java.util.Map">
+        select a.*,b.asset_id,b.asset_code,b.asset_name from device_project_relation a
+        inner join b_equipment_assets b on a.business_id=b.asset_id
+        <where>1=1
+            <if test="data.deviceId != null and data.deviceId != ''">
+                and a.device_id=#{data.deviceId}
+            </if>
+            <if test="data.deviceSerial != null and data.deviceSerial != ''">
+                and a.device_serial=#{data.deviceSerial}
+            </if>
+        </where>
+        <if test="data.isGroup!=null and data.isGroup!=''">
+            group by a.device_id
+        </if>
+    </select>
+    <select id="videoMonitorChannels" resultType="java.util.Map">
+        select a.id,a.device_id,a.device_channel_id,business_id,a.type,a.create_time,
+        b.asset_id,b.asset_code,b.asset_name,b.project_id,b.tenant_id from device_project_relation a
+        inner join b_equipment_assets b on a.business_id=b.asset_id
+        where device_id=#{deviceId}
+    </select>
+    <select id="equimentList" resultType="java.util.Map">
+          select * from device_project_relation where project_id=#{data.projectId} and url is not null order by status desc,sort asc
+    </select>
+    <select id="equimentListByCheckHox" resultType="java.util.Map">
+          select * from device_project_relation where project_id=#{data.projectId} and url is not null and hook_check_box = '1' order by status desc,sort asc
+    </select>
+    <select id="groupList2" resultType="java.util.Map">
+        select f.device_id as deviceId,f.device_channel_id as deviceChannelId,f.sort ,f.url,f.ysy_flv_url as
+        ysyFlvUrl,f.wvp_open_url as wvpOpenUrl,f.ptz_check_box as ptzCheckBox,f.hook_check_box as hookCheckBox,
+        f.status,a.*, t.type_name, i.project_name,i.project_abbreviation as projectAbbreviation, f.device_serial
+        from b_equipment_assets a
+        INNER JOIN b_equipment_type t on t.type_id = a.type_id and t.monitor_type='99'
+        -- left join wk_admin_dept d on a.dept_id = d.dept_id
+        inner join b_project_info i on a.project_id = i.id
+        inner join device_project_relation f on a.asset_id=f.business_id
+        <where>
+            1=1 and a.`status`='1'
+            <if test="data.projectId != null and data.projectId != ''">
+                AND a.project_id = #{data.projectId}
+            </if>
+            <if test="data.hookCheckBox != null and data.hookCheckBox != ''">
+                AND f.hook_check_box = #{data.hookCheckBox}
+            </if>
+        </where>
+        order by f.status desc,f.sort asc,a.status desc
+    </select>
+    <select id="getIsAllowControl" resultType="java.util.Map">
+        select * from device_project_relation a
+        left join b_equipment_assets b on a.business_id=b.asset_id
+        where  a.ptz_check_box='1' and a.device_channel_id=#{data.channelId}
+    </select>
+    <!--总览-->
+    <select id="selectAllOverview" resultType="java.util.Map">
+        SELECT
+            a.*,
+            b.monitor_type,
+            e.line,
+            e.monitor_time,
+            SUBSTRING_INDEX( a.plane_coordinate, ',', 1 ) AS planeCoordinateX,
+            SUBSTRING_INDEX( a.plane_coordinate, ',',- 1 ) AS planeCoordinateY,
+            SUBSTRING_INDEX( a.plane_coordinate_pc, ',', 1 ) AS planeCoordinatePcX,
+            SUBSTRING_INDEX( a.plane_coordinate_pc, ',',- 1 ) AS planeCoordinatePcY,
+            ala.alert_count,ala.alert_content
+        FROM
+            b_equipment_assets a
+            LEFT JOIN b_equipment_type b ON a.type_id = b.type_id
+            LEFT JOIN equipment_line e ON a.asset_id = e.equipment_id
+            LEFT JOIN (SELECT
+                al.equipment_id,
+                count(al.id) AS alert_count,
+                group_concat(CONCAT(al.create_time,' ',al.content) SEPARATOR '|') as alert_content
+                FROM
+                b_monitor_point_alert al
+                where al.handle_state = '0'
+                GROUP BY
+                al.equipment_id ) ala ON ala.equipment_id = a.asset_id
+    </select>
+    <select id="selectTowerCraneOverview" resultType="java.util.Map">
+        SELECT
+            a.*,
+            e.line,
+            e.monitor_time,
+            SUBSTRING_INDEX( a.plane_coordinate, ',', 1 ) AS planeCoordinateX,
+            SUBSTRING_INDEX( a.plane_coordinate, ',',- 1 ) AS planeCoordinateY,
+            SUBSTRING_INDEX( a.plane_coordinate_pc, ',', 1 ) AS planeCoordinatePcX,
+            SUBSTRING_INDEX( a.plane_coordinate_pc, ',',- 1 ) AS planeCoordinatePcY
+        FROM
+            b_equipment_assets a
+            LEFT JOIN b_equipment_type b ON a.type_id = b.type_id
+--             INNER JOIN wk_admin_dept d ON a.dept_id = d.dept_id
+            LEFT JOIN equipment_line e ON a.asset_id = e.equipment_id and e.monitor_type = '2'
+        WHERE
+            b.monitor_type = '2'
+    </select>
+    <select id="selectElevatorOverview" resultType="java.util.Map">
+        SELECT
+            a.*,
+            e.line,
+            e.monitor_time,
+            SUBSTRING_INDEX( a.plane_coordinate, ',', 1 ) AS planeCoordinateX,
+            SUBSTRING_INDEX( a.plane_coordinate, ',',- 1 ) AS planeCoordinateY,
+            SUBSTRING_INDEX( a.plane_coordinate_pc, ',', 1 ) AS planeCoordinatePcX,
+            SUBSTRING_INDEX( a.plane_coordinate_pc, ',',- 1 ) AS planeCoordinatePcY
+        FROM
+            b_equipment_assets a
+            LEFT JOIN b_equipment_type b ON a.type_id = b.type_id
+--             INNER JOIN wk_admin_dept d ON a.dept_id = d.dept_id
+            LEFT JOIN equipment_line e ON a.asset_id = e.equipment_id and e.monitor_type = '3'
+        WHERE
+            b.monitor_type = '3'
+    </select>
+    <select id="selectPitOverview" resultType="java.util.Map">
+        SELECT
+                a.*,
+                e.line,
+                e.monitor_time,
+                f.pro_id,
+                SUBSTRING_INDEX( a.plane_coordinate, ',', 1 ) AS planeCoordinateX,
+                SUBSTRING_INDEX( a.plane_coordinate, ',',- 1 ) AS planeCoordinateY,
+            SUBSTRING_INDEX( a.plane_coordinate_pc, ',', 1 ) AS planeCoordinatePcX,
+            SUBSTRING_INDEX( a.plane_coordinate_pc, ',',- 1 ) AS planeCoordinatePcY
+        FROM
+                b_equipment_assets a
+                LEFT JOIN b_equipment_type b ON a.type_id = b.type_id
+                INNER JOIN wk_admin_dept d ON a.dept_id = d.dept_id
+                LEFT JOIN monitor_point e ON a.asset_id = e.equipment_id
+                LEFT JOIN b_equipment_pit_formwork f on a.asset_id = f.equipment_id
+        WHERE
+                b.monitor_type = '1'
+    </select>
+    <select id="selectFormworkOverview" resultType="java.util.Map">
+        SELECT
+                a.*,
+                e.line,
+                e.monitor_time,
+                f.pro_id,
+                SUBSTRING_INDEX( a.plane_coordinate, ',', 1 ) AS planeCoordinateX,
+                SUBSTRING_INDEX( a.plane_coordinate, ',',- 1 ) AS planeCoordinateY,
+            SUBSTRING_INDEX( a.plane_coordinate_pc, ',', 1 ) AS planeCoordinatePcX,
+            SUBSTRING_INDEX( a.plane_coordinate_pc, ',',- 1 ) AS planeCoordinatePcY
+        FROM
+                b_equipment_assets a
+                LEFT JOIN b_equipment_type b ON a.type_id = b.type_id
+                INNER JOIN wk_admin_dept d ON a.dept_id = d.dept_id
+                LEFT JOIN monitor_point e ON a.asset_id = e.equipment_id
+                LEFT JOIN b_equipment_pit_formwork f on a.asset_id = f.equipment_id
+        WHERE
+                b.monitor_type = '11'
+    </select>
+    <select id="selectHookOverview" resultType="java.util.Map">
+        SELECT
+                a.*,
+                f.status as line,
+                e.monitor_time,
+                SUBSTRING_INDEX( a.plane_coordinate, ',', 1 ) AS planeCoordinateX,
+                SUBSTRING_INDEX( a.plane_coordinate, ',',- 1 ) AS planeCoordinateY,
+            SUBSTRING_INDEX( a.plane_coordinate_pc, ',', 1 ) AS planeCoordinatePcX,
+            SUBSTRING_INDEX( a.plane_coordinate_pc, ',',- 1 ) AS planeCoordinatePcY
+        FROM
+                b_equipment_assets a
+                LEFT JOIN b_equipment_type b ON a.type_id = b.type_id
+                LEFT JOIN monitor_point e ON a.asset_id = e.equipment_id
+								LEFT JOIN device_project_relation f on a.asset_id = f.business_id
+        WHERE
+                b.monitor_type = '99' and f.hook_check_box ='1'
+    </select>
+    <select id="selectTowerCraneAlertNew" resultType="java.util.Map">
+        SELECT
+            d.type,if(w.val is null,0,w.val) as val
+        FROM
+            ( SELECT 0 AS type UNION ALL SELECT 1 AS type UNION ALL SELECT 2 AS type ) d
+            LEFT JOIN (
+        SELECT
+            count( 1 ) val,
+            alert_type
+        FROM
+            b_monitor_point_alert a
+            LEFT JOIN b_equipment_assets b ON a.equipment_id = b.asset_id
+            LEFT JOIN b_equipment_type c ON b.type_id = c.type_id
+        WHERE
+            a.handle_state = '0'
+            AND c.monitor_type = '2'
+            AND to_days( a.create_time ) = to_days( now() )
+        GROUP BY
+            alert_type
+            ) w ON d.type = w.alert_type
+    </select>
+    <select id="selectElevatorAlertNew" resultType="java.util.Map">
+        SELECT
+            d.type,if(w.val is null,0,w.val) as val
+        FROM
+            ( SELECT 0 AS type UNION ALL SELECT 1 AS type UNION ALL SELECT 2 AS type ) d
+            LEFT JOIN (
+        SELECT
+            count( 1 ) val,
+            alert_type
+        FROM
+            b_monitor_point_alert a
+            LEFT JOIN b_equipment_assets b ON a.equipment_id = b.asset_id
+            LEFT JOIN b_equipment_type c ON b.type_id = c.type_id
+        WHERE
+            a.handle_state = '0'
+            AND c.monitor_type = '3'
+            AND to_days( a.create_time ) = to_days( now() )
+        GROUP BY
+            alert_type
+            ) w ON d.type = w.alert_type
+    </select>
+    <select id="selectTowerCraneAlertYday" resultType="java.util.Map">
+        SELECT
+            d.type,if(w.val is null,0,w.val) as val
+        FROM
+            ( SELECT 0 AS type UNION ALL SELECT 1 AS type UNION ALL SELECT 2 AS type ) d
+            LEFT JOIN (
+        SELECT
+            count( 1 ) val,
+            alert_type
+        FROM
+            b_monitor_point_alert a
+            LEFT JOIN b_equipment_assets b ON a.equipment_id = b.asset_id
+            LEFT JOIN b_equipment_type c ON b.type_id = c.type_id
+        WHERE
+            a.handle_state = '0'
+            AND c.monitor_type = '2'
+            AND TO_DAYS(NOW( ) ) - TO_DAYS( a.create_time) = 1
+        GROUP BY
+            alert_type
+            ) w ON d.type = w.alert_type
+    </select>
+    <select id="selectElevatorAlertYday" resultType="java.util.Map">
+        SELECT
+            d.type,if(w.val is null,0,w.val) as val
+        FROM
+            ( SELECT 0 AS type UNION ALL SELECT 1 AS type UNION ALL SELECT 2 AS type ) d
+            LEFT JOIN (
+        SELECT
+            count( 1 ) val,
+            alert_type
+        FROM
+            b_monitor_point_alert a
+            LEFT JOIN b_equipment_assets b ON a.equipment_id = b.asset_id
+            LEFT JOIN b_equipment_type c ON b.type_id = c.type_id
+        WHERE
+            a.handle_state = '0'
+            AND c.monitor_type = '3'
+            AND TO_DAYS(NOW( ) ) - TO_DAYS( a.create_time) = 1
+        GROUP BY
+            alert_type
+            ) w ON d.type = w.alert_type
+    </select>
+    <select id="selectTowerCraneAlert30day" resultType="java.util.Map">
+        SELECT
+            d.type,if(w.val is null,0,w.val) as val
+        FROM
+            ( SELECT 0 AS type UNION ALL SELECT 1 AS type UNION ALL SELECT 2 AS type ) d
+            LEFT JOIN (
+        SELECT
+            count( 1 ) val,
+            alert_type
+        FROM
+            b_monitor_point_alert a
+            LEFT JOIN b_equipment_assets b ON a.equipment_id = b.asset_id
+            LEFT JOIN b_equipment_type c ON b.type_id = c.type_id
+        WHERE
+            a.handle_state = '0'
+            AND c.monitor_type = '2'
+            AND DATE_SUB(CURDATE(), INTERVAL 30 DAY) &lt;=date(a.create_time)
+        GROUP BY
+            alert_type
+            ) w ON d.type = w.alert_type
+    </select>
+    <select id="selectElevatorAlert30day" resultType="java.util.Map">
+        SELECT
+            d.type,if(w.val is null,0,w.val) as val
+        FROM
+            ( SELECT 0 AS type UNION ALL SELECT 1 AS type UNION ALL SELECT 2 AS type ) d
+            LEFT JOIN (
+        SELECT
+            count( 1 ) val,
+            alert_type
+        FROM
+            b_monitor_point_alert a
+            LEFT JOIN b_equipment_assets b ON a.equipment_id = b.asset_id
+            LEFT JOIN b_equipment_type c ON b.type_id = c.type_id
+        WHERE
+            a.handle_state = '0'
+            AND c.monitor_type = '3'
+            AND DATE_SUB(CURDATE(), INTERVAL 30 DAY) &lt;=date(a.create_time)
+        GROUP BY
+            alert_type
+            ) w ON d.type = w.alert_type
+    </select>
+    <select id="selectTowerCraneById" resultType="java.util.Map" parameterType="java.lang.String">
+        SELECT
+            *
+        FROM
+            b_equipment_assets a
+            LEFT JOIN b_equipment_tower b ON a.asset_id = b.equipment_id
+            LEFT JOIN ( SELECT * FROM b_equipment_tower_data_at WHERE equipment_id = #{id} ORDER BY monitor_time DESC LIMIT 1 ) c ON a.asset_id = c.equipment_id
+            where a.asset_id = #{id}
+    </select>
+    <select id="selectElevatorById" resultType="java.util.Map" parameterType="java.lang.String">
+        SELECT
+            *
+        FROM
+            b_equipment_assets a
+            LEFT JOIN b_equipment_elevator b ON a.asset_id = b.equipment_id
+            LEFT JOIN ( SELECT * FROM b_equipment_elevator_data_at WHERE equipment_id = #{id} ORDER BY monitor_time DESC LIMIT 1 ) c ON a.asset_id = c.equipment_id
+            where a.asset_id = #{id}
+    </select>
+    <select id="selectMonitorAlertNew" resultType="java.util.Map" parameterType="java.lang.String">
+        SELECT
+            d.type,if(w.val is null,0,w.val) as val
+        FROM
+            ( SELECT 0 AS type UNION ALL SELECT 1 AS type UNION ALL SELECT 2 AS type ) d
+            LEFT JOIN (
+        SELECT
+            count( 1 ) val,
+            alert_type
+        FROM
+            b_monitor_point_alert a
+            LEFT JOIN b_equipment_assets b ON a.equipment_id = b.asset_id
+            LEFT JOIN b_equipment_type c ON b.type_id = c.type_id
+        WHERE
+            a.handle_state = '0'
+            <if test="type != null and type != ''">
+                AND c.monitor_type = #{type}
+            </if>
+            AND to_days( a.create_time ) = to_days( now() )
+        GROUP BY
+            alert_type
+            ) w ON d.type = w.alert_type
+    </select>
+    <select id="selectMonitorAlertYday" resultType="java.util.Map" parameterType="java.lang.String">
+        SELECT
+            d.type,if(w.val is null,0,w.val) as val
+        FROM
+            ( SELECT 0 AS type UNION ALL SELECT 1 AS type UNION ALL SELECT 2 AS type ) d
+            LEFT JOIN (
+        SELECT
+            count( 1 ) val,
+            alert_type
+        FROM
+            b_monitor_point_alert a
+            LEFT JOIN b_equipment_assets b ON a.equipment_id = b.asset_id
+            LEFT JOIN b_equipment_type c ON b.type_id = c.type_id
+        WHERE
+            a.handle_state = '0'
+            <if test="type != null and type != ''">
+                AND c.monitor_type = #{type}
+            </if>
+            AND TO_DAYS(NOW( ) ) - TO_DAYS( a.create_time) &lt;= 1
+        GROUP BY
+            alert_type
+            ) w ON d.type = w.alert_type
+    </select>
+    <select id="selectMonitorAlert30day" resultType="java.util.Map" parameterType="java.lang.String">
+        SELECT
+            d.type,if(w.val is null,0,w.val) as val
+        FROM
+            ( SELECT 0 AS type UNION ALL SELECT 1 AS type UNION ALL SELECT 2 AS type ) d
+            LEFT JOIN (
+        SELECT
+            count( 1 ) val,
+            alert_type
+        FROM
+            b_monitor_point_alert a
+            LEFT JOIN b_equipment_assets b ON a.equipment_id = b.asset_id
+            LEFT JOIN b_equipment_type c ON b.type_id = c.type_id
+        WHERE
+            a.handle_state = '0'
+            <if test="type != null and type != ''">
+                AND c.monitor_type = #{type}
+            </if>
+            AND DATE_SUB(CURDATE(), INTERVAL 30 DAY) &lt;=date(a.create_time)
+        GROUP BY
+            alert_type
+            ) w ON d.type = w.alert_type
+    </select>
+
+    <select id="videoEquiByLocation" resultType="java.util.Map">
+        select a.location_id as locationId,a.location_name as locationName,a.location_pid as parentId
+        <choose>
+            <when test="data.hookCheckBox!=null and data.hookCheckBox!='' and data.status!=null and data.status!=''">
+                ,sum(case when c.hook_check_box=#{data.hookCheckBox} then 1 else 0 end) AS totalNum,
+                sum(CASE WHEN c.hook_check_box=#{data.hookCheckBox} and c.status = #{data.status} THEN 1 ELSE 0 END) AS
+                onLineNum
+            </when>
+            <otherwise>
+                , count(*) AS totalNum,
+                sum(CASE WHEN c.status = '1' THEN 1 ELSE 0 END) AS onLineNum
+            </otherwise>
+        </choose>
+        from b_equipment_location a
+        left join b_equipment_assets b on a.location_id=b.location_id
+        inner join device_project_relation c ON b.asset_id = c.business_id
+        where location_pid = #{data.parentId}
+        <if test='data.hookCheckBox != null and data.hookCheckBox != ""'>
+            and c.hook_check_box = #{data.hookCheckBox}
+        </if>
+        GROUP BY a.location_id order by a.sort asc
+    </select>
+
+    <select id="videoStreamList" resultType="java.util.Map">
+     	select a.device_id as deviceId,a.device_channel_id as deviceChannelId,a.sort ,a.url,a.ysy_flv_url as ysyFlvUrl,
+     	a.wvp_open_url as wvpOpenUrl, a.status,c.*,
+		b.projectName,b.projectAbbreviation,b.projectId
+		from  device_project_relation a
+		left join (select *,((case when a.onLineNum>0 then 1 else 0 end)* (case when a.sort='0' then -1 else a.sort end )) as 'osd' from
+		    (select a.project_name as projectName,a.project_abbreviation as projectAbbreviation,a.sort,
+            a.id as projectId,IFNULL(b.totalNum,0) as totalNum ,sum(case when c.status=#{data.status} then 1 else 0 end) as onLineNum
+            from b_project_info a
+            left join  (select count(*) as totalNum,a.project_id from b_equipment_assets a
+                where type_id=(select type_id from b_equipment_type where monitor_type='99' limit 1) GROUP BY project_id)b
+			 on a.id=b.project_id
+            left join device_project_relation c on a.id=c.project_id
+            where a.project_state=#{data.projectState} GROUP BY a.id
+            )a order by osd  asc, a.sort asc)b on a.project_id=b.projectId
+		left join b_equipment_assets c on a.business_id=c.asset_id
+		where b.projectId is not null and a.status=#{data.status} order by osd=0,osd  asc, a.sort asc limit ${data.limit}
+    </select>
+    <select id="getLine" resultType="java.util.Map">
+        SELECT
+            '坑基' AS NAME,
+            COUNT( * ) AS zs,
+            sum( CASE WHEN e.line = '1' THEN 1 ELSE 0 END ) zx
+        FROM
+            b_equipment_assets a
+            LEFT JOIN b_equipment_type b ON a.type_id = b.type_id
+            LEFT JOIN equipment_line e ON a.asset_id = e.equipment_id
+        WHERE
+            b.monitor_type = '1'
+            <if test="data.projectId != null">
+                and a.project_id = #{data.projectId}
+                and b.project_id = #{data.projectId}
+            </if>
+        UNION ALL
+        SELECT
+            '塔机' AS NAME,
+            COUNT( * ) AS zs,
+            sum( CASE WHEN e.line = '1' THEN 1 ELSE 0 END ) zx
+        FROM
+            b_equipment_assets a
+            LEFT JOIN b_equipment_type b ON a.type_id = b.type_id
+        LEFT JOIN equipment_line e ON a.asset_id = e.equipment_id and e.monitor_type = '2'
+        WHERE
+            b.monitor_type = '2'
+            <if test="data.projectId != null">
+                and a.project_id = #{data.projectId}
+                and b.project_id = #{data.projectId}
+            </if>
+        UNION ALL
+        SELECT
+            '升降机' AS NAME,
+            COUNT( * ) AS zs,
+            sum( CASE WHEN e.line = '1' THEN 1 ELSE 0 END ) zx
+        FROM
+            b_equipment_assets a
+            LEFT JOIN b_equipment_type b ON a.type_id = b.type_id
+            LEFT JOIN equipment_line e ON a.asset_id = e.equipment_id and e.monitor_type = '3'
+        WHERE
+            b.monitor_type = '3'
+            <if test="data.projectId != null">
+                and a.project_id = #{data.projectId}
+                and b.project_id = #{data.projectId}
+            </if>
+        UNION ALL
+        SELECT
+            '高支模' AS NAME,
+            COUNT( * ) AS zs,
+            sum( CASE WHEN e.line = '1' THEN 1 ELSE 0 END ) zx
+        FROM
+            b_equipment_assets a
+            LEFT JOIN b_equipment_type b ON a.type_id = b.type_id
+            LEFT JOIN equipment_line e ON a.asset_id = e.equipment_id
+        WHERE
+            b.monitor_type = '11'
+            <if test="data.projectId != null">
+                and a.project_id = #{data.projectId}
+                and b.project_id = #{data.projectId}
+            </if>
+        UNION ALL
+        SELECT
+            '卸料平台' AS NAME,
+            COUNT( * ) AS zs,
+            sum( CASE WHEN e.line = '1' THEN 1 ELSE 0 END ) zx
+        FROM
+            b_equipment_assets a
+            LEFT JOIN b_equipment_type b ON a.type_id = b.type_id
+            LEFT JOIN equipment_line e ON a.asset_id = e.equipment_id and e.monitor_type = '3'
+        WHERE
+            b.monitor_type = '12'
+            <if test="data.projectId != null">
+                and a.project_id = #{data.projectId}
+                and b.project_id = #{data.projectId}
+            </if>
+        UNION ALL
+        SELECT
+            '视频监控' AS NAME,
+            COUNT( * ) AS zs,
+            sum( CASE WHEN STATUS = '1' THEN 1 ELSE 0 END ) zx
+        FROM
+            device_project_relation
+        <where>
+            <if test="data.projectId != null">
+                and project_id = #{data.projectId}
+            </if>
+        </where>
+    </select>
+    <select id="videoAccessNum" resultType="java.util.Map">
+        select count(a.num) as projectNum,sum(a.num) as equiNum
+        from  (select count(*) as num,dpr.project_id from device_project_relation dpr
+                inner join b_equipment_assets bea on dpr.business_id=bea.asset_id
+                where business_id is not NULL and bea.status ='1'
+                GROUP BY dpr.project_id
+          ) a
+          left join b_project_info b on a.project_id=b.id
+          where b.project_state='2'
+    </select>
+
+    <select id="selectProjectAccessNum" resultType="java.util.Map">
+      select
+      sum(case when project_state='1' then 1 else 0 end )as "noConnect",
+      sum(case when project_state='2' then 1 else 0 end )as "yesConnect" ,
+      count(b.id) as "videoConnect", count(c.project_id) as 'dustconnected' from b_project_info a
+      left join (select dpr.id,dpr.project_id from  device_project_relation dpr where project_id is not null GROUP BY dpr.project_id) b on a.project_id=b.project_id
+      left join (select a.project_id,count(a.asset_id) from b_equipment_assets a where a.type_id='41' GROUP BY a.project_id)c on a.project_id=c.project_id
+    </select>
+
+    <select id="selectEquiAccessNum" resultType="java.util.Map">
+      	select a.type_id as id,a.type_name as name,sum(a.TotalNum)as TotalNum,sum(a.onLineNum) as onLineNum  from
+			(	select c.type_id,c.type_name,sum(case when a.asset_id is not NULL  then 1 else 0 end) as TotalNum,  getEquipmentTypeParent(c.type_id) as typePath,   (
+				case when a.type_id=(case when c.monitor_type='99' then c.type_id end) then
+				 sum(case when ((select a.status from device_project_relation a  where business_id=a.asset_id limit 1)='1') then 1 else 0 end )
+				else sum(case when online='1' then 1 else 0 end ) end
+				)as onLineNum from  b_equipment_type c
+				left join EquOnlineView a on c.type_id=a.type_id
+                GROUP BY c.type_id
+				)a GROUP BY SUBSTRING_INDEX(a.typePath,',',1)
+    </select>
+
+    <select id="selectEquiAlarmNum" resultType="java.util.Map">
+        SELECT '环境监测报警'as name,count(*) as alarmNum FROM b_monitor_point_alert a
+        union all
+        select 'AI智能分析'as name,sum(a.num) as alarmNum from (
+        select count(*) as num from  b_ai_bare_soil_data union all select count(*)as num from b_ai_dreg_car_cleaning)a
+    </select>
+
+    <select id="selectVideoEquiList" resultType="java.util.Map">
+      select a.asset_id,a.asset_name,b.device_channel_id,b.url,b.ysy_flv_url,b.wvp_open_url,b.hook_check_box,b.ptz_check_box,b.status
+        from b_equipment_assets a left join device_project_relation b on a.asset_id=b.business_id
+        WHERE a.type_id='30'
+        ORDER BY b.status desc ,a.sort
+    </select>
+
+    <select id="selectVideoNumber" resultType="java.util.Map">
+        select count(a.asset_id) as totalNumber,
+               sum(case when b.status = 1 then 1 else 0 end) as onlineNumber,
+               sum(case when b.status = 0 then 1 else 0 end) as offlineNumber
+        from b_equipment_assets a
+        inner join device_project_relation b on a.asset_id = b.business_id and a.project_id = b.project_id
+    </select>
+
+    <select id="selectVideoList" resultType="java.util.Map">
+        SELECT *
+        FROM (
+            SELECT b.status AS online, b.business_id, a.*, c.create_time AS offlineTime
+            FROM b_equipment_assets a
+            INNER JOIN device_project_relation b ON a.asset_id = b.business_id
+            LEFT JOIN b_monitor_point_alert c ON a.asset_id = c.equipment_id
+            <where>
+                <if test="data.hookCheckBox != null and data.hookCheckBox != ''">
+                    and b.hook_check_box = #{data.hookCheckBox}
+                </if>
+            </where>
+            HAVING 1 = 1
+            ORDER BY c.create_time DESC) d
+        GROUP BY d.business_id
+    </select>
+
+    <select id="selectEnvEquiInfo" resultType="java.util.Map">
+        select a.*, c.xAxis, c.yAxis, c.zAxis, d.online, IFNULL(d1.value, 0) as pm25, IFNULL(d2.value, 0) as pm10, IFNULL(d3.value, 0) as noise, #{iconType} as iconType
+        from b_equipment_assets a
+        inner join b_equipment_type b on a.type_id = b.type_id
+        inner join b_equipment_three_dimensional c on a.asset_id = c.equipment_id
+        left join equonlineview d on a.asset_id = d.asset_id
+
+        left join (select a1.value, b1.equipment_id
+            from b_equipment_monitor_data_at a1
+            left join b_equipment_monitor_point b1 on a1.point_id = b1.id
+            where b1.monitor_type = '9' and b1.monitor_son_type = '1') d1 on a.asset_id = d1.equipment_id
+
+        left join (select a2.value, b2.equipment_id
+            from b_equipment_monitor_data_at a2
+            left join b_equipment_monitor_point b2 on a2.point_id = b2.id
+            where b2.monitor_type = '9' and b2.monitor_son_type = '2') d2 on a.asset_id = d2.equipment_id
+
+        left join (select a3.value, b3.equipment_id
+            from b_equipment_monitor_data_at a3
+            left join b_equipment_monitor_point b3 on a3.point_id = b3.id
+            where b3.monitor_type = '9' and b3.monitor_son_type = '3') d3 on a.asset_id = d3.equipment_id
+
+        where b.monitor_type = '9'
+    </select>
+
+    <select id="selectAssetInfoByMonitorType" resultType="java.util.Map">
+        select a.*, c.xAxis, c.yAxis, c.zAxis, #{data.iconType} as iconType
+        from b_equipment_assets a
+        inner join b_equipment_type b on a.type_id = b.type_id
+        inner join b_equipment_three_dimensional c on a.asset_id = c.equipment_id
+        <where>
+            <if test="data.monitorType != null and data.monitorType != ''">
+                b.monitor_type = #{data.monitorType}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectVideoEquiInfo" resultType="java.util.Map">
+        select a.*, b.status AS online, c.xAxis, c.yAxis, c.zAxis, #{iconType} as iconType, b.hook_check_box
+        from b_equipment_assets a
+        inner join device_project_relation b on a.asset_id = b.business_id
+        inner join b_equipment_three_dimensional c on a.asset_id = c.equipment_id
+    </select>
+
+    <select id="selectSprayEquiInfo" resultType="java.util.Map">
+        select e.*, #{iconType} as iconType
+        from (
+            select a.*, (case when b.operation_type is not null then '1' else '0' end ) as online, b.operation_type, b.operation_time, c.xAxis, c.yAxis, c.zAxis
+            from b_equipment_assets a
+            inner join b_equipment_type d on a.type_id = d.type_id
+            left join b_equipment_spray_system b on a.asset_id = b.equipment_id
+            inner join b_equipment_three_dimensional c on a.asset_id = c.equipment_id
+            where d.monitor_type = '98'
+            having 1 = 1
+            order by b.operation_time desc) e
+        group by e.asset_id
+    </select>
+
+    <select id="selectVideoOnlineList" resultType="java.util.Map">
+        SELECT
+        a.asset_id,a.asset_code,a.asset_name,b.status,c.location_name,d.type_name
+        FROM b_equipment_assets a
+        INNER JOIN device_project_relation b ON a.asset_id = b.business_id AND a.project_id = b.project_id
+        left join b_equipment_location c on a.location_id=c.location_id AND a.project_id = b.project_id
+        left join b_equipment_type d on a.type_id=d.type_id AND a.project_id = b.project_id
+        <where>
+            1=1
+            <if test="data.status != null and data.status != ''">
+                and b.status = #{data.status}
+            </if>
+        </where>
+
+    </select>
+
+    <select id="selectEquipmentList" resultType="java.util.Map">
+        SELECT
+        a.asset_code,a.asset_name ,b.type_name,a.brand,a.model,
+        c.line as line
+        FROM
+        b_equipment_assets a
+        LEFT JOIN b_equipment_type b ON a.type_id = b.type_id
+        left join equipment_line c on a.asset_id = c.equipment_id
+        WHERE
+        1=1
+        <if test="data.monitorType != null and data.monitorType != ''">
+            AND b.monitor_type = #{data.monitorType ,jdbcType=VARCHAR}
+        </if>
+        <if test="data.line != null and data.line != ''">
+            AND c.line = #{data.line ,jdbcType=VARCHAR}
+        </if>
+        <if test="data.projectId != null">
+            AND a.project_id = #{data.projectId}
+            AND b.project_id = #{data.projectId}
+            AND c.project_id = #{data.projectId}
+        </if>
+        ORDER BY a.create_time
+        LIMIT #{data.page} ,#{data.limit}
+    </select>
+    <select id="selectEquipmentListCount" resultType="java.util.Map">
+        SELECT
+        count(1) as zs
+        FROM
+        b_equipment_assets a
+        LEFT JOIN b_equipment_type b ON a.type_id = b.type_id
+        INNER JOIN wk_admin_dept d ON a.dept_id = d.dept_id
+        LEFT JOIN equipment_line e ON a.asset_id = e.equipment_id
+        WHERE
+        1=1
+        <if test="data.monitorType != null and data.monitorType != ''">
+            AND b.monitor_type = #{data.monitorType ,jdbcType=VARCHAR}
+        </if>
+        <if test="data.line != null and data.line != ''">
+            AND e.line = #{data.line ,jdbcType=VARCHAR}
+        </if>
+    </select>
+
+    <select id="machineEquNumber" resultType="java.util.Map">
+        select count(*) as totalNum,
+               sum(b.line) as onlineNum
+        from EquOnlineView a
+        left join equipment_line b on a.asset_id = b.equipment_id
+        where a.monitor_type in ('1', '2', '3', '11')
+    </select>
+
+    <select id="selectEquiListByType" resultType="java.util.Map">
+        select *
+        from (
+            select a.asset_code, a.asset_id, a.asset_name, IFNULL(b.project_abbreviation,b.project_name) AS projectName, c.type_name, d.location_name,
+            IFNULL(case when a.monitor_type = '1' or a.monitor_type = '11' then e.line
+            when a.monitor_type = '3' then e.line
+            when a.monitor_type = '2' then e.line
+            when a.monitor_type = '99' then h.status
+            else a.online end, 0) as online
+            from EquOnlineView a
+            left join b_project_info b on a.project_id = b.id
+            left join b_equipment_type c on a.type_id = c.type_id
+            left join b_equipment_location d on a.location_id = d.location_id
+            left join equipment_line e on a.asset_id = e.equipment_id
+            left join device_project_relation h on a.asset_id = h.business_id
+            where b.project_state = '2'
+            <if test='data.selectType != null and data.selectType == "1"'>
+                and c.monitor_type = '9'
+            </if>
+            <if test='data.selectType != null and data.selectType == "2"'>
+                and c.monitor_type in ('1', '2', '3', '11')
+            </if>
+            <if test='data.selectType != null and data.selectType == "3"'>
+                and c.monitor_type = '99'
+            </if>
+            <if test="data.projectId != null">
+                and a.project_id = #{data.projectId}
+                and c.project_id = #{data.projectId}
+            </if>
+            <if test="data.selectType == null and data.monitorType != null and data.monitorType != '' ">
+                and c.monitor_type = #{data.monitorType}
+            </if>) list
+        <where>
+            <if test="data.online != null and data.online != ''">
+                and list.online = #{data.online}
+            </if>
+        </where>
+
+    </select>
+
+    <select id="selectVideoNumberByPro" resultType="java.util.Map">
+        select count(a.asset_id) as totalNumber,
+               sum(case when b.status = 1 then 1 else 0 end) as onlineNumber,
+               sum(case when b.status = 0 then 1 else 0 end) as offlineNumber
+        from b_equipment_assets a
+        inner join device_project_relation b on a.asset_id = b.business_id and a.project_id = b.project_id
+        left join b_project_info c on a.project_id = c.id
+        where c.project_state = '2'
+    </select>
+
+    <select id="selectByPageGroupCount" resultType="java.util.Map">
+        select
+        t.type_name as name,
+        count(1) as value
+        from b_equipment_assets a
+        inner join (select equt.*, getEquipmentTypeParent(equt.type_id) as typePath
+        from b_equipment_type equt) t on a.type_id = t.type_id
+        left join wk_admin_dept d on a.dept_id = d.dept_id
+        inner join b_project_info i on a.project_id = i.id
+        <where>
+            a.project_id != '0'
+        </where>
+        GROUP BY  t.type_name
+        order by value desc
+    </select>
+
+    <select id="getLineByThreeDimensional" resultType="java.util.Map">
+        SELECT
+        '坑基' AS NAME,
+        COUNT( * ) AS zs,
+        sum( CASE WHEN e.line = '1' THEN 1 ELSE 0 END ) zx
+        FROM
+        b_equipment_assets a
+        LEFT JOIN b_equipment_type b ON a.type_id = b.type_id
+        LEFT JOIN equipment_line e ON a.asset_id = e.equipment_id
+        INNER JOIN b_equipment_three_dimensional d on a.asset_id = d.equipment_id
+        WHERE
+        b.monitor_type = '1'
+        <if test="data.projectId != null">
+            and a.project_id = #{data.projectId}
+            and b.project_id = #{data.projectId}
+        </if>
+        UNION ALL
+        SELECT
+        '塔机' AS NAME,
+        COUNT( * ) AS zs,
+        sum( CASE WHEN e.line = '1' THEN 1 ELSE 0 END ) zx
+        FROM
+        b_equipment_assets a
+        LEFT JOIN b_equipment_type b ON a.type_id = b.type_id
+        LEFT JOIN equipment_line e ON a.asset_id = e.equipment_id
+        INNER JOIN b_equipment_three_dimensional d on a.asset_id = d.equipment_id
+        WHERE
+        b.monitor_type = '2'
+        <if test="data.projectId != null">
+            and a.project_id = #{data.projectId}
+            and b.project_id = #{data.projectId}
+        </if>
+        UNION ALL
+        SELECT
+        '升降机' AS NAME,
+        COUNT( * ) AS zs,
+        sum( CASE WHEN e.line = '1' THEN 1 ELSE 0 END ) zx
+        FROM
+        b_equipment_assets a
+        LEFT JOIN b_equipment_type b ON a.type_id = b.type_id
+        LEFT JOIN equipment_line e ON a.asset_id = e.equipment_id and e.monitor_type = '3'
+        INNER JOIN b_equipment_three_dimensional d on a.asset_id = d.equipment_id
+        WHERE
+        b.monitor_type = '3'
+        <if test="data.projectId != null">
+            and a.project_id = #{data.projectId}
+            and b.project_id = #{data.projectId}
+        </if>
+        UNION ALL
+        SELECT
+        '高支模' AS NAME,
+        COUNT( * ) AS zs,
+        sum( CASE WHEN e.line = '1' THEN 1 ELSE 0 END ) zx
+        FROM
+        b_equipment_assets a
+        LEFT JOIN b_equipment_type b ON a.type_id = b.type_id
+        LEFT JOIN equipment_line e ON a.asset_id = e.equipment_id
+        INNER JOIN b_equipment_three_dimensional d on a.asset_id = d.equipment_id
+        WHERE
+        b.monitor_type = '11'
+        <if test="data.projectId != null">
+            and a.project_id = #{data.projectId}
+            and b.project_id = #{data.projectId}
+        </if>
+    </select>
+
+    <select id="selectEquiListByThree" resultType="java.util.Map">
+        select a.*, b.monitor_type
+        from b_equipment_assets a
+        left join b_equipment_type b on a.type_id = b.type_id
+        inner join b_equipment_three_dimensional c on a.asset_id = c.equipment_id
+        <where>
+            <if test="data.monitorType != null and data.monitorType != ''">
+                and b.monitor_type = #{data.monitorType}
+            </if>
+        </where>
+    </select>
+    <select id="selectAllTower" resultType="java.util.Map">
+         SELECT
+            a.asset_id as id,a.asset_code,a.asset_name as name,a.model,a.factory,a.project_id,
+            t.max_weight,t.rated_torque,t.fore_arm_length,t.rear_arm_length,t.arm_height,t.cap_height,
+            SUBSTRING_INDEX( a.plane_coordinate, ',', 1 ) AS planeCoordinateX,
+            SUBSTRING_INDEX( a.plane_coordinate, ',',- 1 ) AS planeCoordinateY,a.offline_status as onLine
+        FROM
+            b_equipment_assets a
+            LEFT JOIN b_equipment_tower t ON a.asset_id = t.equipment_id
+            LEFT JOIN b_equipment_type b ON a.type_id = b.type_id
+            INNER JOIN wk_admin_dept d ON a.dept_id = d.dept_id
+        WHERE
+            b.monitor_type = '2' and a.status = '1'
+    </select>
+    <select id="selectAllElevator" resultType="java.util.Map">
+         SELECT
+            a.asset_id as id,a.asset_code,a.asset_name as name,a.model,a.factory,a.project_id,
+            t.no_load,t.no_load_actual,t.load_value,t.load_value_actual,t.low_end,t.low_end_actual,t.manufacturer,
+            SUBSTRING_INDEX( a.plane_coordinate, ',', 1 ) AS planeCoordinateX,
+            SUBSTRING_INDEX( a.plane_coordinate, ',',- 1 ) AS planeCoordinateY,
+            a.offline_status
+        FROM
+            b_equipment_assets a
+            LEFT JOIN b_equipment_elevator t ON a.asset_id = t.equipment_id
+            LEFT JOIN b_equipment_type b ON a.type_id = b.type_id
+            INNER JOIN wk_admin_dept d ON a.dept_id = d.dept_id
+        WHERE
+            b.monitor_type = '3' and a.status = '1'
+    </select>
+    <select id="selectVideoById"  resultType="java.util.Map">
+        select * from device_project_relation where hook_check_box = 1 and equipment_id = #{id} LIMIT 1
+    </select>
+
+    <select id="selectProjectByEquipment" resultType="java.util.Map">
+        SELECT b.id, IFNULL(b.project_abbreviation,b.project_name) AS projectName, b.project_state, b.construction_permit_code,
+            b.company_name, b.uniscid, DATE_FORMAT(b.actual_commencement_date, '%Y-%m-%d') as actualCommencementDate,
+            DATE_FORMAT(b.planned_completion_date, '%Y-%m-%d') as plannedCompletionDate, b.project_address
+        FROM b_equipment_assets a
+        INNER JOIN b_project_info b ON a.project_id = b.id
+        LEFT JOIN b_equipment_type c ON a.type_id = c.type_id
+        WHERE a.status = '1' AND b.project_state = '2'
+        AND c.monitor_type = #{data.monitorType}
+        GROUP BY a.project_id
+    </select>
+
+    <select id="selectListByProject" resultType="com.kakarote.build.equipment.entity.PO.EquipmentAssets">
+        SELECT IFNULL(b.project_abbreviation,b.project_name) AS projectName, a.asset_id, a.asset_name,
+            a.asset_code, a.brand, a.model, c.type_name, a.create_time
+        FROM b_equipment_assets a
+        INNER JOIN b_project_info b ON a.project_id = b.id
+        LEFT JOIN b_equipment_type c ON a.type_id = c.type_id
+        WHERE a.status = '1' AND b.project_state = '2'
+        AND c.monitor_type = #{data.monitorType}
+    </select>
+
+    <select id="selectSprayEquiList" resultType="com.kakarote.build.equipment.entity.PO.EquipmentAssets">
+        select a.*
+        from b_equipment_assets a
+        left join (select *from
+                (select * from b_equipment_spray_system
+                order by operation_time desc limit 10000000000) s
+                group by s.equipment_id)  b on a.asset_id = b.equipment_id
+        left join b_equipment_type c on a.type_id = c.type_id
+        where a.status = 1 and c.monitor_type = #{data.monitorType}
+        order by operation_time desc
+    </select>
+
+    <select id="equiStateListNew" resultType="com.kakarote.build.equipment.entity.PO.EquipmentAssets">
+        select * from (
+            SELECT (case when a.type_id=c.type_id and a.monitor_type = 99 then
+            (case when ((select a.status from device_project_relation a where business_id=d.asset_id limit 1)='1') then 1
+            else 0 end )
+            else a.online end) as
+            online,
+            (case when a.type_id=c.type_id and a.monitor_type = 99 then
+            (select a.create_time from device_project_relation a where business_id=d.asset_id limit 1)
+            else a.monitor_time end) as
+            lastUpdateTime,
+            a.asset_id,b.project_name,b.project_state,c.type_name,d.asset_code,d.asset_name,d.brand,d.model,e.location_name,
+            c.monitor_type,d.offline_date
+        FROM EquOnlineView a
+        left join EquAssetsProjectView b on a.asset_id=b.asset_id
+        left join b_equipment_type c on b.type_id=c.type_id
+        left join b_equipment_assets d on a.asset_id=d.asset_id
+        left join b_equipment_location e on a.location_id=e.location_id
+        <where>
+            b.project_state = '2'
+            <if test="data.typeId !=null and data.typeId!=''">
+                and (a.type_id in(select type_id from b_equipment_type where type_pid=#{data.typeId})
+                or a.type_id =#{data.typeId})
+            </if>
+
+            <if test="data.projectId !=null and data.projectId!=''">
+                and a.project_id=#{data.projectId}
+            </if>
+            <if test="data.monitorTypeList !=null and data.monitorTypeList.size != 0">
+                and c.monitor_type in
+                <foreach collection="data.monitorTypeList" item="id" index="index" open="(" close=")" separator=",">
+                    #{id}
+                </foreach>
+            </if>
+        </where>
+        )a
+        <where>
+            <if test="data.online !=null and data.online!=''">
+                and a.online=#{data.online}
+            </if>
+        </where>
+    </select>
+
+    <update id="updateOnlineBatchById" parameterType="java.util.List">
+        <foreach collection="list" item="item" index="index">
+            UPDATE b_equipment_assets as a, (SELECT business_id, status, create_time
+                FROM device_project_relation WHERE business_id = #{item.businessId}) b
+            SET a.offline_status = b.status,
+            a.offline_date = b.create_time
+            WHERE a.asset_id = #{item.businessId}
+            AND (a.offline_status != b.status OR a.offline_status IS NULL);
+        </foreach>
+    </update>
+</mapper>

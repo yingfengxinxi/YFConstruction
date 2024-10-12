@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.labour.mapper.BLabourWageMapper">
+
+
+
+
+    <sql id="selectVo">
+        select id, create_by, create_time, update_by, update_time,tenant_id,project_id   ,wage_team_name,wage_month,wage_subcontractor,
+        wage_work_id,infocollection_number,wage_man_days,wage_quantities,wage_should,wage_dvance,wagea_cumulative_balance,wage_date
+		from b_labour_wage
+    </sql>
+
+    <select id="selectDataList" resultType="com.kakarote.build.labour.entity.PO.BLabourWage">
+        select id, create_by, create_time,(select team_leader_name  from b_labour_team b where b.id = a.wage_team_name ) as update_by,
+        update_time,tenant_id,project_id   ,wage_team_name,wage_month,wage_subcontractor,
+        wage_work_id,infocollection_number,wage_man_days,wage_quantities,wage_should,wage_dvance,wagea_cumulative_balance,wage_date
+        from b_labour_wage a
+        <where>
+            1=1
+            <if test="data.wageSubcontractor != null and data.wageSubcontractor != ''">
+                AND wage_subcontractor = #{data.wageSubcontractor}
+            </if>
+            <if test="data.wageWorkId != null and data.wageWorkId != ''">
+                AND wage_work_id = #{data.wageWorkId}
+            </if>
+            <if test="data.wageTeamName != null and data.wageTeamName != ''">
+                AND wage_team_name = #{data.wageTeamName}
+            </if>
+            <if test="data.createBy != null and data.createBy != ''">
+                AND wage_month  &gt;= #{data.createBy}
+            </if>
+            <if test="data.updateBy != null and data.updateBy != ''">
+                AND #{data.updateBy} &gt;= wage_month
+            </if>
+            <if test="data.projectId != null and data.projectId != ''">
+                AND project_id = #{data.projectId}
+            </if>
+--             order by  wage_month desc
+        </where>
+    </select>
+
+
+
+    <select id="selectValidationt" resultType="com.kakarote.build.labour.entity.PO.BLabourWage">
+        <include refid="selectVo"/>
+        <where>
+            1=1
+            <if test="wageTeamName != null and wageTeamName != ''">
+                AND wage_team_name = #{wageTeamName}
+            </if>
+            <if test="wageMonth != null and wageMonth != ''">
+                AND wage_month = #{wageMonth}
+            </if>
+
+        </where>
+    </select>
+    <select id="selectById" resultType="java.util.Map">
+        <include refid="selectVo"/>
+        <where>
+            1=1
+            <if test="data != null and data != ''">
+                AND id = #{data}
+            </if>
+        </where>
+    </select>
+</mapper>

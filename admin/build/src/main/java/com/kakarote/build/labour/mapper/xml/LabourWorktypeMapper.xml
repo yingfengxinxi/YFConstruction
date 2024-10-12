@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.labour.mapper.LabourWorktypeMapper">
+
+    <select id="selectList" parameterType="com.kakarote.build.labour.entity.BO.LabourWorktypeBO"
+            resultType="com.kakarote.build.labour.entity.PO.LabourWorktype">
+        select blw.*
+        from b_labour_worktype blw
+        <where>
+            blw.project_id != 0
+            <if test="data.code != null and data.code != ''">
+                AND code like concat('%', #{data.code}, '%')
+            </if>
+            <if test="data.workType != null and data.workType != ''">
+                AND work_type like concat('%', #{data.workType}, '%')
+            </if>
+            <if test="data.workTypeJp != null and data.workTypeJp != ''">
+                AND work_Type_Jp like concat('%', #{data.workTypeJp}, '%')
+            </if>
+            <if test="data.workTypeIfspecial != null and data.workTypeIfspecial != ''">
+                AND work_Type_Ifspecial = #{data.workTypeIfspecial}
+            </if>
+            <if test="data.sort != null and data.sort != ''">
+                AND sort = #{data.sort}
+            </if>
+        </where>
+    </select>
+
+    <select id="selcetIdsAndWorktype" resultType="com.kakarote.build.labour.entity.PO.LabourWorktype">
+        select id,work_type,work_type_ifspecial
+        from b_labour_worktype where project_id != 0
+    </select>
+</mapper>

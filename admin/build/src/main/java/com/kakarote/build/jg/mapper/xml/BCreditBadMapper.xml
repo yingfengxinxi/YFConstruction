@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.jg.mapper.BCreditBadMapper">
+
+    <sql id="selectVo">
+        select id, create_by, create_time, update_by, update_time,tenant_id,project_id
+        ,credi_type,personnel_name,personnel_card_type,personnel_card,enterprise_uniscid,
+        enterprise_name,bad_dept,bad_dept_npersonnel,bad_dept_date,bad_type,bad_code,
+        bad_describe,bad_date,bad_division,project_number,punishment_dept,punishmentd_dept_level,
+        punishment_basis,punishment_content,punishment_document,punishment_date,punishment_date_asof
+		from b_credit_bad
+    </sql>
+
+    <select id="selectDataList" resultType="com.kakarote.build.jg.entity.PO.BCreditBad">
+        <include refid="selectVo"/>
+        <where>
+            1=1
+            <if test="data.crediType != null and data.crediType != ''">
+                AND credi_type = #{data.crediType}
+            </if>
+            <if test="data.personnelName != null and data.personnelName != ''">
+                AND personnel_name like concat('%',#{data.personnelName},'%')
+            </if>
+            <if test="data.personnelCard != null and data.personnelCard != ''">
+                AND personnel_card like concat('%',#{data.personnelCard},'%')
+            </if>
+            <if test="data.enterpriseUniscid != null and data.enterpriseUniscid != ''">
+                AND enterprise_uniscid like concat('%',#{data.enterpriseUniscid},'%')
+            </if>
+            <if test="data.enterpriseName != null and data.enterpriseName != ''">
+                AND enterprise_name like concat('%',#{data.enterpriseName},'%')
+            </if>
+            <if test="data.createBy != null and data.createBy != ''">
+                AND bad_date  &gt;= #{data.createBy}
+            </if>
+            <if test="data.updateBy != null and data.updateBy != ''">
+                AND #{data.updateBy} &gt;= bad_date
+            </if>
+            <if test="data.projectId != null and data.projectId != ''">
+                AND project_id = #{data.projectId}
+            </if>
+--             order by  bad_date desc
+
+        </where>
+    </select>
+
+</mapper>

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.qual.mapper.QualMonitSTbZbMapper">
+
+    <select id="selectList" parameterType="com.kakarote.build.qual.entity.BO.QualMonitSTbZbBO"
+            resultType="com.kakarote.build.qual.entity.PO.QualMonitSTbZb">
+        select a.* from
+        b_qual_monit_stb_zb a
+        <where>
+            <if test="qualMonitSTbZbBO.sname != null and qualMonitSTbZbBO.sname != ''">
+                AND a.sname like concat('%', #{qualMonitSTbZbBO.sname}, '%')
+            </if>
+        </where>
+    </select>
+
+    <select id="selectListNoPage" parameterType="com.kakarote.build.qual.entity.BO.QualMonitSTbZbBO"
+            resultType="com.kakarote.build.qual.entity.PO.QualMonitSTbZb">
+        select a.* from
+        b_qual_monit_stb_zb a
+        <where>
+            <if test="qualMonitSTbZbBO.sname != null and qualMonitSTbZbBO.sname != ''">
+                AND a.sname like concat('%', #{qualMonitSTbZbBO.sname}, '%')
+            </if>
+            <if test="qualMonitSTbZbBO.pid != null and qualMonitSTbZbBO.pid != ''">
+                AND a.pid = #{qualMonitSTbZbBO.pid}
+            </if>
+        </where>
+    </select>
+
+    <!--根据主表主键查询详细信息-->
+    <select id="selectT" resultType="java.util.Map" parameterType="java.lang.Integer">
+        select a.id,
+        a.sid,a.sname,
+        a.svalue as sValue,
+        a.note,
+        b.*
+        from b_qual_monit_stb_zb a
+        inner join b_qual_monitset b on a.sid = b.id
+        where a.pid = #{pid}
+    </select>
+
+    <delete id="deletByZHid" parameterType="java.lang.Integer">
+        delete from b_qual_monit_stb_zb
+        where pid = #{pid}
+    </delete>
+
+    <!--饼状图 全部 超出范围统计，小于最小值、大于最大值-->
+    <select id="selectByOutRangeStaticsAll" parameterType="java.util.Map" resultType="java.util.Map">
+        select s.id ,s.name
+        ,count(1) value
+        from ${data.tableName} a
+        inner join b_qual_monitset s on s.id = a.sid
+        where (a.svalue &gt; s.alarm_max or a.svalue &lt; s.alarm_min)
+        group  by s.id
+    </select>
+
+    <!--柱状图 根据pid 查询超出范围flag=1 -->
+<!--    <select id="selectByOutRangeStaticsSelect" resultType="java.util.Map" parameterType="java.util.Map">-->
+<!--        select a.svalue value,-->
+<!--        (case when (a.svalue &lt; s.alarm_min or a.svalue &gt; s.alarm_max)then '1' else '0' end ) flag,-->
+<!--        s.id ,s.name,s.alarm_min ,s.alarm_max-->
+<!--        from ${data.tableName} a-->
+<!--        inner join b_qual_monitset s on s.id = a.sid-->
+<!--        where a.pid = #{data.pid}-->
+<!--        order by s.sort-->
+<!--    </select>-->
+
+    <!--柱状图  超出范围及未超出范围统计 -->
+    <select id="selectByOutRangeStaticsSelect" resultType="java.util.Map" parameterType="java.util.Map">
+        select count(1) value,a.flag,b.code,b.id from (
+        select
+        (case when (a.svalue &lt; s.alarm_min or a.svalue &gt; s.alarm_max)then '1' else '0' end ) flag,
+        a.pid
+        from ${data.tableName} a
+        inner join b_qual_monitset s on s.id = a.sid
+        )a
+        inner join ${data.tableNameZH} b on a.pid = b.id
+        GROUP BY a.pid,a.flag
+        order by b.create_Time desc
+    </select>
+</mapper>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.admin.mapper.AdminRoleMenuMapper">
+
+    <insert id="insertFromDept" parameterType="int">
+        INSERT INTO wk_admin_role_menu (role_id, menu_id, tenant_id)
+        SELECT #{roleId}, menu_id, #{deptId}
+        FROM wk_admin_dept_menu
+        WHERE dept_id = #{deptId}
+    </insert>
+
+    <insert id="copyWorkRoleMenu" parameterType="int">
+        INSERT INTO wk_admin_role_menu (role_id, menu_id, tenant_id)
+        SELECT r.role_id,m.menu_id,#{tenantId}
+        FROM wk_admin_role r
+        inner join wk_admin_role r1 on r1.role_type = r.role_type and r1.label=r.label and r1.tenant_id = 1
+        inner join wk_admin_role_menu rm on r1.role_id = rm.role_id
+        inner join wk_admin_menu m on rm.menu_id = m.copy_id and m.tenant_id = #{tenantId}
+        where r.tenant_id = #{tenantId} and r.role_type = 5
+    </insert>
+
+</mapper>

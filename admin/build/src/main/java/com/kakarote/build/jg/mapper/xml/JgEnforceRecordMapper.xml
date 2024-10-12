@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.jg.mapper.JgEnforceRecordMapper">
+    <select id="selectByPage" resultType="com.kakarote.build.jg.entity.PO.JgEnforceRecord">
+        select * from b_jg_enforce_record
+        <where>
+            1=1
+            <if test="data.projectId!=null and data.projectId!=''">
+                and project_id =#{data.projectId}
+            </if>
+            <if test="data.findStartDate!=null ">
+                and DATE_FORMAT(find_date,'%Y-%m-%d') >= DATE_FORMAT(#{data.findStartDate},'%Y-%m-%d')
+            </if>
+            <if test="data.findEndDate!=null ">
+                and DATE_FORMAT(find_date,'%Y-%m-%d') &lt;= DATE_FORMAT(#{data.findEndDate},'%Y-%m-%d')
+            </if>
+            <if test="data.findPeople!=null and data.findPeople!=''">
+                and find_people like  concat('%',#{data.findPeople},'%')
+            </if>
+            <if test="data.findProblem!=null and data.findProblem!=''">
+                and find_problem like concat('%',#{data.findProblem},'%')
+            </if>
+            <if test="data.punishMeasures!=null and data.punishMeasures!=''">
+                and punish_measures like  concat('%',#{data.punishMeasures},'%')
+            </if>
+            <if test="data.punishReg!=null and data.punishReg!=''">
+                and punish_reg like  concat('%',#{data.punishReg},'%')
+            </if>
+            <if test="data.rectTerm!=null and data.rectTerm!=''">and rect_term like concat('%',#{data.rectTerm},'%')  </if>
+            <if test="data.rectReq!=null and data.rectReq!=''">and rect_req like concat('%',#{data.rectReq},'%')</if>
+            <if test="data.rectUnit!=null and data.rectUnit!=''">and rect_unit like concat('%',#{data.rectUnit},'%')
+            </if>
+            <if test="data.rectStartTime!=null ">and DATE_FORMAT(rect_time,'%Y-%m-%d') >=
+                DATE_FORMAT(#{data.rectStartTime},'%Y-%m-%d')
+            </if>
+            <if test="data.rectEndTime!=null ">and DATE_FORMAT(rect_time,'%Y-%m-%d') &lt;=
+                DATE_FORMAT(#{data.rectEndTime},'%Y-%m-%d')
+            </if>
+            <if test="data.rectResult!=null and data.rectResult!=''">and rect_result like
+                concat('%',#{data.rectResult},'%')
+            </if>
+        </where>
+        /*order by create_time desc*/
+    </select>
+</mapper>

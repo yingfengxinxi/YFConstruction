@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.jg.mapper.BJgSiteRubbishMapper">
+    <sql id="selectVo">
+        select id, create_by, create_time, update_by, update_time,tenant_id,project_id
+        ,project_name,dump_name,garbage_type,content,garbage_number,garbage_unit,
+        dealwith_people,dealwith_time,remarks
+		from b_jg_site_rubbish
+    </sql>
+
+    <select id="selectDataList" resultType="com.kakarote.build.jg.entity.PO.BJgSiteRubbish">
+        <include refid="selectVo"/>
+        <where>
+            1=1
+            <if test="data.dumpName != null and data.dumpName != ''">
+                AND dump_name like concat('%',#{data.dumpName},'%')
+            </if>
+            <if test="data.garbageType != null and data.garbageType != ''">
+                AND garbage_type = #{data.garbageType}
+            </if>
+            <if test="data.createBy != null and data.createBy != ''">
+                AND dealwith_time  &gt;= #{data.createBy}
+            </if>
+            <if test="data.updateBy != null and data.updateBy != ''">
+                AND #{data.updateBy} &gt;= dealwith_time
+            </if>
+            <if test="data.projectId != null and data.projectId != ''">
+                AND project_id = #{data.projectId}
+            </if>
+            /*order by  dealwith_time desc*/
+
+        </where>
+    </select>
+
+</mapper>

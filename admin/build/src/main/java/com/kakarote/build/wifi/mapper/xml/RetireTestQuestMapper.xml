@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.wifi.mapper.RetireTestQuestMapper">
+    <select id="getAllTestQuest" resultType="java.util.Map">
+      select id, from_quest_id, test_id, quest_type as type, quest_content as title, quest_explanation as jiexi,
+        quest_score, (if(if_true is not NULL,if_true,0)) as duicuo, true_option, create_by, create_time, update_by, update_time, project_id, tenant_id
+        from b_retire_test_quest
+        <where>
+             project_id !=0
+            <if test=" data.testId != null and data.testId != '' ">
+               and  test_id=#{data.testId}
+            </if>
+        </where>
+        order by create_time asc
+    </select>
+    <insert id="insertQue">
+     INSERT INTO b_retire_test_quest(id, from_quest_id, test_id, quest_type, quest_content, quest_explanation,
+     quest_score, if_true, true_option, create_by, create_time, update_by, update_time, project_id)
+     VALUES (#{data.newId},#{data.id}, #{data.TestpaperId}, #{data.questType}, #{data.questContent}, #{data.questExplanation}, #{data.questionsScore}, #{data.ifTrue},
+      #{data.trueOption}, #{data.createBy}, #{data.createTime}, NULL, NULL, #{data.projectId});
+    </insert>
+</mapper>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.admin.mapper.AdminInstrumentRoleMapper">
+
+    <select id="queryModelSort" resultType="com.kakarote.admin.entity.VO.AdminInstrumentRoleVO">
+        select i.model_id, i.model_name, i.icon, i.icon_color, i.img,
+        IFNULL(r.list,i.list) as list,
+        IFNULL(r.sort,i.sort) as sort,
+        IFNULL(r.is_hidden,i.is_hidden) as is_hidden,
+        r.data_type
+        from wk_admin_instrument_info i
+        left join wk_admin_instrument_role r on i.model_id = r.model_id and r.role_id = #{roleId}
+    </select>
+
+    <select id="queryModelByRoleIds" resultType="com.kakarote.admin.entity.VO.AdminInstrumentRoleVO">
+        select i.model_id, i.model_name, i.icon, i.icon_color, i.img,
+        IFNULL(r.list,i.list) as list,
+        IFNULL(r.sort,i.sort) as sort,
+        IFNULL(r.is_hidden,i.is_hidden) as is_hidden,
+        r.data_type
+        from wk_admin_instrument_info i
+        left join wk_admin_instrument_role r on i.model_id = r.model_id
+        -- 如有多个角色则使用最后添加的数据
+        and r.id in (select max(id)
+                        from wk_admin_instrument_role
+                        where is_hidden = 0 and role_id in
+                            <foreach collection="roleIds" item="item" open="(" separator="," close=")">
+                                #{item}
+                            </foreach>
+                        group by model_id)
+        where i.is_hidden = 0
+    </select>
+</mapper>

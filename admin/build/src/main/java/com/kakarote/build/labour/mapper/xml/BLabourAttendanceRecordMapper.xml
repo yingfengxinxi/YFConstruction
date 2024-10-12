@@ -1,0 +1,612 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.labour.mapper.BLabourAttendanceRecordMapper">
+
+    <sql id="selectVo">
+        select id, create_by, create_time, update_by, update_time,tenant_id,project_id,infocollection_id,infocollection_name,infocollection_card,
+        attendance_number,clock_direction,clock_time,data_generation,data_show_judge,attendance_record_team_name
+        ,id_card_type,image,channel,attend_type,lng,lat
+		from b_labour_attendance_record
+    </sql>
+
+    <select id="selectDataList" resultType="com.kakarote.build.labour.entity.PO.BLabourAttendanceRecord">
+        <include refid="selectVo"/>
+        <where>
+            1=1
+            <if test="data.attendanceRecordTeamName != null and data.attendanceRecordTeamName != ''">
+                AND attendance_record_team_name = #{data.attendanceRecordTeamName}
+            </if>
+            <if test="data.createBy != null and data.createBy != ''">
+                AND DATE_FORMAT(clock_time,'%Y-%m-%d')  &gt;= #{data.createBy}
+            </if>
+            <if test="data.updateBy != null and data.updateBy != ''">
+                AND #{data.updateBy} &gt;= DATE_FORMAT(clock_time,'%Y-%m-%d')
+            </if>
+            <if test="data.clockDirection != null and data.clockDirection != ''">
+                AND clock_direction = #{data.clockDirection}
+            </if>
+
+            order by  clock_time desc
+        </where>
+    </select>
+
+
+    <select id="selectDetailList" resultType="com.kakarote.build.labour.entity.PO.BLabourAttendanceRecord">
+        <include refid="selectVo"/>
+        <where>
+            data_show_judge = 0
+            <if test="infocollectionName != null and infocollectionName != ''">
+                AND infocollection_name = #{infocollectionName}
+            </if>
+            <if test="createBy != null and createBy != ''">
+                AND DATE_FORMAT(clock_time,'%Y-%m-%d') = #{createBy}
+            </if>
+            <if test="infocollectionCard != null and infocollectionCard != ''">
+                AND (infocollection_card = #{infocollectionCard} or attendance_number = #{attendanceNumber} )
+            </if>
+            <if test="infocollectionId != null and infocollectionId != ''">
+                AND infocollection_id = #{infocollectionId}
+            </if>
+
+        </where>
+    </select>
+
+    <select id="selectByMonth" resultType="com.kakarote.build.labour.entity.PO.BLabourAttendanceRecord">
+        select id, create_by, create_time, update_by, update_time,tenant_id,project_id,infocollection_id,infocollection_name,infocollection_card,
+        attendance_number,clock_direction,clock_time,data_generation,(SELECT
+        b.info_abnormal
+        FROM
+        b_labour_attendance_detail b
+        WHERE
+        DATE_FORMAT(
+        b.attendance_date,
+        '%Y-%m-%d'
+        ) = DATE_FORMAT(a.clock_time, '%Y-%m-%d')
+        and b.infocollection_id = #{infocollectionId}
+        order by  b.create_time  desc
+        limit 1
+        )  as data_show_judge
+        from b_labour_attendance_record a
+        <where>
+            data_show_judge = 0
+            <if test="infocollectionName != null and infocollectionName != ''">
+                AND infocollection_name = #{infocollectionName}
+            </if>
+            <if test="createBy != null and createBy != ''">
+                AND DATE_FORMAT(clock_time,'%Y-%m') = #{createBy}
+            </if>
+            <if test="infocollectionId != null and infocollectionId != ''">
+                AND infocollection_id = #{infocollectionId}
+            </if>
+              order by  clock_time desc
+        </where>
+    </select>
+
+    <select id="selectDetailListUpdate" resultType="com.kakarote.build.labour.entity.PO.BLabourAttendanceRecord">
+        <include refid="selectVo"/>
+        <where>
+            <if test="infocollectionName != null and infocollectionName != ''">
+                AND infocollection_name = #{infocollectionName}
+            </if>
+            <if test="createBy != null and createBy != ''">
+                AND DATE_FORMAT(clock_time,'%Y-%m-%d') = #{createBy}
+            </if>
+            <if test="infocollectionCard != null and infocollectionCard != ''">
+                AND (infocollection_card = #{infocollectionCard} or attendance_number = #{attendanceNumber} )
+            </if>
+            <if test="infocollectionId != null and infocollectionId != ''">
+                AND infocollection_id = #{infocollectionId}
+            </if>
+
+        </where>
+    </select>
+
+    <select id="selectValidation" resultType="com.kakarote.build.labour.entity.PO.BLabourAttendanceRecord">
+        <include refid="selectVo"/>
+        <where>
+
+            <if test="createBy != null and createBy != ''">
+                AND DATE_FORMAT(clock_time,'%Y-%m') = #{createBy}
+            </if>
+            <if test="infocollectionId != null and infocollectionId != ''">
+                AND infocollection_id = #{infocollectionId}
+            </if>
+
+            <if test="clockDirection != null and clockDirection != ''">
+                AND clock_direction = #{clockDirection}
+            </if>
+            <if test="tenantId != null and tenantId != ''">
+                and tenant_id = #{tenantId}
+            </if>
+            <if test="projectId != null and projectId != ''">
+                AND project_id = #{projectId}
+            </if>
+              order  by  clock_time
+        </where>
+    </select>
+
+    <select id="getAttendanceDetailList" resultType="java.util.Map">
+        select a.*, i.batch_id from b_labour_attendance_record a
+        left join b_labour_infocollection i on a.infocollection_id = i.id
+        left join b_labour_team t on a.attendance_record_team_name = t.id
+        <where>
+            <if test="data.infocollectionName != null and data.infocollectionName != ''">
+                and a.infocollection_name like concat('%', #{data.infocollectionName,jdbcType=VARCHAR}, '%')
+            </if>
+            <if test="data.teamLeaderName != null and data.teamLeaderName != ''">
+                and t.team_leader_name like concat('%', #{data.teamLeaderName,jdbcType=VARCHAR}, '%')
+            </if>
+            <if test="data.attendanceRecordTeamName != null and data.attendanceRecordTeamName != ''">
+                and a.attendance_record_team_name = #{data.attendanceRecordTeamName,jdbcType=VARCHAR}
+            </if>
+            <if test="data.startTime != null">
+                and a.clock_time >= #{data.startTime,jdbcType=TIMESTAMP}
+            </if>
+            <if test="data.endTime != null">
+                and a.clock_time &lt;= #{data.endTime,jdbcType=TIMESTAMP}
+            </if>
+            <if test="data.projectId != null and data.projectId != ''">
+                AND a.project_id = #{data.projectId}
+            </if>
+            <!-- wnj 临沂大屏-项目人员，考勤列表添加筛选工人类型，因在EXISTS中不会自动注入租户，需自定义传入-->
+            <if test="data.workRole != null and data.workRole != ''">
+                and EXISTS(SELECT AA.id, AA.name, AA.project_id, AA.enter_date, BB.project_name AS note
+                FROM b_labour_infocollection AA, b_project_info BB
+                WHERE  AA.project_id = BB.id AND BB.project_state = '2' AND AA.enter_status = '1' AND AA.if_oddjob = '0'
+                AND AA.enter_date IS NOT NULL AND AA.work_role = #{data.workRole} AND i.id=AA.id
+                <if test="data.tenantId != null and data.tenantId != ''">
+                    AND AA.tenant_id = #{data.tenantId}
+                </if>
+                )
+            </if>
+        </where>
+    </select>
+
+    <select id="selectEntryAndExit" resultType="java.util.Map">
+        select i.name, r.clock_time, s.real_name, w.dict_label as work_type, t.team_name, i.img_card_url
+        from b_labour_attendance_record r
+        inner join b_labour_infocollection i on r.infocollection_id = i.id
+        left join b_labour_subcontractor s on i.subcontractor = s.id
+        <!--left join b_labour_worktype w on i.work_type_id = w.id-->
+        left join (select dict_label, dict_value from wk_admin_dict_data where dict_type = 'b_labour_work_type') w on i.work_type_id = w.dict_value
+        left join b_labour_team t on i.team_name = t.id
+        <where>
+            <if test="data.clockTime != null and data.clockTime != ''">
+                and date_format(r.clock_time,'%Y-%m-%d') = #{data.clockTime}
+            </if>
+            <if test="data.clockDirection != null and data.clockDirection != ''">
+                and r.clock_direction = #{data.clockDirection}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectPositionAttendance" resultType="java.util.Map">
+        select
+					(select count(1) from b_labour_attendance_record a,
+						b_labour_infocollection b  where a.infocollection_id =b.id
+						 and DATE_FORMAT(a.clock_time,'%Y-%m-%d') = #{data.clockTime}
+						 and b.manage_type ='1008'
+						 and a.tenant_id=#{data.tenantId}
+						 and b.tenant_id=#{data.tenantId}
+					) as xmzgcs ,
+					(select count(1) from b_labour_attendance_record a,
+						b_labour_infocollection b  where a.infocollection_id =b.id
+						 and DATE_FORMAT(a.clock_time,'%Y-%m-%d') = #{data.clockTime}
+						 and b.manage_type ='1009'
+						 and a.tenant_id=#{data.tenantId}
+						 and b.tenant_id=#{data.tenantId}
+					) as xmjl ,
+					(select count(1) from b_labour_attendance_record a,
+						b_labour_infocollection b  where a.infocollection_id =b.id
+						 and DATE_FORMAT(a.clock_time,'%Y-%m-%d') = #{data.clockTime}
+						 and b.manage_type ='1010'
+						 and a.tenant_id=#{data.tenantId}
+						 and b.tenant_id=#{data.tenantId}
+					) as gcjl ,
+					(select count(1) from b_labour_attendance_record a,
+						b_labour_infocollection b  where a.infocollection_id =b.id
+						 and DATE_FORMAT(a.clock_time,'%Y-%m-%d') = #{data.clockTime}
+						 and b.manage_type ='1016'
+						 and a.tenant_id=#{data.tenantId}
+						 and b.tenant_id=#{data.tenantId}
+					) as sgy ,
+					(select count(1) from b_labour_attendance_record a,
+						b_labour_infocollection b  where a.infocollection_id =b.id
+						 and DATE_FORMAT(a.clock_time,'%Y-%m-%d') = #{data.clockTime}
+						 and b.manage_type ='1017'
+						 and a.tenant_id=#{data.tenantId}
+						 and b.tenant_id=#{data.tenantId}
+					) as zly ,
+					(select count(1) from b_labour_attendance_record a,
+						b_labour_infocollection b  where a.infocollection_id =b.id
+						 and DATE_FORMAT(a.clock_time,'%Y-%m-%d') = #{data.clockTime}
+						 and b.manage_type ='1018'
+						 and a.tenant_id=#{data.tenantId}
+						 and b.tenant_id=#{data.tenantId}
+					) as aqy ,
+					(select count(1) from b_labour_attendance_record a,
+						b_labour_infocollection b  where a.infocollection_id =b.id
+						 and DATE_FORMAT(a.clock_time,'%Y-%m-%d') = #{data.clockTime}
+						 and b.manage_type ='1020'
+						 and a.tenant_id=#{data.tenantId}
+						 and b.tenant_id=#{data.tenantId}
+					) as cly
+    </select>
+    <select id="selectPositionAttendanceZs" resultType="java.util.Map">
+               select
+					(select count(1) from
+						 b_labour_infocollection b  where
+						 b.manage_type ='1008'
+						 and b.tenant_id=#{data.tenantId}
+					) as xmzgcs ,
+					(select count(1) from
+						  b_labour_infocollection b  where
+                          b.manage_type ='1009'
+						 and b.tenant_id=#{data.tenantId}
+					) as xmjl ,
+					(select count(1) from
+						  b_labour_infocollection b  where
+                          b.manage_type ='1010'
+						 and b.tenant_id=#{data.tenantId}
+					) as gcjl ,
+					(select count(1) from
+						  b_labour_infocollection b  where
+						  b.manage_type ='1016'
+						 and b.tenant_id=#{data.tenantId}
+					) as sgy ,
+					(select count(1) from
+						b_labour_infocollection b  where
+						b.manage_type ='1017'
+						 and b.tenant_id=#{data.tenantId}
+					) as zly ,
+					(select count(1) from
+						b_labour_infocollection b  where
+                        b.manage_type ='1018'
+						 and b.tenant_id=#{data.tenantId}
+					) as aqy ,
+					(select count(1) from
+						b_labour_infocollection b  where
+						b.manage_type ='1020'
+						 and b.tenant_id=#{data.tenantId}
+					) as cly
+    </select>
+
+
+    <select id="selectDynamic" resultType="com.kakarote.build.labour.entity.PO.BLabourAttendanceRecord">
+        select a.infocollection_id,a.clock_time,a.clock_direction,b.name as alcoholicity, b.img_card_url as blood_pressure ,
+        c.project_name as blood_oxygen, d.dict_label as data_generation
+        from b_labour_attendance_record a
+        inner JOIN b_labour_infocollection b ON b.id=a.infocollection_id and b.work_role='10'
+        inner join wk_admin_dict_data d on d.dict_type='b_mange_type' and d.dict_value=b.manage_type and d.tenant_id = #{tenantId}
+        inner join b_project_info c on b.project_id=c.id
+        where a.clock_time > DATE_SUB(NOW(),INTERVAL 7 DAY)
+        and a.clock_time &lt;= DATE_ADD(NOW(),INTERVAL 1 DAY)
+        ORDER BY a.clock_time desc
+        LIMIT 12
+    </select>
+
+
+    <select id="approach" resultType="java.lang.String">
+        select count(1) from (
+        select zh.* from (select * from b_labour_attendance_record a
+        where
+        a.infocollection_id = #{data.infocollectionId}
+        and clock_direction ='0'
+        <if test="days != null and days.size > 0">
+            and DATE_FORMAT(clock_time,'%Y-%m-%d') in
+            <foreach collection="days" item="dayslist" index="index" open="(" close=")" separator=",">
+                #{dayslist}
+            </foreach>
+        </if>
+        having 1 =1
+        ORDER BY  a.clock_time DESC
+        ) zh
+        GROUP BY DATE_FORMAT(zh.clock_time,'%Y-%m-%d')) zs
+    </select>
+
+    <select id="peopleNumber" resultType="java.lang.String">
+        select count(1) from (select * from (select * from
+        b_labour_attendance_record a
+        where
+        1=1
+        and clock_direction ='0'
+        and DATE_FORMAT(clock_time,'%Y-%m-%d') = #{data.createBy}
+        <if test="idList != null and idList.size > 0">
+            and infocollection_id in
+            <foreach collection="idList" item="dayslist" index="index" open="(" close=")" separator=",">
+                #{dayslist}
+            </foreach>
+        </if>
+
+        having 1 =1
+        ORDER BY  a.clock_time DESC
+        )zh
+        GROUP BY zh.infocollection_id )zs
+    </select>
+
+    <select id="peopleNumberXcssrs" resultType="java.lang.String">
+        select count(1) from (select * from (
+        select a.id,a.clock_direction,a.clock_time,a.infocollection_id from b_labour_attendance_record a
+        where DATE_FORMAT(a.clock_time,'%Y-%m-%d') = #{data.createBy} and a.clock_direction='0'
+        <if test="idList != null and idList.size > 0">
+            and a.infocollection_id in
+            <foreach collection="idList" item="dayslist" index="index" open="(" close=")" separator=",">
+                #{dayslist}
+            </foreach>
+        </if>
+        having 1 =1
+        ORDER BY a.clock_time  DESC) zh
+        GROUP BY zh.infocollection_id) zs
+    </select>
+
+    <select id="workersConstitute" resultType="java.util.Map">
+        SELECT
+        (SELECT count(1) from  b_labour_infocollection b where b.tenant_id = #{data.tenantId}
+        and b.enter_status='1'
+        and b.if_oddjob='0'
+        and b.enter_date is not null
+        AND b.enter_date !=''
+        ) as zs ,
+        (SELECT count(1) from  b_labour_infocollection b where b.tenant_id = #{data.tenantId} and  b.sex='0'
+        and DATE_FORMAT(b.enter_date,'%Y-%m-%d') &lt;= #{data.dqtime}
+        and b.enter_status='1'
+        and b.if_oddjob='0'
+        and b.enter_date is not null)as nan ,
+        (SELECT count(1) from  b_labour_infocollection b where b.tenant_id = #{data.tenantId} and  b.sex='0'
+        and DATE_FORMAT(b.enter_date,'%Y-%m-%d') &lt;= #{data.tbtime}
+        and b.enter_status='1'
+        and b.if_oddjob='0'
+        and b.enter_date is not null)as nantb ,
+        (SELECT count(1) from  b_labour_infocollection b where b.tenant_id = #{data.tenantId} and  b.sex='0'
+        and DATE_FORMAT(b.enter_date,'%Y-%m-%d') &lt;= #{data.hbtime}
+         and b.enter_status='1'
+        and b.if_oddjob='0'
+        and b.enter_date is not null)as nanhb ,
+        (SELECT count(1) from  b_labour_infocollection b where b.tenant_id = #{data.tenantId} and  b.sex='1'
+         and DATE_FORMAT(b.enter_date,'%Y-%m-%d') &lt;= #{data.dqtime}
+        and b.enter_status='1'
+        and b.if_oddjob='0'
+        and b.enter_date is not null
+        )as nv ,
+        (SELECT count(1) from  b_labour_infocollection b where b.tenant_id = #{data.tenantId} and  b.sex='1'
+        and DATE_FORMAT(b.enter_date,'%Y-%m-%d') &lt;= #{data.tbtime}
+        and b.enter_status='1'
+        and b.if_oddjob='0'
+        and b.enter_date is not null)as nvtb ,
+        (SELECT count(1) from  b_labour_infocollection b where b.tenant_id = #{data.tenantId} and  b.sex='1'
+        and DATE_FORMAT(b.enter_date,'%Y-%m-%d') &lt;= #{data.hbtime}
+        and b.enter_status='1'
+        and b.if_oddjob='0'
+        and b.enter_date is not null)as nvhb
+
+    </select>
+
+    <select id="ageConstitute" resultType="java.util.Map">
+        SELECT
+        sum(
+        (
+        CASE
+        WHEN bb.age &gt;= 20
+        AND bb.age  &lt; 30 THEN
+        1
+        ELSE
+        0
+        END
+        )
+        ) AS nl1,
+        sum(
+        (
+        CASE
+        WHEN bb.age &gt;= 30
+        AND bb.age &lt; 40 THEN
+        1
+        ELSE
+        0
+        END
+        )
+        ) AS nl2,
+        sum(
+        (
+        CASE
+        WHEN bb.age &gt;= 40
+        AND bb.age &lt; 50 THEN
+        1
+        ELSE
+        0
+        END
+        )
+        ) AS nl3,
+        sum(
+        (
+        CASE
+        WHEN bb.age &gt;= 50
+        AND bb.age  &lt; 60 THEN
+        1
+        ELSE
+        0
+        END
+        )
+        ) AS nl4,
+        sum(
+        (
+        CASE
+        WHEN bb.age &gt;= 60
+        THEN
+        1
+        ELSE
+        0
+        END
+        )
+        ) AS nl5
+        FROM
+        (
+        SELECT
+        a.`name`,
+        a.birthday,
+        YEAR (CURDATE()) - YEAR (birthday) - (
+        RIGHT (CURDATE(), 5) &lt; RIGHT (birthday, 5)
+        ) AS age
+        FROM
+        b_labour_infocollection a
+        WHERE
+        a.tenant_id = #{data.tenantId}
+        and a.enter_status='1'
+        and a.if_oddjob='0'
+        and a.enter_date is not null
+        ORDER by age desc
+        ) bb
+    </select>
+
+    <select id="schoolingConstitute" resultType="java.util.Map">
+      select count(1) as zs,a.education_level
+        ,(select b.dict_label from wk_admin_dict_data b where
+        b.dict_type='b_educationLevel'
+        and b.dict_value =a.education_level
+        and b.tenant_id=#{data.tenantId}
+        ) as mc
+        from b_labour_infocollection a
+        where
+        a.education_level is not NULL
+        and a.education_level !=''
+        and a.enter_status='1'
+        and a.if_oddjob='0'
+        and a.enter_date is not null
+        and a.tenant_id=#{data.tenantId}
+        GROUP BY a.education_level
+    </select>
+
+    <select id="workerTypeList" resultType="java.util.Map">
+        select b.dict_label as mc, count(1) as zs,a.work_type_dict
+        from b_labour_infocollection a
+        inner join (select dict_label, dict_value from wk_admin_dict_data
+            where dict_type = 'b_labour_work_type') b on a.work_type_dict = b.dict_value
+            where 1=1 and a.enter_status='1' and a.if_oddjob='0' and a.enter_date is not null
+        group by a.work_type_dict
+		ORDER BY zs desc
+		LIMIT 5
+    </select>
+
+
+    <select id="workerTypeListTbHb" resultType="java.util.Map">
+        select (SELECT count(1) from b_labour_infocollection a where
+        DATE_FORMAT(a.enter_date,'%Y-%m-%d') &lt;= #{data.tbtime}
+        and a.work_type_id !=''
+        and a.enter_status='1'
+        and a.if_oddjob='0'
+        and a.enter_date is not null
+        and a.tenant_id=#{data.tenantId}
+        and a.work_role='20'
+        and a.work_type_id=#{data.mc}
+        )as tb ,
+        (SELECT count(1) from b_labour_infocollection a where
+        DATE_FORMAT(a.enter_date,'%Y-%m-%d') &lt;= #{data.hbtime}
+        and a.work_type_id !=''
+        and a.enter_status='1'
+        and a.if_oddjob='0'
+        and a.enter_date is not null
+        and a.tenant_id=#{data.tenantId}
+        and a.work_role='20'
+        and a.work_type_id= #{data.mc}
+        )as hb
+    </select>
+
+    <select id="wageConstitute" resultType="java.util.Map">
+       select
+       coalesce(sum(b.wage_detail_should),0) as yfgz,
+       coalesce(sum(b.actual_amount),0)as sfgz
+        from b_labour_wage_detail b
+       where
+            b.wage_detail_month=#{data.rq}
+        and b.tenant_id=#{data.tenantId}
+    </select>
+
+    <select id="defaultWageConstitute" resultType="java.util.Map">
+      select
+       coalesce(sum(b.wage_detail_should),0) as yfgz,
+       coalesce(sum(b.actual_amount),0)as sfgz
+        from b_labour_wage_detail b ,
+			b_labour_wage a
+       where
+		a.id=b.wage_id
+		and a.wage_subcontractor=#{data.pid}
+        and b.wage_detail_month=#{data.datetime}
+        and b.tenant_id=#{data.tenantId}
+    </select>
+
+    <select id="selectAttendanceNumber" resultType="java.util.Map">
+        select a.*, IFNULL(b.number ,0) as number, date_format(a.curr_date, '%e日') as formatDate
+        from (
+                     select date_format(date_add(curdate(),interval -t.help_topic_id ${data.dateType}),#{data.format}) as 'curr_date'
+                     from mysql.help_topic t  where t.help_topic_id &lt; #{data.num}) a
+        left join (
+        select e.*, count(*) as number
+        from (
+        select d.infocollection_id, d.infocollection_name, date_format(d.clock_time, #{data.format}) as clockTime from b_labour_infocollection c
+        inner join b_labour_attendance_record d on c.id = d.infocollection_id
+        where clock_direction ='0'
+        group by clockTime, d.infocollection_id) e
+        group by e.clockTime) b on a.curr_date = b.clockTime
+        order by a.curr_date asc
+    </select>
+
+    <select id="selectDynamicNew" resultType="com.kakarote.build.labour.entity.PO.BLabourAttendanceRecord">
+        SELECT a.infocollection_id, a.clock_time, a.clock_direction, b.name AS alcoholicity, b.img_card_url AS blood_pressure,b.sex,
+               c.project_name AS blood_oxygen, d.dict_label AS data_generation
+        FROM b_labour_attendance_record a
+        INNER JOIN b_labour_infocollection b ON b.id = a.infocollection_id
+        LEFT JOIN b_project_info c on a.project_id = c.id
+        LEFT JOIN (SELECT dict_label, dict_value FROM wk_admin_dict_data WHERE dict_type = 'b_mange_type') d on b.manage_type = d.dict_value
+        <where>
+            1=1
+            <if test="data.alcoholicity!=null and data.alcoholicity!=''">
+               and b.name like CONCAT('%',#{data.alcoholicity},'%')
+            </if>
+            <if test="data.startDate!=null and data.startDate!=''and data.endDate!=null and data.endDate!=''">
+                and a.clock_time between #{data.startDate} and #{data.endDate}
+            </if>
+            <if test="data.clockDirection!=null and data.clockDirection!=''">
+                and a.clock_direction = #{data.clockDirection}
+            </if>
+        </where>
+        ORDER BY a.clock_time DESC
+    </select>
+
+
+    <select id="peopleInfos" resultType="java.util.Map">
+        SELECT b.name,b.id_card,b.sex,b.enter_date,b.phone,c.project_name FROM (select * from (
+        select a.id,a.clock_direction,a.clock_time,a.infocollection_id from b_labour_attendance_record a
+        where DATE_FORMAT(a.clock_time,'%Y-%m-%d') = #{data.createBy} and a.clock_direction='0'
+        <if test="idList != null idList.size > 0">
+            and a.infocollection_id in
+            <foreach collection="idList" item="dayslist" index="index" open="(" close=")" separator=",">
+                #{dayslist}
+            </foreach>
+        </if>
+        and
+        having 1 =1
+        ORDER BY a.clock_time  DESC) zh
+        GROUP BY zh.infocollection_id) zs
+        left join b_labour_infocollection b on zs.infocollection_id=b.id
+        left join b_project_info c on b.project_id=c.id
+    </select>
+    <select id="selectByUserId"  resultType="java.util.Map">
+        SELECT
+            a.*
+        FROM
+            b_labour_attendance_record a
+            LEFT JOIN b_labour_infocollection b on a.infocollection_id = b.id
+            LEFT JOIN wk_admin_user c on b.phone = c.username
+            where a.clock_time > DATE_FORMAT(CURDATE(),'%Y-%m-%d %H:%i:%s') and  c.user_id = #{id}
+            ORDER BY a.clock_time desc
+            LIMIT 1
+    </select>
+    <select id="selectInfocollectionByUserId"  resultType="java.util.Map">
+        SELECT
+            b.*
+        FROM
+            b_labour_infocollection b
+            LEFT JOIN wk_admin_user c on b.phone = c.username
+            where  c.user_id = #{id}
+            LIMIT 1
+    </select>
+</mapper>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.core.mapper.AdminLoginLogMapper">
+    <select id="queryLast" resultType="java.lang.Integer">
+        select tenant_id from wk_admin_login_log
+        where login_user_name = #{userName}
+        and auth_result = 1
+        and login_time = ( select MAX(login_time) from wk_admin_login_log
+                            where login_user_name = #{userName} and auth_result = 1 and tenant_id is not null )
+        limit 1
+    </select>
+</mapper>

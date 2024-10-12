@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qdoner.datarecept.mapper.AiVideoAlertMapper">
+
+    <select id="getDataByEventTypeAndTime" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM b_ai_video_alert
+        WHERE equipment_id = #{equipmetnId} AND ai_event_type = #{eventType}
+        AND alert_time >= DATE_SUB(NOW(),INTERVAL ${time} HOUR)
+    </select>
+</mapper>

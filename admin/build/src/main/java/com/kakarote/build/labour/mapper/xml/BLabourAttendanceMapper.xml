@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.labour.mapper.BLabourAttendanceMapper">
+
+
+    <sql id="selectVo">
+        select id, create_by, create_time, update_by, update_time,tenant_id,project_id,attendance_team_name,attendance_month,attendance_clock,
+        attendance_subcontractor,attendance_work_id,infocollection_number
+		from b_labour_attendance
+    </sql>
+
+    <select id="selectDataList" resultType="com.kakarote.build.labour.entity.BO.BLabourAttendanceBO">
+        <include refid="selectVo"/>
+        <where>
+            1=1
+            <if test="data.attendanceSubcontractor != null and data.attendanceSubcontractor != ''">
+                AND attendance_subcontractor = #{data.attendanceSubcontractor}
+            </if>
+            <if test="data.attendanceWorkId != null and data.attendanceWorkId != ''">
+                AND attendance_work_id = #{data.attendanceWorkId}
+            </if>
+            <if test="data.attendanceTeamName != null and data.attendanceTeamName != ''">
+                AND attendance_team_name = #{data.attendanceTeamName}
+            </if>
+            <if test="data.createBy != null and data.createBy != ''">
+                AND attendance_month  &gt;= #{data.createBy}
+            </if>
+            <if test="data.updateBy != null and data.updateBy != ''">
+                AND #{data.updateBy} &gt;= attendance_month
+            </if>
+            <if test="data.projectId != null and data.projectId != ''">
+                AND project_id = #{data.projectId}
+            </if>
+--             order by  attendance_month desc
+
+        </where>
+    </select>
+
+
+
+    <select id="selectValidationt" resultType="com.kakarote.build.labour.entity.PO.BLabourAttendance">
+        <include refid="selectVo"/>
+        <where>
+            1=1
+            <if test="attendanceMonth != null and attendanceMonth != ''">
+                AND attendance_month = #{attendanceMonth}
+            </if>
+            <if test="attendanceTeamName != null and attendanceTeamName != ''">
+                AND attendance_team_name = #{attendanceTeamName}
+            </if>
+
+        </where>
+    </select>
+
+
+</mapper>

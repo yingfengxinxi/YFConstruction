@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.safety.mapper.SafetyEducationPlanMapper">
+    <select id="pageList" resultType="com.kakarote.build.safety.entity.PO.SafetyEducationPlan">
+      select id, create_by, create_time, update_by, update_time, train_plan_name, train_type, train_cycle, train_content,
+       total_class_hours, person_charge,project_id from b_safety_education_plan
+        <where>  1=1
+            <if test="data.trainPlanName!=null and data.trainPlanName!=''">and train_plan_name like concat('%',#{data.trainPlanName},'%')</if>
+            <if test="data.trainType!=null and data.trainType!=''">and train_type=#{data.trainType}</if>
+            <if test="data.trainCycle!=null and data.trainCycle!=''">and train_cycle=#{data.trainCycle}</if>
+            <if test="data.trainContent!=null and data.trainContent!=''">and train_content=#{data.trainContent}</if>
+            <if test="data.totalClassHours!=null and data.totalClassHours!=''">and total_class_hours=#{data.totalClassHours}</if>
+            <if test="data.personCharge!=null and data.personCharge!=''">and person_charge like concat('%',#{data.personCharge},'%') </if>
+            <if test="data.projectId != null and data.projectId != ''">
+                AND project_id =  #{data.projectId}
+            </if>
+        </where>
+           /* order by create_time desc*/
+    </select>
+</mapper>

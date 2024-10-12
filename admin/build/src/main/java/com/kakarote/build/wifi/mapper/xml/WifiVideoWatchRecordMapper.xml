@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.wifi.mapper.WifiVideoWatchRecordMapper">
+
+    <select id="selectList" resultType="java.util.Map">
+        select a.*,ifnull((
+          select cc.name from wk_admin_file cc  where cc.batch_id = c.batch_id
+            <if test="data.tenantId != null and data.tenantId != ''">
+                and cc.tenant_id = #{data.tenantId}
+            </if>
+          LIMIT 1
+        ),'视频不存在') as fileName,
+        d.course_video_name as courseVideoName from  b_wifi_video_watch_record a
+        left join b_wifi_video_detail c on a.vd_id=c.id
+        left join b_wifi_course_library d on c.batch_id=d.batch_id <!--where a.project_id != 0-->
+        <where>
+            <if test="data.vId != null and data.vId != ''">
+                and a.v_id = #{data.vId}
+            </if>
+            <if test="data.projectId != null and data.projectId != ''">
+                and a.project_id = #{data.projectId}
+                and c.project_id = #{data.projectId}
+                and d.project_id = #{data.projectId}
+            </if>
+            <if test="data.tenantId != null and data.tenantId != ''">
+                and a.tenant_id = #{data.tenantId}
+                and c.tenant_id = #{data.tenantId}
+                and d.tenant_id = #{data.tenantId}
+            </if>
+        </where>
+--         order by a.create_time desc
+    </select>
+
+    <select id="getCreateTimeLast" resultType="java.util.Map">
+        select b.* from b_wifi_video a
+        inner join b_wifi_video_watch_record b on a.id = b.v_id
+        where a.work_type_id = #{data.workTypeId}
+        and b.watch_people_phone = #{data.watchPeoplePhone}
+        order by b.create_time desc
+        limit 1
+    </select>
+
+</mapper>

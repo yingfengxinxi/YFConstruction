@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.equipment.mapper.EquipmentTowerDataAtMapper">
+
+    <insert id="batchSaveData">
+        insert into b_equipment_tower_data_at
+        ( project_id,equipment_id, tenant_id, monitor_time,
+        anti_collision_left_turn_alarm,anti_collision_right_turn_alarm,collision_trolley_alarm,collision_trolley_entry_alarm,left_turn_environmental_alarm,
+        right_turn_environmental_alarm,trolley_exit_environment_alarm,trolley_entry_environment_alarm,maximum_amplitude_limit_alarm,minimum_amplitude_limit_alarm,
+        altitude_upper_limit_alarm,altitude_lower_limit_alarm,slewing_left_limit_alarm,slewing_right_limit_alarm,collision_alarm,
+        anti_collision_parking_angle_alarm,anti_collision_brake_angle_alarm,restricted_area_alarm,
+        weight,amplitude,height,windspeed,wind_level,obliguity,rotation,moment,
+        weight_percentage, wind_percentage, obliguity_percentage, braking_status,weight_alarm
+        )
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            ( #{item.projectId}, #{item.equipmentId}, #{item.tenantId}, #{item.monitorTime},
+            #{item.antiCollisionLeftTurnAlarm},#{item.antiCollisionRightTurnAlarm},#{item.collisionTrolleyAlarm},#{item.collisionTrolleyEntryAlarm},#{item.leftTurnEnvironmentalAlarm},
+            #{item.rightTurnEnvironmentalAlarm},#{item.trolleyExitEnvironmentAlarm},#{item.trolleyEntryEnvironmentAlarm},#{item.maximumAmplitudeLimitAlarm},#{item.minimumAmplitudeLimitAlarm},
+            #{item.altitudeUpperLimitAlarm},#{item.altitudeLowerLimitAlarm},#{item.slewingLeftLimitAlarm},#{item.slewingRightLimitAlarm},#{item.collisionAlarm},
+            #{item.antiCollisionParkingAngleAlarm},#{item.restrictedAreaAlarm},#{item.collisionAlarm},
+            #{item.weight},#{item.amplitude},#{item.height},#{item.windspeed},#{item.windLevel},#{item.obliguity},#{item.rotation},#{item.moment},
+            #{item.weightPercentage},#{item.windPercentage},#{item.obliguityPercentage},#{item.brakingStatus},#{item.weightAlarm}
+           )
+        </foreach>
+    </insert>
+    <select id="selectPage" resultType="java.util.Map">
+        SELECT
+        a.*,b.asset_name,b.asset_code,IFNULL(c.project_abbreviation,c.project_name) AS projectName
+        FROM
+        b_equipment_tower_data_at a
+        LEFT JOIN b_equipment_assets b ON b.asset_id = a.equipment_id
+        LEFT JOIN b_project_info c ON b.project_id = c.id
+        <where>
+            <if test="data.equipmentName!=null and data.equipmentName != ''">
+                and b.asset_name like concat('%', #{data.equipmentName}, '%')
+            </if>
+            <if test="data.assetCode!=null and data.assetCode != ''">
+                and b.asset_code like concat('%', #{data.assetCode}, '%')
+            </if>
+            <if test="data.startTime != null">
+                and a.monitor_time >= #{data.startTime,jdbcType=TIMESTAMP}
+            </if>
+            <if test="data.endTime != null">
+                and a.monitor_time &lt;= #{data.endTime,jdbcType=TIMESTAMP}
+            </if>
+            <if test="data.equipmentId!=null and data.equipmentId != ''">
+                and a.equipment_id = #{data.equipmentId}
+            </if>
+            <if test="data.projectId!=null and data.projectId != ''">
+                and a.project_id = #{data.projectId}
+            </if>
+            <if test="data.projectName!=null and data.projectName != ''">
+                and c.project_name like concat('%', #{data.projectName}, '%')
+            </if>
+
+            <if test="data.alertType==3">
+                and
+                (CONCAT_WS(',',
+                a.weight_alarm,
+                a.moment_alarm,
+                a.obliguity_alarm,
+                a.wind_speed_Alarm,
+                a.tower_collision_alarm,
+                a.min_range_alarm,
+                a.height_alarm,
+                a.pos_angle_alarm
+                ) LIKE CONCAT( '%', '1', '%' )
+                OR CONCAT_WS(',',
+                a.weight_alarm,
+                a.moment_alarm,
+                a.obliguity_alarm,
+                a.wind_speed_Alarm,
+                a.tower_collision_alarm,
+                a.min_range_alarm,
+                a.height_alarm,
+                a.pos_angle_alarm
+                ) LIKE CONCAT( '%', '2', '%' )
+                )
+            </if>
+            <if test="data.alertType==1">
+                and
+                (CONCAT_WS(',',
+                a.weight_alarm,
+                a.moment_alarm,
+                a.obliguity_alarm,
+                a.wind_speed_Alarm,
+                a.tower_collision_alarm,
+                a.min_range_alarm,
+                a.height_alarm,
+                a.pos_angle_alarm
+                ) LIKE CONCAT( '%', '1', '%' )
+                )
+            </if>
+            <if test="data.alertType==0">
+                and
+                (CONCAT_WS(',',
+                a.weight_alarm,
+                a.moment_alarm,
+                a.obliguity_alarm,
+                a.wind_speed_Alarm,
+                a.tower_collision_alarm,
+                a.min_range_alarm,
+                a.height_alarm,
+                a.pos_angle_alarm
+                ) LIKE CONCAT( '%', '2', '%' )
+                and CONCAT_WS(',',
+                a.weight_alarm,
+                a.moment_alarm,
+                a.obliguity_alarm,
+                a.wind_speed_Alarm,
+                a.tower_collision_alarm,
+                a.min_range_alarm,
+                a.height_alarm,
+                a.pos_angle_alarm
+                ) not  LIKE CONCAT( '%', '1', '%' )
+                )
+            </if>
+        </where>
+        /*order  by  a.monitor_time desc*/
+    </select>
+</mapper>

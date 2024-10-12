@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.project.mapper.ProgressPlanDaPingShowMapper">
+
+    <select id="allPlan" resultType="java.util.Map">
+        select a.planStart 计划开始,
+        a.planEnd 计划结束,
+        a.actualStart 实际开始,
+        a.actualEnd 实际结束
+        ,to_days(a.planEnd) - to_days(a.planStart) as 要求工期
+        ,to_days(a.actualEnd) - to_days(a.actualStart) as 已执行工期
+        ,(to_days(a.planEnd) - to_days(a.planStart))-(to_days(a.actualEnd) - to_days(a.actualStart)) as 剩余工期
+        ,case when(a.actualEnd is null  and a.planEnd &lt; now())then '超时'
+        when (a.actualStart is null ) then '未开始'
+        when (a.actualStart is not null
+        and a.actualEnd is null
+        and a.planEnd &gt;= now()
+        or(a.actualEnd is not null and a.actualEnd &gt; now())
+        ) then '进行中'
+        when(a.actualEnd is not null  and a.actualEnd &lt;= now())then '已完成'
+        end 工期状态
+
+<!--        echarts图 使用 将此时间段 分割-->
+        ,
+        LEAST(IFNULL(a.planStart,a.actualStart),IFNULL(a.planEnd,a.actualEnd) ,IFNULL(a.actualStart,a.planStart),IFNULL(a.actualEnd,a.planEnd)) startDate
+        ,
+        GREATEST(IFNULL(a.planStart,a.actualStart),IFNULL(a.planEnd,a.actualEnd) ,IFNULL(a.actualStart,a.planStart),IFNULL(a.actualEnd,a.planEnd)) endDate
+
+        from (
+            select
+            min(plan_start_date) planStart,
+            max(plan_end_date) planEnd,
+            min(actual_start_date) actualStart,
+            max(actual_end_date) actualEnd
+            from ${data.tableName}
+            where mid = #{data.mid}
+            <if test="data.planMonth != null and data.planMonth != ''">
+                and plan_month = #{data.planMonth}
+            </if>
+        )a
+
+
+    </select>
+
+    <select id="selectPlanProjectDuration" resultType="java.util.Map">
+        select a.planStart, a.planEnd, a.actualStart, a.actualEnd,
+            to_days(a.planEnd) - to_days(a.planStart) as requireTime,
+            to_days(a.actualEnd) - to_days(a.actualStart) as conductTime,
+            CEILING((to_days(a.actualEnd) - to_days(a.actualStart)) / 7) as weekNumber,
+            (to_days(a.planEnd) - to_days(a.planStart))-(to_days(a.actualEnd) - to_days(a.actualStart)) as remainTime,
+            case when(a.actualEnd is null  and a.planEnd &lt; now())then '超时' else '正常' end projectStatus
+        from (
+            select
+            min(plan_start_date) planStart,
+            max(plan_end_date) planEnd,
+            min(actual_start_date) actualStart,
+            max(actual_end_date) actualEnd
+            from b_progress_plan_manage_details
+            where mid = #{data.mid}) a
+    </select>
+</mapper>

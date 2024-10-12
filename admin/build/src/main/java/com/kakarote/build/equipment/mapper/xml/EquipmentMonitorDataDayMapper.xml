@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.equipment.mapper.EquipmentMonitorDataDayMapper">
+    <select id="selectListByProject" resultType="java.util.Map">
+        select p.point_name, p.point_code, p.monitor_type, p.monitor_son_Type, p.equipment_id, p.unit, p.alarm_upper, p.alarm_lower,
+        d.value, d.start_time,d.end_time, a.asset_name, i.project_name,d.max_value,d.min_value
+        from b_equipment_monitor_data_day d
+        left join b_equipment_monitor_point p on d.point_id = p.id
+        left join b_equipment_assets a on p.equipment_id = a.asset_id
+        left join b_project_info i on d.project_id = i.id
+        <where>
+            <if test="data.monitorType != null and data.monitorType != ''">
+                and p.monitor_type = #{data.monitorType,jdbcType=VARCHAR}
+            </if>
+            <if test="data.pointName != null and data.pointName != ''">
+                and p.point_name like concat('%', #{data.pointName,jdbcType=VARCHAR}, '%')
+            </if>
+            <if test="data.startTime != null">
+                and d.end_time >= #{data.startTime,jdbcType=TIMESTAMP}
+            </if>
+            <if test="data.endTime != null">
+                and d.start_time &lt;= #{data.endTime,jdbcType=TIMESTAMP}
+            </if>
+            <if test="data.projectId != null">
+                and d.project_id = #{data.projectId}
+            </if>
+            <if test='data.envMonitorSonType == "1"'>
+                and p.monitor_son_type in ('1', '2')
+            </if>
+            <if test='data.envMonitorSonType == "2"'>
+                and p.monitor_son_type = '3'
+            </if>
+            <if test='data.envMonitorSonType == "3"'>
+                and p.monitor_son_type in ('4', '5', '6', '7', '8')
+            </if>
+        </where>
+        /*order by d.start_time desc, p.sort*/
+    </select>
+
+    <select id="getDayDataByPoint" resultType="java.lang.String">
+        <foreach collection="hoursList" item="x" index="i" separator="union all">
+            SELECT IFNULL(FORMAT(AVG( `value` ),2),0)  FROM b_equipment_pit_data_at_bak WHERE DATE_FORMAT(monitor_time, '%Y-%m-%d %H:00:00') = DATE_FORMAT(#{x }, '%Y-%m-%d %H:00:00')  AND point_id = #{pointId }
+        </foreach>
+    </select>
+</mapper>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.project.mapper.ProjectUserMapper">
+
+    <select id="queryPageListGrp" parameterType="com.kakarote.build.project.entity.BO.ProjectUserBO"
+            resultType="java.util.Map">
+        SELECT
+        a.id,a.user_id as userId,a.project_id as projectId,
+        u.username,u.realname,
+        d.name as deptName
+        FROM
+        b_project_user a,wk_admin_user u,wk_admin_dept d
+        <where>
+            a.project_id = #{data.projectId} and a.user_id = u.user_id and u.dept_id = d.dept_id
+            <if test="data.userName != null and data.userName != ''">
+               and a.user_id in (
+                  select w.user_id from wk_admin_user w
+                  where w.realname like concat('%',concat(#{data.userName},'%'))
+                )
+            </if>
+
+        </where>
+        order by create_time desc
+    </select>
+
+    <select id="queryProPageListGrp" parameterType="com.kakarote.build.project.entity.BO.ProjectUserBO" resultType="java.util.Map">
+        select b.*,p.project_name as projectName from b_project_user b,b_project_info p
+        <where>
+            b.user_id = #{data.userId} and b.project_id = p.id
+            <if test="data.projectName != null and data.projectName != ''">
+                and b.project_id in (
+                select w.id from b_project_info w where w.project_name like concat('%',concat(#{data.projectName},'%'))
+                )
+            </if>
+        </where>
+        order by p.create_time desc
+    </select>
+</mapper>

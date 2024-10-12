@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qdoner.datarecept.mapper.BEquipmentDriverIdentMapper">
+    <insert id="batchSaveData">
+        insert into b_equipment_driver_ident
+        ( project_id,equ_code, tenant_id,
+        device_type,id_card,certificate_id,starting_date,ending_date,photo_url
+        )
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            ( #{item.projectId}, #{item.equCode}, #{item.tenantId},
+            #{item.deviceType}, #{item.idCard}, #{item.certificateId},#{item.startingDate}, #{item.endingDate},
+            #{item.photoUrl}
+            )
+        </foreach>
+    </insert>
+    <select id="getDriverIdentByCode"  resultType="com.qdoner.datarecept.entity.PO.BEquipmentDriverIdent" parameterType="java.lang.String">
+        select * from b_equipment_driver_ident  where equ_code = #{equCode}  ORDER BY starting_date desc  LIMIT 1
+    </select>
+</mapper>

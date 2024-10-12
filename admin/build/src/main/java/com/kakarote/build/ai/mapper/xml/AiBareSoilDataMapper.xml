@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.ai.mapper.AiBareSoilDataMapper">
+
+    <select id="selectByPage" resultType="com.kakarote.build.ai.entity.PO.AiBareSoilData">
+        select a.*, IFNULL(b.project_abbreviation,b.project_name) AS projectName
+        from b_ai_bare_soil_data a
+        left join b_project_info b on a.project_id = b.id
+        <where>
+            <if test="data.alarmType != null and data.alarmType != ''">
+                and a.alarm_type = #{data.alarmType,jdbcType=TIMESTAMP}
+            </if>
+            <if test="data.alarmLocation != null and data.alarmLocation != ''">
+                and a.alarm_location like concat('%', #{data.alarmLocation}, '%')
+            </if>
+            <if test="data.startTime != null">
+                and a.alarm_time >= #{data.startTime,jdbcType=TIMESTAMP}
+            </if>
+            <if test="data.endTime != null">
+                and a.alarm_time &lt;= #{data.endTime,jdbcType=TIMESTAMP}
+            </if>
+            <if test="data.projectId != null">
+                and b.project_id = #{data.projectId,jdbcType=TIMESTAMP}
+            </if>
+        </where>
+    </select>
+
+    <insert id="batchSaveData">
+        insert into b_ai_bare_soil_data
+        (id, project_id, alarm_location, alarm_type, alarm_content, alarm_time, alarm_img, alarm_video, only_number, create_time, tenant_id)
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.id}, #{item.projectId}, #{item.alarmLocation}, #{item.alarmType}, #{item.alarmContent}, #{item.alarmTime}, #{item.alarmImg},
+            #{item.alarmVideo}, #{item.onlyNumber}, #{item.createTime}, #{item.tenantId})
+        </foreach>
+    </insert>
+
+    <select id="selectReportData" resultType="java.util.Map">
+        select DATE_FORMAT(a.alarm_time,'%Y年%m月%e %k点') as time, a.project_id, IFNULL(b.project_abbreviation,b.project_name) AS projectName,
+	        a.alarm_location as content, '2' as dataType
+        from b_ai_bare_soil_data a
+        left join b_project_info b on a.project_id = b.id
+        <where>
+            <if test="data.startDate != null and data.startDate != ''">
+                and DATE_FORMAT(a.alarm_time,'%Y-%m-%d') <![CDATA[ >= ]]> #{data.startDate}
+            </if>
+            <if test="data.endDate != null and data.endDate != ''">
+                and DATE_FORMAT(a.alarm_time,'%Y-%m-%d') <![CDATA[ <= ]]>  #{data.endDate}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectAlertNumber" resultType="java.util.Map">
+        SELECT SUM(CASE WHEN TO_DAYS(c.alarm_time) = TO_DAYS(NOW()) THEN 1 ELSE 0 END) dayNumber,
+               SUM(CASE WHEN YEARWEEK(DATE_FORMAT(c.alarm_time,'%Y-%m-%d')) = YEARWEEK(NOW(), 1) THEN 1 ELSE 0 END) weekNumber,
+               SUM(CASE WHEN DATE_FORMAT(c.alarm_time,'%Y-%m') = DATE_FORMAT(NOW(),'%Y-%m') THEN 1 ELSE 0 END) monthNumber,
+               SUM(CASE WHEN DATE_FORMAT(c.alarm_time,'%Y') = DATE_FORMAT(NOW(),'%Y') THEN 1 ELSE 0 END) yearNumber
+        FROM (<!--select a.alarm_time from b_ai_bare_soil_data a-->
+              select a.alert_time as alarm_time from b_ai_video_alert a
+              UNION ALL
+              select b.cleaning_time as alarm_time from b_ai_dreg_car_cleaning b) c
+    </select>
+
+    <select id="selectAlertTrend" resultType="java.util.Map">
+        SELECT DATE_FORMAT(a.curr_date,'%c.%d') as monitorDate, IFNULL(b.bareSoilNumber ,0) as bareSoilNumber,
+               IFNULL(c.dregCarNumber ,0) as dregCarNumber
+        from(
+            SELECT date_format(date_add(curdate(),interval -t.help_topic_id ${data.dateType}),#{data.format}) as 'curr_date'
+            from mysql.help_topic t where t.help_topic_id &lt; #{data.num}) a
+        <!--left join(
+            select DATE_FORMAT(alarm_time,#{data.format}) as date, count(*) as bareSoilNumber
+            from b_ai_bare_soil_data
+            GROUP BY DATE_FORMAT(alarm_time,'%Y-%m-%d')
+        ) b on a.curr_date = b.date-->
+        left join(
+            select DATE_FORMAT(alert_time,#{data.format}) as date, count(*) as bareSoilNumber
+            from b_ai_video_alert
+            GROUP BY DATE_FORMAT(alert_time,'%Y-%m-%d')
+        ) b on a.curr_date = b.date
+        left join(
+            select DATE_FORMAT(cleaning_time,#{data.format}) as date, count(*) as dregCarNumber
+            from b_ai_dreg_car_cleaning
+            GROUP BY DATE_FORMAT(cleaning_time,'%Y-%m-%d')
+        ) c on a.curr_date = c.date
+        order by monitorDate asc
+    </select>
+
+    <select id="selectProjectAlertNumber" resultType="java.util.Map">
+        SELECT IFNULL(a.project_abbreviation,a.project_name) AS projectName,
+               SUM(CASE WHEN b.id is not null THEN 1 ELSE 0 END) bareSoilNumber,
+               SUM(CASE WHEN c.id is not null THEN 1 ELSE 0 END) dregCarNumber
+        FROM b_project_info a
+        LEFT JOIN (SELECT id, project_id FROM b_ai_bare_soil_data
+                WHERE DATE_FORMAT(alarm_time, '%Y-%m-%d') >= DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 10 DAY), '%Y-%m-%d')) b
+        ON a.id = b.project_id
+        LEFT JOIN (SELECT id, project_id FROM b_ai_dreg_car_cleaning
+                WHERE DATE_FORMAT(cleaning_time, '%Y-%m-%d') >= DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 10 DAY), '%Y-%m-%d')) c
+        ON a.id = c.project_id
+        GROUP BY a.id
+        ORDER BY bareSoilNumber DESC, dregCarNumber DESC
+        LIMIT 10
+    </select>
+
+    <select id="selectPageNj" resultType="java.util.Map">
+        select IFNULL(d.project_abbreviation,d.project_name) AS projectName, c.*, e.asset_name, e.asset_code
+        from (
+            <!--select a.id,"1" as tableType,dict1.dict_label as analysisResult, a.alarm_img as analysisImg, a.alarm_time as analysisTime, a.alarm_video as analysisVideo, a.project_id,
+            a.alarm_location as alarmLocation
+            from b_ai_bare_soil_data a
+            LEFT JOIN (SELECT dict_label, dict_value FROM wk_admin_dict_data
+                WHERE dict_type = 'b_bare_soil_alarm_type') dict1 on a.alarm_type = dict1.dict_value-->
+            select a.id,"1" as tableType,dict1.dict_label as analysisResult, a.alert_img as analysisImg, a.alert_time as analysisTime, null as analysisVideo, a.project_id, a.equipment_id,
+                a.alert_position as alarmLocation
+            from b_ai_video_alert a
+            LEFT JOIN (SELECT dict_label, dict_value FROM wk_admin_dict_data
+            WHERE dict_type = 'b_ai_event_type') dict1 ON a.ai_event_type = dict1.dict_value
+            UNION ALL
+            select b.id,"2" as tableType,dict2.dict_label as analysisResult, b.cleaning_img as analysisImg, b.cleaning_time as analysisTime, b.video_url as analysisVideo, b.project_id, b.equipment_id,
+                b.license_plate_number as alarmLocation
+            from b_ai_dreg_car_cleaning b
+            LEFT JOIN (SELECT dict_label, dict_value FROM wk_admin_dict_data
+            WHERE dict_type = 'b_catch_type') dict2 ON b.alarm_type = dict2.dict_value
+
+        ) c
+        left join b_project_info d on c.project_id = d.id
+        LEFT JOIN b_equipment_assets e ON c.equipment_id = e.asset_id
+        <where>
+            1=1
+            <if test="data.analysisTime !=null ">
+              and   DATE_FORMAT(analysisTime,'%Y-%m-%d')=DATE_FORMAT(#{data.analysisTime},'%Y-%m-%d')
+            </if>
+        </where>
+        order by analysisTime desc
+    </select>
+
+    <select id="selectTypeProportion" resultType="java.util.Map">
+        <!--SELECT a.dict_label, count(b.id) AS value
+        FROM(SELECT dict_label, dict_value FROM wk_admin_dict_data
+                WHERE dict_type = 'b_bare_soil_alarm_type') a
+        LEFT JOIN b_ai_bare_soil_data b on a.dict_value = b.alarm_type
+        GROUP BY a.dict_value-->
+        SELECT a.dict_label, count(b.id) AS value
+        FROM(SELECT dict_label, dict_value FROM wk_admin_dict_data
+            WHERE dict_type = 'b_ai_event_type') a
+        LEFT JOIN b_ai_video_alert b on a.dict_value = b.ai_event_type
+        GROUP BY a.dict_value
+        ORDER BY value DESC
+        limit 4
+    </select>
+</mapper>

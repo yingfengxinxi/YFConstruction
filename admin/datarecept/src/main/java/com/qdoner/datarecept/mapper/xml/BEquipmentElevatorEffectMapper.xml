@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qdoner.datarecept.mapper.BEquipmentElevatorEffectMapper">
+    <select id="selectZZTJ" resultType="java.util.Map">
+        SELECT
+        a.val AS date,
+        IF
+        ( w.count IS NULL, 0, w.count ) AS val
+        FROM
+        util_hour a
+        LEFT JOIN (
+        SELECT HOUR
+        ( e.monitor_time ) AS HOUR,
+        AVG( weight ) AS count
+        FROM
+        b_equipment_elevator_data_at e
+        WHERE
+        to_days( e.monitor_time ) = to_days( now( ) ) and equipment_id = #{id}
+        GROUP BY
+        HOUR ( e.monitor_time )
+        ) w ON a.val = w.HOUR
+        WHERE
+        a.val &lt;= HOUR ( now( ) )
+        ORDER BY a.val
+    </select>
+    <select id="selectSDTJ" resultType="java.util.Map">
+        SELECT
+        a.val AS date,
+        IF
+        ( w.count IS NULL, 0, w.count ) AS val
+        FROM
+        util_hour a
+        LEFT JOIN (
+        SELECT HOUR
+        ( e.monitor_time ) AS HOUR,
+        AVG( speed ) AS count
+        FROM
+        b_equipment_elevator_data_at e
+        WHERE
+        to_days( e.monitor_time ) = to_days( now( ) ) and equipment_id = #{id}
+        GROUP BY
+        HOUR ( e.monitor_time )
+        ) w ON a.val = w.HOUR
+        WHERE
+        a.val &lt;= HOUR ( now( ) )
+        ORDER BY a.val
+    </select>
+    <select id="selectGDTJ" resultType="java.util.Map">
+        SELECT
+        a.val AS date,
+        IF
+        ( w.count IS NULL, 0, w.count ) AS val
+        FROM
+        util_hour a
+        LEFT JOIN (
+        SELECT HOUR
+        ( e.monitor_time ) AS HOUR,
+        AVG( height ) AS count
+        FROM
+        b_equipment_elevator_data_at e
+        WHERE
+        to_days( e.monitor_time ) = to_days( now( ) ) and equipment_id = #{id}
+        GROUP BY
+        HOUR ( e.monitor_time )
+        ) w ON a.val = w.HOUR
+        WHERE
+        a.val &lt;= HOUR ( now( ) )
+        ORDER BY a.val
+    </select>
+    <select id="selectJRGX" resultType="java.util.Map" >
+        SELECT
+            ${query} as ${type}
+        FROM
+            b_equipment_elevator_effect
+        WHERE
+            to_days(create_time) = to_days(now()) and asset_id = #{id}
+    </select>
+    <select id="selectJRBJS"  resultType="java.util.Map" >
+        SELECT
+            COUNT(0) as bjs
+        FROM
+            b_monitor_point_alert
+        WHERE
+            to_days(create_time) = to_days(now())and equipment_id = #{id}
+    </select>
+    <select id="selectSJXX"  resultType="java.util.Map">
+        SELECT
+            b.* ,DATE_FORMAT(FROM_DAYS(TO_DAYS(NOW())-TO_DAYS(b.birthday)), '%Y')+0 AS csrq,c.cer_name,d.dict_label,c.cer_useend_date
+            FROM b_equipment_driver_ident a
+            LEFT JOIN b_labour_infocollection b ON a.id_card = b.id_card
+            AND b.id IN ( SELECT max( id ) FROM b_labour_infocollection GROUP BY id_card )
+            LEFT JOIN b_labour_speworktype c on b.id = c.infocol_id
+            LEFT JOIN wk_admin_dict_data d on d.dict_type = 'b_cerCategoryType' and c.cer_category_type = d.dict_value
+        where a.equ_code = #{code}
+        ORDER BY starting_date desc LIMIT 1
+    </select>
+    <insert id="batchSaveData">
+        insert into b_equipment_elevator_effect
+        ( project_id,asset_id, tenant_id,
+        start_time,end_time,early_alarm,alarm,weight,
+        percent_rate,number_of_people,start_floor,end_floor,wind,
+        speed,angle,bypass,create_time,angle_y,start_height,end_height,
+        height,direction
+        )
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            ( #{item.projectId}, #{item.assetId}, #{item.tenantId},
+            #{item.startTime}, #{item.endTime}, #{item.earlyAlarm},#{item.alarm}, #{item.weight},
+            #{item.percentRate}, #{item.numberOfPeople}, #{item.startFloor},#{item.endFloor}, #{item.wind},
+            #{item.speed}, #{item.angle}, #{item.bypass}, #{item.createTime},#{item.angleY},#{item.startHeight},#{item.endHeight},
+            #{item.height},#{item.direction}
+            )
+        </foreach>
+    </insert>
+
+    <select id="selectRunStatus" resultType="java.util.Map">
+        select b.dict_label as runStatus from b_equipment_elevator_data_at a
+        left join (select dict_value, dict_label from wk_admin_dict_data where dict_type = 'b_lift__run_status') b on a.lifting_direction = b.dict_value
+        where equipment_id = #{id}
+        order by monitor_time desc
+        limit 1
+    </select>
+    <select id="selectPage" resultType="java.util.Map">
+        SELECT
+        b.asset_name,b.asset_code ,a.start_time,a.end_time,a.weight,a.speed,a.angle,a.angle_y,a.start_height,a.end_height,
+        a.height,a.direction,a.number_of_people, IFNULL(c.project_abbreviation,c.project_name) AS projectName
+        FROM
+        b_equipment_elevator_effect a
+        LEFT JOIN b_equipment_assets b on a.asset_id = b.asset_id
+        LEFT JOIN b_project_info c ON b.project_id = c.id
+        <where>
+            <if test="data.assetName!=null and data.assetName != ''">
+                and b.asset_name like concat('%', #{data.assetName}, '%')
+            </if>
+            <if test="data.assetCode!=null and data.assetCode != ''">
+                and b.asset_code like concat('%', #{data.assetCode}, '%')
+            </if>
+            <if test="data.startTime != null">
+                and a.start_time >=   #{data.startTime,jdbcType=TIMESTAMP}
+            </if>
+            <if test="data.endTime != null">
+                and a.end_time &lt;=  #{data.endTime,jdbcType=TIMESTAMP}
+            </if>
+            <if test="data.assetId!=null and data.assetId != ''">
+                and a.asset_id = #{data.assetId}
+            </if>
+            <if test="data.projectId!=null and data.projectId != ''">
+                and a.project_id = #{data.projectId}
+            </if>
+            <if test="data.projectName!=null and data.projectName != ''">
+                and c.project_name like concat('%', #{data.projectName}, '%')
+            </if>
+        </where>
+    </select>
+</mapper>

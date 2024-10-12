@@ -1,0 +1,564 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.project.mapper.ProjectInfoMapper">
+
+    <select id="queryPageList" parameterType="com.kakarote.build.project.entity.BO.ProjectInfoBO"
+            resultType="java.util.Map">
+        SELECT
+        id,
+        lng,
+        lat,
+        project_name as projectName,
+        company_name as companyName,
+        corporate_account_bank as corporateAccountBank,
+        corporate_account as corporateAccount,
+        project_address as projectAddress,
+        total_cost as totalCost,
+        total_area as totalArea,
+        commencement_order_date as commencementOrderDate,
+        actual_commencement_date as actualCommencementDate,
+        actual_completion_date as actualCompletionDate,
+        contract_completion_date as contractCompletionDate,
+        engineering_status as engineeringStatus,
+        project_state as projectState,
+        project_classify as projectClassify,
+        planned_completion_date as plannedCompletionDate,
+        unit_quantity as unitQuantity
+        FROM
+        b_project_info
+        <where>
+            <if test="data.projectName != null and data.projectName != ''">
+                and ( project_name like concat('%',concat(#{data.projectName},'%')) or project_abbreviation like concat('%',concat(#{data.projectName},'%')) )
+            </if>
+            <if test="data.companyName != null and data.companyName != ''">
+                and company_name like concat('%',concat(#{data.companyName},'%'))
+            </if>
+            <if test="data.projectState != null and data.projectState != ''">
+                and project_state = #{data.projectState}
+            </if>
+            <if test="data.engineeringStatus != null and data.engineeringStatus != ''">
+                and engineering_status = #{data.engineeringStatus}
+            </if>
+            <if test="data.commencementOrderDateStart != null and data.commencementOrderDateStart != ''">
+                and <![CDATA[ commencement_order_date >= #{data.commencementOrderDateStart}]]>
+            </if>
+            <if test="data.commencementOrderDateEnd != null and data.commencementOrderDateEnd != ''">
+                and <![CDATA[ commencement_order_date <= #{data.commencementOrderDateEnd}]]>
+            </if>
+            <if test="data.actualCompletionDateStart != null and data.actualCompletionDateStart != ''">
+                and <![CDATA[ actual_completion_date >= #{data.actualCompletionDateEnd}]]>
+            </if>
+            <if test="data.actualCompletionDateEnd != null and data.actualCompletionDateEnd != ''">
+                and <![CDATA[ actual_completion_date <= #{data.actualCompletionDateEnd}]]>
+            </if>
+        </where>
+        order by create_time desc
+    </select>
+    <select id="queryPageListGrp" parameterType="com.kakarote.build.project.entity.BO.ProjectInfoBO"
+            resultType="java.util.Map">
+        SELECT
+        a.id,
+        a.lng,
+        a.lat,
+        a.project_name as projectName,
+        a.construction_unit_name as constructionUnitName,
+        a.company_name as companyName,
+        a.corporate_account_bank as corporateAccountBank,
+        a.corporate_account as corporateAccount,
+        a.project_address as projectAddress,
+        a.total_cost as totalCost,
+        a.total_area as totalArea,
+        a.commencement_order_date as commencementOrderDate,
+        a.actual_commencement_date as actualCommencementDate,
+        a.actual_completion_date as actualCompletionDate,
+        a.contract_completion_date as contractCompletionDate,
+        a.engineering_status as engineeringStatus,
+        a.project_state as projectState,
+        a.project_classify as projectClassify,
+        a.planned_completion_date as plannedCompletionDate,
+        a.unit_quantity as unitQuantity,
+        a.contacts_name as contactsName,
+        a.contacts_tel as contactsTel,
+        IFNULL(a.project_abbreviation,a.project_name) as projectAbbreviation,
+        a.sort
+        FROM
+        b_project_info a
+        <where>
+            <if test="data.projectName != null and data.projectName != ''">
+                and ( a.project_name like concat('%',concat(#{data.projectName},'%')) or a.project_abbreviation like concat('%',concat(#{data.projectName},'%')) )
+            </if>
+            <if test="data.companyName != null and data.companyName != ''">
+                and a.company_name like concat('%',concat(#{data.companyName},'%'))
+            </if>
+            <if test="data.projectState != null and data.projectState != ''">
+                and a.project_state = #{data.projectState}
+            </if>
+            <if test="data.engineeringStatus != null and data.engineeringStatus != ''">
+                and a.engineering_status = #{data.engineeringStatus}
+            </if>
+            <if test="data.commencementOrderDateStart != null and data.commencementOrderDateStart != ''">
+                and <![CDATA[ a.commencement_order_date >= #{data.commencementOrderDateStart}]]>
+            </if>
+            <if test="data.commencementOrderDateEnd != null and data.commencementOrderDateEnd != ''">
+                and <![CDATA[ a.commencement_order_date <= #{data.commencementOrderDateEnd}]]>
+            </if>
+            <if test="data.actualCompletionDateStart != null and data.actualCompletionDateStart != ''">
+                and <![CDATA[ a.actual_completion_date >= #{data.actualCompletionDateEnd}]]>
+            </if>
+            <if test="data.actualCompletionDateEnd != null and data.actualCompletionDateEnd != ''">
+                and <![CDATA[ a.actual_completion_date <= #{data.actualCompletionDateEnd}]]>
+            </if>
+        </where>
+        /*ORDER BY a.sort, a.create_time DESC*/
+    </select>
+
+    <select id="selectTypeAndNameMaps" resultType="java.util.Map">
+        select count(1) value,project_classify id,dict_label name from b_project_info a
+        left join wk_admin_dict_data b on a.project_classify = b.dict_value and a.tenant_id = b.tenant_id
+        where dict_type='b_project_classify'
+        and a.project_id != 0
+        GROUP BY project_classify
+    </select>
+
+    <!--    项目进度-->
+    <select id="selectProgress" resultType="java.util.Map">
+        select
+        sum(IFNULL(actual_commencement_date,contract_commencement_date) &gt; now()) notStart,
+        sum(IFNULL(actual_commencement_date,contract_commencement_date) &lt; now() and contract_completion_date &gt; now() and actual_completion_date is null ) doing,
+        sum(actual_completion_date is not null) done,
+        sum(actual_completion_date is null and contract_completion_date &lt; now()) pastTime
+        from b_project_info
+
+    </select>
+    <select id="slelctAll" resultType="java.util.Map">
+        select id,tenant_id ,project_name from b_project_info ORDER BY sort, create_time DESC
+    </select>
+
+    <select id="ProjectNum" resultType="java.util.Map">
+        select count(*) as projectNum, IFNULL(sum(total_cost),0) as totalCost, IFNULL(sum(total_area),0) as totalArea,
+        (select count(*) from b_project_info) as totalNumber
+        from b_project_info_view
+        where project_state = '2'
+    </select>
+
+    <select id="selectDictValue" resultType="java.lang.String">
+       select dict_value from wk_admin_dict_data a where
+        a.dict_type = #{data.dictType}
+        and a.dict_label = #{data.dictLabel}
+        LIMIT 1
+    </select>
+    <select id="projectInfoList" resultType="java.util.Map">
+    SELECT a.id,
+        IFNULL( a.project_name, '' ) AS projectName,
+        IFNULL( a.construction_unit_name, '' ) AS constructionUnitName,
+        IFNULL( a.total_area, '' ) AS totalArea,
+        IFNULL( a.total_cost, '' ) AS totalCost,
+        IFNULL( DATE_FORMAT( a.actual_commencement_date, '%Y-%m-%d' ), '' ) AS actualCommencementDate,
+        IFNULL( DATE_FORMAT( a.contract_completion_date, '%Y-%m-%d' ), '' ) AS contractCompletionDate,
+        IFNULL( a.project_address, '' ) AS projectAddress,
+        IFNULL( a.project_abbreviation, a.project_name ) AS projectAbbreviation,
+        a.lng,
+        a.lat,
+        a.project_state AS projectState,
+        a.plane_img AS planeImg,
+        a.plane_coordinate AS planeCoordinate,
+        SUBSTRING_INDEX( a.plane_coordinate, ',', 1 ) AS planeCoordinateX,
+        SUBSTRING_INDEX( a.plane_coordinate, ',',- 1 ) AS planeCoordinateY,
+				(select COUNT(0) from b_monitor_point_alert where handle_state = '0' and project_id  = a.id and alert_type = '0') as early_num,
+				(select (select asset_name from b_equipment_assets a where a.asset_id = equipment_id) from b_monitor_point_alert where handle_state = '0' and project_id  = a.id  and alert_type = '0' LIMIT 1) as early_sb_name,
+				(select (select point_name from b_equipment_monitor_point a where a.id = monitor_point_id) from b_monitor_point_alert where handle_state = '0' and project_id  = a.id   and alert_type = '0' LIMIT 1) as early_jcd_name,
+				(select monitor_data from b_monitor_point_alert where handle_state = '0' and project_id  = a.id  and alert_type = '0' LIMIT 1) as early_data,
+				(select content from b_monitor_point_alert where handle_state = '0' and project_id  = a.id  and alert_type = '0' LIMIT 1) as early_content,
+				(select create_time from b_monitor_point_alert where handle_state = '0' and project_id  = a.id  and alert_type = '0' LIMIT 1) as early_time,
+        (select COUNT(0) from b_monitor_point_alert where handle_state = '0' and project_id  = a.id and alert_type = '1') as alert_num,
+				(select (select asset_name from b_equipment_assets a where a.asset_id = equipment_id) from b_monitor_point_alert where handle_state = '0' and project_id  = a.id  and alert_type = '1' LIMIT 1) as alert_sb_name,
+				(select (select point_name from b_equipment_monitor_point a where a.id = monitor_point_id) from b_monitor_point_alert where handle_state = '0' and project_id  = a.id   and alert_type = '1' LIMIT 1) as alert_jcd_name,
+				(select monitor_data from b_monitor_point_alert where handle_state = '0' and project_id  = a.id  and alert_type = '1' LIMIT 1) as alert_data,
+				(select content from b_monitor_point_alert where handle_state = '0' and project_id  = a.id  and alert_type = '1' LIMIT 1) as alert_content,
+				(select create_time from b_monitor_point_alert where handle_state = '0' and project_id  = a.id  and alert_type = '1' LIMIT 1) as alert_time,
+				(SELECT (select point_name from b_equipment_monitor_point a where a.id = point_id) FROM `b_equipment_monitor_data` where point_id in (SELECT id FROM `b_equipment_monitor_point` where monitor_type = '9' and monitor_son_type = '2') and project_id = a.id ORDER BY monitor_time desc  LIMIT 1) as pm10_jcd,
+b.value as pm10_val,
+b.monitor_time as pm10_time,
+(select asset_code from b_equipment_assets where type_id = '145' and project_id = a.id  LIMIT 1) as td_code,
+				(select asset_name from b_equipment_assets where type_id = '145' and project_id = a.id   LIMIT 1) as td_name,
+				(select brand from b_equipment_assets where type_id = '145' and project_id = a.id   LIMIT 1) as td_brand
+    FROM
+        b_project_info as a
+				LEFT JOIN (SELECT * FROM b_equipment_monitor_data o RIGHT JOIN ( SELECT MAX( monitor_time ) AS max_time FROM `b_equipment_monitor_data` GROUP BY project_id ) p ON o.monitor_time = max_time  WHERE point_id IN ( SELECT id FROM `b_equipment_monitor_point` WHERE monitor_type = '9' AND monitor_son_type = '2' ) GROUP BY o.id) b on a.id = b.project_id
+    WHERE
+        a.lng IS NOT NULL
+        AND a.lat IS NOT NULL
+        AND a.lng != ''
+	AND a.lat != ''
+    </select>
+    <select id="projectInfoListByProjectState"  resultType="java.util.Map" parameterType="java.util.Map">
+        SELECT a.id,
+        IFNULL( a.project_name, '' ) AS projectName,
+        IFNULL( a.construction_unit_name, '' ) AS constructionUnitName,
+        IFNULL( a.total_area, '' ) AS totalArea,
+        IFNULL( a.total_cost, '' ) AS totalCost,
+        IFNULL( DATE_FORMAT( a.actual_commencement_date, '%Y-%m-%d' ), '' ) AS actualCommencementDate,
+        IFNULL( DATE_FORMAT( a.contract_completion_date, '%Y-%m-%d' ), '' ) AS contractCompletionDate,
+        IFNULL( a.project_address, '' ) AS projectAddress,
+        IFNULL( a.project_abbreviation, a.project_name ) AS projectAbbreviation,
+        <if test="data.alertType != null and data.alertType != ''">
+            b.asset_name as alertSbName,
+            b.point_name as alertJcdName,
+            b.content as alertContent,
+            b.monitor_data as alertData ,
+            b.create_time as alertTime,
+            <if test="data.alertType == 0">
+                1 as earlyNum,
+            </if>
+            <if test="data.alertType == 1">
+                1 as alertNum,
+            </if>
+
+        </if>
+        <if test="data.pm10 != null and data.pm10 != ''">
+            e.point_name as pm10Jcd,
+            d.monitor_time as pm10Time,
+            d.`value` as pm10Val,
+        </if>
+        <if test="data.tower != null and data.tower != ''">
+            f.asset_code as tdCode,
+            f.asset_name as tdName,
+        </if>
+        a.lng,
+        a.lat,
+        a.project_state AS projectState,
+        a.plane_img AS planeImg,
+        a.plane_coordinate AS planeCoordinate,
+        SUBSTRING_INDEX( a.plane_coordinate, ',', 1 ) AS planeCoordinateX,
+        SUBSTRING_INDEX( a.plane_coordinate, ',',- 1 ) AS planeCoordinateY
+        FROM
+        b_project_info as a
+        <if test="data.alertType != null and data.alertType != ''">
+            LEFT JOIN (SELECT
+            a.id,
+            b.asset_name,
+            c.point_name,
+            a.content,
+            a.monitor_data,
+            a.create_time,
+            a.alert_type,
+            a.project_id
+            FROM
+            b_monitor_point_alert a
+            LEFT JOIN b_equipment_assets b on equipment_id = b.asset_id
+            LEFT JOIN b_equipment_monitor_point c on monitor_point_id = c.id
+            WHERE
+            a.id IN ( SELECT max( id ) FROM b_monitor_point_alert WHERE ( handle_state = '0' OR handle_state IS NULL ) GROUP BY project_id )) b on b.project_id = a.id
+        </if>
+        <if test="data.pm10 != null and data.pm10 != ''">
+            LEFT JOIN (
+            SELECT
+            w.point_id,
+            w.`value`,
+            w.monitor_time,
+            w.project_id,
+            w.alert_type
+            FROM
+            (
+            SELECT
+            *
+            FROM
+            b_equipment_monitor_data_at
+            WHERE
+            point_id IN ( SELECT id FROM b_equipment_monitor_point a WHERE a.monitor_type = '9' AND monitor_son_type = '2' )
+            HAVING
+            1
+            ORDER BY
+            monitor_time DESC
+            ) w
+            GROUP BY
+            project_id
+            ) d ON a.id = d.project_id
+            LEFT JOIN b_equipment_monitor_point e ON d.point_id = e.id
+        </if>
+        <if test="data.tower != null and data.tower != ''">
+            LEFT JOIN (
+            SELECT
+            a.asset_code,
+            a.asset_name,
+            a.project_id
+            FROM
+            b_equipment_assets a
+            LEFT JOIN b_equipment_type b ON a.type_id = b.type_id
+            WHERE
+            b.monitor_type = '2'
+            GROUP BY
+            a.project_id
+            ) f ON a.id = f.project_id
+        </if>
+        WHERE
+        a.lng IS NOT NULL
+        AND a.lat IS NOT NULL
+        AND a.lng != ''
+        AND a.lat != ''
+        <if test="data.state != null and data.state != ''">
+            AND project_state = #{data.state}
+        </if>
+        <if test="data.alertType != null and data.alertType != ''">
+            AND b.alert_type = #{data.alertType}
+        </if>
+        <if test="data.pm10 != null and data.pm10 != ''">
+            AND e.point_name is not null
+        </if>
+        <if test="data.tower != null and data.tower != ''">
+            AND f.asset_name is not null
+        </if>
+
+    </select>
+    <select id="queryProjectTreeList" resultType="java.util.Map">
+        select a.id, IFNULL(a.project_abbreviation,a.project_name) AS name, if(count(b.asset_id)=0,true,false) as leaf from b_project_info a
+        left join b_equipment_assets b on a.id=b.project_id
+         left join (SELECT getEquipmentTypeParent(equt.type_id) AS typePath FROM b_equipment_type equt WHERE  equt.monitor_type = '99') c on FIND_IN_SET(b.type_id, c.typePath)
+         where a.project_state = '2' and b.status = '1'
+        GROUP BY a.id ORDER BY a.sort asc, a.create_time desc
+    </select>
+
+    <select id="selectProjectStateCount" resultType="java.util.Map">
+        select a.dict_label as name, a.dict_value, count(b.id) as value
+        from (select * from wk_admin_dict_data
+                where dict_type = 'b_new_engineering_status') a
+        left join b_project_info_view b on a.dict_value = b.project_state
+        group by a.dict_value
+    </select>
+
+    <select id="slelctAllAttendance" resultType="java.util.Map">
+        select id,tenant_id ,project_name from b_project_info
+
+         where tenant_id = #{tenantId}
+         ORDER BY sort, create_time DESC
+    </select>
+
+    <select id="projectInfoListNJ" resultType="java.util.Map">
+        SELECT a.id,
+               IFNULL( a.project_name, '' ) AS projectName,
+               IFNULL( a.construction_unit_name, '' ) AS constructionUnitName,
+               IFNULL( a.total_area, '' ) AS totalArea,
+               IFNULL( a.total_cost, '' ) AS totalCost,
+               IFNULL( DATE_FORMAT( a.actual_commencement_date, '%Y-%m-%d' ), '' ) AS actualCommencementDate,
+               IFNULL( DATE_FORMAT( a.contract_completion_date, '%Y-%m-%d' ), '' ) AS contractCompletionDate,
+               IFNULL( a.project_address, '' ) AS projectAddress,
+               IFNULL( a.project_abbreviation, a.project_name ) AS projectAbbreviation,
+               a.lng,
+               a.lat,
+               a.project_state AS projectState,
+               a.plane_img AS planeImg,
+               a.plane_coordinate AS planeCoordinate,
+               SUBSTRING_INDEX( a.plane_coordinate, ',', 1 ) AS planeCoordinateX,
+               SUBSTRING_INDEX( a.plane_coordinate, ',',- 1 ) AS planeCoordinateY
+        FROM
+                b_project_info as a
+        WHERE
+                a.lng IS NOT NULL
+          AND a.lat IS NOT NULL
+          AND a.lng != ''
+          AND a.lat != ''
+    </select>
+
+    <select id="selectProAccessQuantity" resultType="java.util.Map">
+        select count(a.id) as proTotal, sum(case when a.project_state = '2' then 1 else 0 end) onlineNumber,
+               sum(case when a.project_state = '4' then 1 else 0 end) completionNumber
+        from b_project_info a
+        where (a.project_state = '2' or a.project_state = '4')
+    </select>
+
+    <select id="projectInfoListGetJk" resultType="com.kakarote.build.project.entity.PO.ProjectInfo">
+        SELECT * FROM  b_project_info
+        <where>
+            tenant_id != 0
+            <if test="data.projectId != null and data.projectId != ''">
+                AND project_id = #{data.projectId}
+            </if>
+
+
+        </where>
+    </select>
+
+    <select id="queryPageListByEval" parameterType="com.kakarote.build.project.entity.BO.ProjectInfoBO"
+            resultType="java.util.Map">
+        SELECT
+        a.id,
+        a.lng,
+        a.lat,
+        a.project_name as projectName,
+        a.construction_unit_name as constructionUnitName,
+        a.company_name as companyName,
+        a.corporate_account_bank as corporateAccountBank,
+        a.corporate_account as corporateAccount,
+        a.project_address as projectAddress,
+        a.total_cost as totalCost,
+        a.total_area as totalArea,
+        a.commencement_order_date as commencementOrderDate,
+        a.actual_commencement_date as actualCommencementDate,
+        a.actual_completion_date as actualCompletionDate,
+        a.contract_completion_date as contractCompletionDate,
+        a.engineering_status as engineeringStatus,
+        a.project_state as projectState,
+        a.project_classify as projectClassify,
+        a.planned_completion_date as plannedCompletionDate,
+        a.unit_quantity as unitQuantity,
+        IFNULL(a.project_abbreviation,a.project_name) as projectAbbreviation,
+        a.sort,
+        a.eval_apply_id,
+        b.app_level as appLevel,
+        b.score
+        FROM
+        b_project_info a
+        left join b_eval_apply b on a.eval_apply_id = b.id
+        <where>
+            <if test="data.projectName != null and data.projectName != ''">
+                and ( a.project_name like concat('%',concat(#{data.projectName},'%')) or a.project_abbreviation like concat('%',concat(#{data.projectName},'%')) )
+            </if>
+            <if test="data.companyName != null and data.companyName != ''">
+                and a.company_name like concat('%',concat(#{data.companyName},'%'))
+            </if>
+            <if test="data.projectState != null and data.projectState != ''">
+                and a.project_state = #{data.projectState}
+            </if>
+            <if test="data.engineeringStatus != null and data.engineeringStatus != ''">
+                and a.engineering_status = #{data.engineeringStatus}
+            </if>
+            <if test="data.commencementOrderDateStart != null and data.commencementOrderDateStart != ''">
+                and <![CDATA[ a.commencement_order_date >= #{data.commencementOrderDateStart}]]>
+            </if>
+            <if test="data.commencementOrderDateEnd != null and data.commencementOrderDateEnd != ''">
+                and <![CDATA[ a.commencement_order_date <= #{data.commencementOrderDateEnd}]]>
+            </if>
+            <if test="data.actualCompletionDateStart != null and data.actualCompletionDateStart != ''">
+                and <![CDATA[ a.actual_completion_date >= #{data.actualCompletionDateEnd}]]>
+            </if>
+            <if test="data.actualCompletionDateEnd != null and data.actualCompletionDateEnd != ''">
+                and <![CDATA[ a.actual_completion_date <= #{data.actualCompletionDateEnd}]]>
+            </if>
+        </where>
+--         ORDER BY a.sort, a.create_time DESC
+    </select>
+
+    <select id="queryProjectListByName" resultType="java.util.Map">
+        select b.*
+        from (select id, IFNULL(project_abbreviation,project_name) AS name
+              from b_project_info_view a
+        where a.project_id != '0' and a.project_state = '2'
+        order by a.sort, a.create_time desc) b
+        <where>
+            <if test="data.name != null and data.name != ''">
+                b.name like concat('%',concat(#{data.name},'%'))
+            </if>
+        </where>
+    </select>
+
+    <select id="selectProjectInfo" resultType="java.util.Map">
+        select IFNULL(a.total_cost,0) as totalCost, IFNULL(a.total_area,0) as totalArea, a.construction_unit_name,
+               a.supervisor_company, a.company_name, a.Investigation_company, a.design_company,
+               IFNULL(a.project_abbreviation,a.project_name) AS projectName
+        from b_project_info a
+        where id = #{id}
+    </select>
+    <select id="getLocationInfoByIdGrp"  resultType="java.util.Map">
+        SELECT
+            *,
+            ( SELECT VALUE FROM wk_admin_config WHERE NAME = 'attendanceDistance' ) AS jl
+        FROM
+            b_project_info
+        WHERE
+            id = #{id}
+    </select>
+
+    <select id="projectInfoListByAlertType" resultType="java.util.Map">
+        select A.*, (case when A.handle_state = '0' then '1' else '0' end) as ifAlarm
+        from (
+        SELECT a.id,
+        IFNULL( a.project_name, '' ) AS projectName,
+        IFNULL( a.construction_unit_name, '' ) AS constructionUnitName,
+        IFNULL( a.total_area, '' ) AS totalArea,
+        IFNULL( a.total_cost, '' ) AS totalCost,
+        IFNULL( DATE_FORMAT( a.actual_commencement_date, '%Y-%m-%d' ), '' ) AS actualCommencementDate,
+        IFNULL( DATE_FORMAT( a.contract_completion_date, '%Y-%m-%d' ), '' ) AS contractCompletionDate,
+        IFNULL( a.project_address, '' ) AS projectAddress,
+        IFNULL( a.project_abbreviation, a.project_name ) AS projectAbbreviation,
+        a.lng,
+        a.lat,
+        a.project_state AS projectState,
+        a.plane_img AS planeImg,
+        a.plane_coordinate AS planeCoordinate,
+        SUBSTRING_INDEX( a.plane_coordinate, ',', 1 ) AS planeCoordinateX,
+        SUBSTRING_INDEX( a.plane_coordinate, ',',- 1 ) AS planeCoordinateY,
+        b.handle_state
+        FROM
+        b_project_info as a
+        left join b_alert_view b on a.id = b.project_id and b.handle_state = '0' and b.alert_type = '1'
+        WHERE
+        a.lng IS NOT NULL
+        AND a.lat IS NOT NULL
+        AND a.lng != ''
+        AND a.lat != ''
+        having 1 = 1
+        order by b.handle_state desc) A
+        group by A.id
+        <if test="data.state != null and data.state != ''">
+            AND A.project_state = #{data.state}
+        </if>
+    </select>
+    <select id="getQDAPIProject" resultType="java.util.Map">
+        SELECT
+        project_name as projectName,
+        project_type as projectType,
+        (select name from sys_area where a.province = id) as province,
+        province as provinceCode,
+        (select name from sys_area where a.city = id) as  city,
+        city as cityCode,
+        (select name from sys_area where a.district = id) as  county,
+        district as countyCode,
+        project_address as location,
+        lng as longitude,
+        lat as latitude,
+        total_area as buildingArea,
+        commencement_order_date as planStartDate,
+        planned_completion_date as planFinishDate,
+        actual_commencement_date as actualStartDate,
+        actual_completion_date as actualFinishDate,
+        progress as progress,
+        engineering_status	as status,
+        invest_type as investType,
+        total_cost as totalInvest,
+        construction_nature as constructType,
+        purpose as purpose,
+        subject_structure_type as structureType,
+        company_name as constructCompanyName,
+        uniscid as constructCreditCode,
+        contacts_name as constructCharger,
+        contacts_tel as constructChargerPhone,
+        construction_unit_name as buildCorp,
+        construction_unit_uniscid as buildCorpCode,
+        project_manager as buildCorpManager,
+        supervisor_corp as supervisorCorp,
+        supervisor_corp_code as supervisorCorpCode,
+        supervisor_corp_manager as supervisorCorpManager,
+        IF(a.construction_permit_code is null,'02','01') as haveLicenseNo,
+        construction_permit_code as buildersLicenseNo,
+        safety_supervision_organization as safetySupervisionOrganization,
+        safety_supervision_organization_code as safetySupervisionOrganizationCode,
+        safety_application_no as safetyApplicationNo
+        FROM
+            b_project_info a
+	    where a.id = #{project} and a.tenant_id = #{tenant}
+    </select>
+
+    <select id="queryProjectList" resultType="java.util.Map">
+        select id, IFNULL(project_abbreviation,project_name) AS name
+        from b_project_info_view a
+        where a.project_id != '0' and a.project_state = '2'
+        order by a.sort, a.create_time desc
+    </select>
+
+    <select id="querySalesOfficeProjectList" resultType="java.util.Map">
+        select id, IFNULL(project_abbreviation,project_name) AS name
+        from b_project_info a
+        where a.project_id != '0' and a.project_state = '2'
+        order by a.sort, a.create_time desc
+    </select>
+</mapper>

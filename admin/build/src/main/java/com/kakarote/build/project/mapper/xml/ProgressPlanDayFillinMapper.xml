@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.project.mapper.ProgressPlanDayFillinMapper">
+
+    <select id="selectByMap" resultType="java.util.Map">
+        select
+        a.id,a.type_id,a.day_finish,a.unit,a.day_date,
+        b.id as planWeekId,b.name,b.related_building_id,b.week_start_date,b.week_end_date
+        ,ifnull(b.plan_start_date,b.week_start_date) planStartDate
+        ,ifnull(b.plan_end_date,b.week_end_date) planEndDate
+
+        ,(select dict_label
+        from wk_admin_dict_data
+        where status = '0'
+        and dict_type = 'b_progress_day_fillin_type'
+        and dict_value = a.type_id
+        limit 1) typeName
+
+        from b_progress_plan_day_fillin a
+        right join b_progresss_plan_week b on a.plan_week_id = b.id
+        <where>
+            b.project_id != 0 and b.tenant_id != 0
+            <if test="data.planWeekId != null and data.planWeekId != ''">
+                and b.id = #{data.planWeekId}
+            </if>
+        </where>
+        order by a.day_date
+    </select>
+
+<!--    大屏展示-->
+    <select id="selectByMapForDaPing" resultType="java.util.Map">
+        select
+        a.day_finish,a.unit,a.day_date,
+        b.name, DATE_FORMAT(a.day_date,'%m-%d') as showDate
+
+        ,(select dict_label
+        from wk_admin_dict_data
+        where status = '0'
+        and dict_type = 'b_progress_day_fillin_type'
+        and dict_value = a.type_id
+        limit 1) typeName
+
+        from b_progress_plan_day_fillin a
+        inner join b_progresss_plan_week b on a.plan_week_id = b.id
+        where b.mid = #{data.mid}
+
+        <!--a.day_date = DATE_SUB(curdate(),INTERVAL 0 DAY)
+            and b.project_id != 0 and b.tenant_id != 0
+            and b.mid = #{data.mid}-->
+
+        <!--新版查询条件 取消写死项目和租户id 去除只查询当天的数据， 该接口dp大屏和-三维大屏使用，如有问题，谨慎修改！-->
+
+        order by a.create_time,a.day_date desc
+        limit 30
+    </select>
+</mapper>

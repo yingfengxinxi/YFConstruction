@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.safety.mapper.SafetyEmergencyMaterialMapper">
+    <sql id="selectVo">
+        select id, create_by, create_time, update_by, update_time,tenant_id,project_id,check_status,examine_record_id,owner_user_id,
+        emergency_material_num_id,emergency_material_name,emergency_material_type,emergency_material_model,emergency_material_number,
+        emergency_material_position,emergency_material_phone,emergency_material_person from b_safety_emergency_material
+    </sql>
+    <select id="selectDataList" resultType="com.kakarote.build.safety.entity.PO.SafetyEmergencyMaterial">
+        <include refid="selectVo"/>
+        <where>
+            1=1
+            <if test="data.emergencyMaterialNumId != null and data.emergencyMaterialNumId != ''">
+                AND emergency_material_num_id like concat('%', #{data.emergencyMaterialNumId}, '%')
+            </if>
+            <if test="data.emergencyMaterialName != null and data.emergencyMaterialName != ''">
+                AND emergency_material_name like concat('%', #{data.emergencyMaterialName}, '%')
+            </if>
+            <if test="data.emergencyMaterialType != null and data.emergencyMaterialType != ''">
+                AND emergency_material_type = #{data.emergencyMaterialType}
+            </if>
+            <if test="data.emergencyMaterialModel != null and data.emergencyMaterialModel != ''">
+                AND emergency_material_model like concat('%', #{data.emergencyMaterialModel}, '%')
+            </if>
+            <if test="data.emergencyMaterialNumber != null and data.emergencyMaterialNumber != ''">
+                AND emergency_material_number like concat('%', #{data.emergencyMaterialNumber}, '%')
+            </if>
+            <if test="data.emergencyMaterialPhone != null and data.emergencyMaterialPhone != ''">
+                AND emergency_material_phone like concat('%', #{data.emergencyMaterialPhone}, '%')
+            </if>
+            <if test="data.emergencyMaterialPerson != null and data.emergencyMaterialPerson != ''">
+                AND emergency_material_person like concat('%', #{data.emergencyMaterialPerson}, '%')
+            </if>
+            <!--<if test="data.createBy != null and data.createBy != ''">-->
+                <!--AND DATE_FORMAT( safety_data_date, '%Y-%m-%d' ) &gt;= #{data.createBy}-->
+            <!--</if>-->
+            <!--<if test="data.updateBy != null and data.updateBy != ''">-->
+                <!--AND DATE_FORMAT( safety_data_date, '%Y-%m-%d' ) &lt;= #{data.updateBy}-->
+            <!--</if>-->
+        </where>
+    </select>
+</mapper>

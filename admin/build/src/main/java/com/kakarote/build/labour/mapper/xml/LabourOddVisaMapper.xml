@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.labour.mapper.LabourOddVisaMapper">
+
+    <select id="selectList" resultType="java.util.Map">
+        select * from b_labour_odd_visa
+        <where>
+            1=1
+            <if test="data.dispatchPeopleId != null and data.dispatchPeopleId != ''">
+                and dispatch_people_id = #{data.dispatchPeopleId}
+            </if>
+            <if test="data.dispatchTeamId != null and data.dispatchTeamId != ''">
+                and dispatch_team_id = #{data.dispatchTeamId}
+            </if>
+            <if test="data.dispatchTimeStart != null and data.dispatchTimeStart != ''">
+                and <![CDATA[ dispatch_time >= date_format( #{data.dispatchTimeStart},'%Y-%m-%d %H:%i:%s') ]]>
+            </if>
+            <if test="data.dispatchTimeEnd != null and data.dispatchTimeEnd != ''">
+                and <![CDATA[ dispatch_time <= date_format( #{data.dispatchTimeEnd},'%Y-%m-%d %H:%i:%s') ]]>
+            </if>
+        </where>
+        /*order by create_time desc*/
+    </select>
+
+    <select id="selectListNoPage" resultType="java.util.Map">
+        select
+        record_people_name,
+        DATE_FORMAT(dispatch_time,'%Y-%m-%d %h:%i:%s') dispatchTime,
+        dispatch_reason,
+        dispatch_unit_name,
+        dispatch_team_name,
+        dispatch_people_name,
+        dispatch_text,
+        visa_department_name,
+        responsible_name,
+        DATE_FORMAT(work_time_start,'%Y-%m-%d %h:%i:%s') workTimeStart,
+        DATE_FORMAT(work_time_end,'%Y-%m-%d %h:%i:%s') workTimeEnd
+        from b_labour_odd_visa
+        <where>
+            1=1
+            <if test="data.dispatchPeopleId != null and data.dispatchPeopleId != ''">
+                and dispatch_people_id = #{data.dispatchPeopleId}
+            </if>
+            <if test="data.dispatchTeamId != null and data.dispatchTeamId != ''">
+                and dispatch_team_id = #{data.dispatchTeamId}
+            </if>
+            <if test="data.dispatchTimeStart != null and data.dispatchTimeStart != ''">
+                and <![CDATA[ dispatch_time >= date_format( #{data.dispatchTimeStart},'%Y-%m-%d %H:%i:%s') ]]>
+            </if>
+            <if test="data.dispatchTimeEnd != null and data.dispatchTimeEnd != ''">
+                and <![CDATA[ dispatch_time <= date_format( #{data.dispatchTimeEnd},'%Y-%m-%d %H:%i:%s') ]]>
+            </if>
+        </where>
+        order by create_time desc
+    </select>
+</mapper>

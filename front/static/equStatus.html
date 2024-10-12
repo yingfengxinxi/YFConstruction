@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<!-- 对于在模型场景中已有的构件，如需要对构件进行编辑，需要将其转为升降机，再以升降机的方式对其进行编辑即可 -->
+<!-- 本DEMO中将建筑内部升降机进行了转换，实现其上下移动 -->
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>内部构件的编辑</title>
+  <style type="text/css">
+    * {
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      height: 100%;
+    }
+
+    .buttons {
+      font-size: 0;
+    }
+
+    .button {
+      margin: 5px 0 5px 5px;
+      width: 100px;
+      height: 30px;
+      border-radius: 3px;
+      border: none;
+      background: #32D3A6;
+      color: #FFFFFF;
+      outline: none;
+    }
+
+    .main {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      height: 100%;
+    }
+
+    #domId {
+      flex: 1;
+    }
+  </style>
+  <script src="https://static.bimface.com/api/BimfaceSDKLoader/BimfaceSDKLoader@latest-release.js"></script>
+</head>
+
+<body>
+  <div class='main'>
+    <div class='buttons'>
+<!--      <button class="button" id="btnLoadObj" onclick="loadObjects()">加载升降机</button>-->
+      <button class="button" id="btnAnimation" onclick="animation()">开启升降机</button>
+    </div>
+    <!-- 定义DOM元素，用于在该DOM元素中显示模型或图纸 -->
+    <div id="domId"></div>
+  </div>
+  <script type="text/javascript">
+
+    var viewToken = '9fe1cc6ac46441de87811eaad914492a';
+    // 声明Viewer及App
+    var viewer3D;
+    var app;
+    var viewAdded = false;
+    var extObjMng = null;
+
+    // 配置JSSDK加载项
+    window.onload = function () {
+      var loaderConfig = new BimfaceSDKLoaderConfig();
+      loaderConfig.viewToken = viewToken;
+      BimfaceSDKLoader.load(loaderConfig, successCallback, failureCallback);
+    }
+
+    // 加载成功回调函数
+    function successCallback(viewMetaData) {
+      var dom4Show = document.getElementById('domId');
+      // 设置WebApplication3D的配置项
+      var webAppConfig = new Glodon.Bimface.Application.WebApplication3DConfig();
+      webAppConfig.domElement = dom4Show;
+      // 创建WebApplication3D，用以显示模型
+      app = new Glodon.Bimface.Application.WebApplication3D(webAppConfig);
+      app.addView(viewToken);
+      viewer3D = app.getViewer();
+
+      // 增加加载完成监听事件
+      viewer3D.addEventListener(Glodon.Bimface.Viewer.Viewer3DEvent.ViewAdded, function () {
+        viewAdded = true;
+        //自适应屏幕大小
+        window.onresize = function () {
+          viewer3D.resize(document.documentElement.clientWidth, document.documentElement.clientHeight - 40);
+        }
+        // 渲染场景
+        viewer3D.render();
+      });
+    }
+
+    // 加载失败回调函数
+    function failureCallback(error) {
+      console.log(error);
+    }
+
+    // 升降机运动信息
+    var elevatorData = [{
+      objectId: '1643036208932032.1214478',
+      name: 'elevator-0'
+    }, {
+      objectId: '1643036208932032.1214458',
+      name: 'elevator-1'
+    }, {
+      objectId: '1643036208932032.1214253',
+      name: 'elevator-2'
+    }];
+
+    var isExternalObjectsLoaded = false;
+    function loadObjects() {
+      if (!viewAdded) {
+        return;
+      }
+      if (!isExternalObjectsLoaded) {
+        // 构造升降机管理器
+        if (!extObjMng) {
+          extObjMng = new Glodon.Bimface.Plugins.ExternalObject.ExternalObjectManager(viewer3D);
+        }
+        // 将升降机转换为升降机，并添加入场景
+        for (var i = 0; i < elevatorData.length; i++) {
+          extObjMng.loadObject({name:elevatorData[i].name,object:extObjMng.convert(elevatorData[i].objectId)});
+        }
+        // 切换视角至前视图
+        viewer3D.setView("South");
+        viewer3D.render();
+        setButtonText('btnLoadObj', '卸载升降机');
+      } else {
+        // 清空动画
+        if (isAnimationActivated) {
+          cancelAnimationFrame(animationId);
+          setButtonText('btnAnimation', '开启升降机');
+          isAnimationActivated = !isAnimationActivated;
+        }
+        // 移除升降机
+        for (var i = 0; i < elevatorData.length; i++) {
+          extObjMng.removeById(extObjMng.getObjectIdByName(elevatorData[i].name));
+        }
+        // 切换视角至主视角
+        viewer3D.setView("Home");
+        viewer3D.render();
+        setButtonText('btnLoadObj', '加载升降机');
+      }
+      isExternalObjectsLoaded = !isExternalObjectsLoaded;
+    }
+
+    var isAnimationActivated = false;
+    //轨迹模拟
+    function animation() {
+      loadObjects();
+      if (!viewAdded || !isExternalObjectsLoaded) {
+        return;
+      }
+      if (!isAnimationActivated) {
+        animate();
+        setButtonText('btnAnimation', '暂停升降机');
+      } else {
+        cancelAnimationFrame(animationId);
+        setButtonText('btnAnimation', '开启升降机');
+      }
+      isAnimationActivated = !isAnimationActivated;
+    }
+
+    // 升降机动画
+    var pos = 0;
+    var direction = true;
+    // 升降机每帧的竖向偏移距离，单位为mm
+    const step = 250;
+    // 升降机总的竖向偏移距离，单位为mm
+    const height = 30000;
+    var offsetZ = step;
+    function animate() {
+      animationId = requestAnimationFrame(animate);
+      // 判断升降机运动方向
+      if (pos <= 0) {
+        pos = 0;
+        direction = true;
+      } else if (pos >= height) {
+        pos = height;
+        direction = false;
+      }
+      // 确定升降机位置及升降机的偏移量
+      if (direction) {
+        pos += step;
+        offsetZ = step;
+      } else {
+        pos -= step;
+        offsetZ = -step;
+      }
+      // 遍历所有升降机升降机，并对其进行偏移操作
+      for (var i = 0; i < elevatorData.length; i++) {
+        extObjMng.offsetZ(extObjMng.getObjectIdByName(elevatorData[i].name), offsetZ);
+      }
+      viewer3D.render();
+    }
+
+    // 按钮文字
+    function setButtonText(btnId, text) {
+      var dom = document.getElementById(btnId);
+      if (dom != null && dom.nodeName == "BUTTON") {
+        dom.innerText = text;
+      }
+    }
+  </script>
+</body>
+
+</html>

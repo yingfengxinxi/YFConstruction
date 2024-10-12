@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.kakarote.build.equipment.mapper.EquipmentFluoriteCloudMapper">
+    <select id="getAssetLilst" resultType="java.util.Map">
+        select
+        b.id,a.asset_id,a.asset_code,a.asset_name,b.device_id,b.device_channel_id,b.device_channel_no,b.device_serial,
+        b.status ,b.is_enable,b.hook_check_box,b.ptz_check_box,c.project_name from b_equipment_assets a
+        left join device_project_relation b on a.asset_id=b.business_id
+        left join b_project_info c on b.project_id=c.id
+        LEFT JOIN b_equipment_type t ON a.type_id = t.type_id
+        <where>
+            t.monitor_type = '99'
+            <if test="data.projectId!=null and data.projectId!=''">
+                and a.project_id=#{data.projectId}
+            </if>
+            <if test="data.deviceChannelId!=null and data.deviceChannelId!=''">
+                and b.device_channel_id=#{data.deviceChannelId}
+            </if>
+            <if test="data.assetName!=null and data.assetName!=''">
+                and a.asset_name like concat('%', #{data.assetName}, '%')
+            </if>
+        </where>
+    </select>
+
+    <select id="getDetails" resultType="java.util.Map">
+        select b.id,a.asset_id,a.asset_code,a.asset_name,SUBSTR(b.device_serial,22) as
+        device_id,b.nvr_license,b.device_channel_id,
+        b.ipc_license,b.device_channel_no,b.device_serial, b.status
+        ,b.is_enable,b.hook_check_box,b.ptz_check_box,b.is_ai_equipment,
+        b.ai_monitor_type,b.ysy_flv_url,b.url,b.wvp_open_url,c.project_name
+        from b_equipment_assets a
+        left join device_project_relation b on a.asset_id=b.business_id
+        left join b_project_info c on b.project_id=c.id
+        <where>
+            a.asset_id=#{id}
+        </where>
+    </select>
+
+    <update id="updateState">
+        update device_project_relation
+        set is_enable=#{data.isEnable},
+        hook_check_box=#{data.hookCheckBox},
+        ptz_check_box=#{data.ptzCheckBox},
+        is_ai_equipment=#{data.isAiEquipment},
+        ai_monitor_type=#{data.aiMonitorType},
+        device_channel_id=#{data.deviceChannelId},
+        device_serial=concat(device_id, ':', #{data.deviceId}),
+        url=#{data.url},
+        ysy_flv_url=#{data.ysyFlvUrl},
+        wvp_open_url=#{data.wvpOpenUrl},
+        ipc_license=#{data.ipcLicense},
+        nvr_license=#{data.nvrLicense}
+        where id=#{data.id}
+    </update>
+
+    <select id="getAIEquipmentList" resultType="java.util.Map">
+        select
+        b.id,a.asset_id,a.asset_code,a.asset_name,b.device_id,b.device_channel_id,b.device_channel_no,b.device_serial,
+        b.status ,b.is_enable,b.hook_check_box,b.ptz_check_box,b.ai_monitor_type,c.project_name from b_equipment_assets
+        a
+        left join device_project_relation b on a.asset_id=b.business_id
+        left join b_project_info c on b.project_id=c.id
+        <where>
+            a.type_id=(select type_id from b_equipment_type where monitor_type='99' and tenant_id=a.tenant_id )
+            and b.is_ai_equipment='1'
+            <if test="data.projectId!=null and data.projectId!=''">
+                and a.project_id=#{data.projectId}
+            </if>
+            <if test="data.assetName!=null and data.assetName!=''">
+                and a.asset_name like concat('%', #{data.assetName}, '%')
+            </if>
+            <if test="data.assetCode!=null and data.assetCode!=''">
+                and a.asset_code like concat('%', #{data.assetCode}, '%')
+            </if>
+        </where>
+    </select>
+
+    <update id="addAIEquipment">
+        update device_project_relation
+        set  is_ai_equipment='1',
+              ai_monitor_type=#{data.aiMonitorType}
+        where id=#{data.id}
+    </update>
+
+    <update id="delAIEquipment">
+        update device_project_relation
+        set  is_ai_equipment='0',
+              ai_monitor_type=NULL
+        where id=#{id}
+    </update>
+
+
+    <select id="getEquipmentType" resultType="java.util.Map">
+        select * from b_equipment_type a  where a.monitor_type='99'
+    </select>
+</mapper>

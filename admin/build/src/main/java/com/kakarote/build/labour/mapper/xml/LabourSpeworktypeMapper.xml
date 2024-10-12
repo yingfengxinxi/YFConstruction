@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.labour.mapper.LabourSpeworktypeMapper">
+
+    <select id="selectList" resultType="com.kakarote.build.labour.entity.PO.LabourSpeworktype"
+        parameterType="com.kakarote.build.labour.entity.BO.LabourWorktypeBO">
+        select * from
+        b_labour_speworktype
+        <where>
+            <if test="data.subcontractor != null and data.subcontractor != ''">
+                AND subcontractor = #{data.subcontractor}
+            </if>
+            <if test="data.jobNumber != null and data.jobNumber != ''">
+                AND job_Number = #{data.jobNumber}
+            </if>
+            <if test="data.cerCategory != null and data.cerCategory != ''">
+                AND cer_Category = #{data.cerCategory}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectByInfoId" parameterType="java.lang.Integer" resultType="com.kakarote.build.labour.entity.PO.LabourSpeworktype">
+        select * from b_labour_speworktype
+        where infocol_id = #{infoId}
+        order by id desc
+        limit 1
+    </select>
+
+    <delete id="deleteByInfoId" parameterType="java.lang.Integer">
+        delete from b_labour_speworktype
+        where infocol_id = #{infoId}
+    </delete>
+
+    <select id="selectTabsByInfo" parameterType="com.kakarote.build.labour.entity.BO.LabourSpeworktypeBO"
+        resultType="java.util.Map">
+        select
+        a.*,
+        b.id_card,
+        b.name,
+        b.job_number,
+        c.real_name
+        from b_labour_speworktype a
+        left join b_labour_infocollection b on a.infocol_id = b.id
+        left join b_labour_subcontractor c on a.subcontractor = c.id
+        <where>
+            <if test="data.idCard != null and data.idCard != ''">
+                AND b.id_Card like concat('%', #{data.idCard}, '%')
+            </if>
+            <if test="data.name != null and data.name != ''">
+                AND b.name like concat('%', #{data.name}, '%')
+            </if>
+        </where>
+    </select>
+
+
+    <select id="selectByInfocolId" resultType="com.kakarote.build.labour.entity.PO.LabourSpeworktype">
+        select
+        *
+        from b_labour_speworktype a
+        where infocol_id = #{infocolId}
+        order by id desc
+    </select>
+
+    <select id="selectTabsByInfoNew" resultType="java.util.Map">
+        select
+        a.*,
+        b.id_card,
+        b.name,
+        b.job_number,
+        c.real_name,
+        IFNULL(i.project_abbreviation,i.project_name) AS projectName
+        from b_labour_speworktype a
+        left join b_labour_infocollection b on a.infocol_id = b.id
+        left join b_labour_subcontractor c on a.subcontractor = c.id
+        left join b_project_info i on a.project_id = i.id
+        <where>
+            <if test="data.idCard != null and data.idCard != ''">
+                AND b.id_Card like concat('%', #{data.idCard}, '%')
+            </if>
+            <if test="data.name != null and data.name != ''">
+                AND b.name like concat('%', #{data.name}, '%')
+            </if>
+            <if test="data.projectId != null and data.projectId != ''">
+                AND a.project_id = #{data.projectId,jdbcType=INTEGER}
+            </if>
+        </where>
+    </select>
+</mapper>

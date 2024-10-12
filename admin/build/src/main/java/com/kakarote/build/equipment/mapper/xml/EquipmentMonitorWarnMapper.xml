@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.equipment.mapper.EquipmentMonitorWarnMapper">
+    <select id="getByTypeId" resultType="com.kakarote.build.equipment.entity.PO.EquipmentMonitorWarn">
+        select l.*,
+            (select a. realname from wk_admin_user a where a.user_id = l.create_user_id) as createUserName,
+            (select u. realname from wk_admin_user u where u.user_id = l.update_user_id) as updateUserName
+        from b_equipment_monitor_warn l
+        where l.type_id = #{typeId} and l.tenant_id = #{tenantId} and l.project_id = #{projectId}
+    </select>
+</mapper>

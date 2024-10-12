@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qdoner.datarecept.mapper.BEquipmentTowerMapper">
+    <update id="updateByEquipmentId">
+        update b_equipment_tower
+        <set>
+            <if test="foreArmLength != null">
+                fore_arm_length = #{foreArmLength},
+            </if>
+            <if test="rearArmLength != null">
+                rear_arm_length = #{rearArmLength},
+            </if>
+            <if test="maxWeight != null">
+                max_weight = #{maxWeight},
+            </if>
+            <if test="armHeight != null">
+                arm_height = #{armHeight},
+            </if>
+            <if test="weightSet != null">
+                weight_set = #{weightSet},
+            </if>
+            <if test="windSpeedSet != null">
+                wind_speed_set = #{windSpeedSet},
+            </if>
+            <if test="rangeSet != null">
+                range_set = #{rangeSet},
+            </if>
+            <if test="heightSet != null">
+                height_set = #{heightSet},
+            </if>
+            <if test="angleSet != null">
+                angle_set = #{angleSet},
+            </if>
+            <if test="obliguitySet != null">
+                obliguity_set = #{obliguitySet},
+            </if>
+        </set>
+        where equipment_id = #{equipmentId} and tenant_id = #{tenantId}  and project_id = #{projectId}
+    </update>
+</mapper>

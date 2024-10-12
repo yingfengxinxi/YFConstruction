@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.equipment.mapper.EquipmentElectricityRecordMapper">
+
+    <select id="selectTableList" resultType="java.util.LinkedHashMap">
+        select a.asset_name,
+            <if test="data.cols != null">
+                <foreach collection="data.cols" item="item" separator=",">
+                    sum(case when DATE_FORMAT(r.record_date, #{data.dateFormat}) = #{item} then r.electric_quantity else 0 end) as "${item}"
+                </foreach>
+            </if>
+        from b_equipment_electricity_record r
+        inner join b_equipment_assets a on r.equipment_id = a.asset_id
+        inner join (select d.*, getDeptParentList(d.dept_id) as deptPath
+        from wk_admin_dept d) t on a.dept_id = t.dept_id
+        <where>
+            <if test="data.deptId != null and data.deptId != ''">
+                and find_in_set(#{data.deptId}, t.deptPath)
+            </if>
+        </where>
+        group by r.equipment_id
+    </select>
+
+    <insert id="batchSaveData">
+        INSERT INTO b_equipment_electricity_record
+        (equipment_id, dept_id, record_date, electric_quantity)
+        VALUES
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.equipmentId}, #{item.deptId}, #{item.recordDate}, #{item.electricQuantity})
+        </foreach>
+    </insert>
+
+    <select id="selectProTableList" resultType="java.util.LinkedHashMap">
+        select IFNULL(a.project_abbreviation,a.project_name) AS projectName,
+        <if test="data.cols != null">
+            <foreach collection="data.cols" item="item" separator=",">
+                sum(case when DATE_FORMAT(r.record_date, #{data.dateFormat}) = #{item} then r.electric_quantity else 0 end) as "${item}"
+            </foreach>
+        </if>
+        from b_equipment_electricity_record r
+        inner join b_project_info a on r.project_id = a.id
+        <where>
+            <if test="data.projectId != null">
+                and r.project_id = #{data.projectId}
+            </if>
+        </where>
+        group by r.project_id
+    </select>
+</mapper>

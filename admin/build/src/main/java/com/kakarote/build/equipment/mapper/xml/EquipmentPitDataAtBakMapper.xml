@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.equipment.mapper.EquipmentPitDataAtBakMapper">
+    <insert id="batchSaveData">
+        insert into b_equipment_pit_data_at_bak
+        ( project_id,point_id, tenant_id,monitor_time,
+        device_type,value,init_value,variation,aggregate_value,
+        rate_change,crack,max_cumulative_displacement_position,equipment_id,alarm_status
+        )
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            ( #{item.projectId},#{item.pointId}, #{item.tenantId},#{item.monitorTime},
+            #{item.deviceType},#{item.value}, #{item.initValue},#{item.variation},#{item.aggregateValue},
+            #{item.rateChange},#{item.crack}, #{item.maxCumulativeDisplacementPosition},#{item.equipmentId},#{item.alarmStatus}
+            )
+        </foreach>
+    </insert>
+    <select id="selectPointByPro">
+        SELECT
+            a.id,a.point_name
+        FROM
+            b_equipment_monitor_point a
+            LEFT JOIN b_equipment_pit_formwork pf ON a.equipment_id = pf.equipment_id
+            LEFT JOIN b_equipment_pro pro on pf.pro_id = pro.id
+            where pro.id = #{proId}
+    </select>
+    <select id="selectPage" resultType="java.util.Map">
+        SELECT
+            b.asset_name,c.point_name,c.point_code,a.*
+        FROM
+            b_equipment_pit_data_at_bak a
+            LEFT JOIN b_equipment_assets b ON a.equipment_id = b.asset_id
+            LEFT JOIN b_equipment_monitor_point c on a.point_id = c.id
+        <where>
+            <if test="data.monitorType!=null and data.monitorType != ''">
+                and c.monitor_type = #{data.monitorType}
+            </if>
+            <if test="data.equipmentName!=null and data.equipmentName != ''">
+                and b.asset_name like concat('%', #{data.equipmentName}, '%')
+            </if>
+            <if test="data.pointName!=null and data.pointName != ''">
+                and c.point_name like concat('%', #{data.pointName}, '%')
+            </if>
+            <if test="data.pointCode!=null and data.pointCode != ''">
+                and c.point_code like concat('%', #{data.pointCode}, '%')
+            </if>
+            <if test="data.pointId!=null">
+                and a.point_id = #{data.pointId}
+            </if>
+            <if test="data.pointIds!= null and data.pointIds.size()>0" >
+                and a.point_id in
+                <foreach collection="data.pointIds" item="item" open="(" close=")" separator="," >
+                    #{item}
+                </foreach>
+            </if>
+            <if test="data.startTime != null">
+                and a.monitor_time >= #{data.startTime,jdbcType=TIMESTAMP}
+            </if>
+            <if test="data.endTime != null">
+                and a.monitor_time &lt;= #{data.endTime,jdbcType=TIMESTAMP}
+            </if>
+            <if test="data.alarmStatus != null and data.pointName != ''">
+                and a.alarm_status = #{data.alarmStatus}
+            </if>
+
+        </where>
+        /*order  by  a.monitor_time desc*/
+    </select>
+</mapper>

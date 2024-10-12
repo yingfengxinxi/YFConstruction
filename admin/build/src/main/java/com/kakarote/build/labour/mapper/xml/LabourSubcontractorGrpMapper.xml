@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.labour.mapper.LabourSubcontractorGrpMapper">
+
+    <select id="selectList" resultType="java.util.Map">
+        select bls.*
+        from b_labour_subcontractor bls
+        <where>
+            bls.project_id != 0
+            <if test="data.realName != null and data.realName != ''">
+                and bls.real_name like concat('%', #{data.realName}, '%')
+            </if>
+            <if test="data.subcontractorType != null and data.subcontractorType != ''">
+                and bls.subcontractor_type = #{data.subcontractorType,jdbcType=VARCHAR}
+            </if>
+        </where>
+    </select>
+    <select id="seee" resultType="java.util.Map">
+        select *
+        from b_labour_subcontractor where project_id != 0
+    </select>
+
+    <select id="selcetIdsAndName" resultType="com.kakarote.build.labour.entity.PO.LabourSubcontractor">
+        select id,
+        real_name,
+        short_name
+        from b_labour_subcontractor where project_id != 0
+    </select>
+
+    <select id="subcontractorGet" resultType="com.kakarote.build.labour.entity.PO.LabourSubcontractor">
+        select *
+        from b_labour_subcontractor a
+        <where>
+        1=1
+        <if test="data.projectId != null and data.projectId != ''">
+            and a.project_id  = #{data.projectId}
+        </if>
+        <if test="data.tenantId != null and data.tenantId != ''">
+            and a.tenant_id  = #{data.tenantId}
+        </if>
+        <if test="data.id != null and data.id != ''">
+            and a.id  = #{data.id}
+        </if>
+        </where>
+          LIMIT  #{data.pagingStart} , #{data.pagingEnd}
+    </select>
+
+    <select id="selectById2" resultType="com.kakarote.build.labour.entity.PO.LabourSubcontractor">
+        select *
+        from b_labour_subcontractor where id = #{id}
+        and tenant_id = #{tenantId}
+    </select>
+
+    <delete id="removeByIdNew">
+        delete from b_labour_subcontractor
+        where id = #{id,jdbcType=INTEGER} and project_id != '0'
+    </delete>
+
+    <delete id="deleteDetails">
+        delete from b_labour_subcontractor
+        where id = #{id}
+        and tenant_id = #{tenantId}
+    </delete>
+
+    <select id="selcetCorpCodeData" resultType="com.kakarote.build.labour.entity.PO.LabourSubcontractor">
+        select *
+        from b_labour_subcontractor a
+        <where>
+            1=1
+            <if test="data.projectId != null and data.projectId != ''">
+                and a.project_id  = #{data.projectId}
+            </if>
+            <if test="data.tenantId != null and data.tenantId != ''">
+                and a.tenant_id  = #{data.tenantId}
+            </if>
+            <if test="data.id != null and data.id != ''">
+                and a.id  = #{data.id}
+            </if>
+            <if test="data.corpCode != null and data.corpCode != ''">
+                and a.corp_code  = #{data.corpCode}
+            </if>
+        </where>
+    </select>
+</mapper>

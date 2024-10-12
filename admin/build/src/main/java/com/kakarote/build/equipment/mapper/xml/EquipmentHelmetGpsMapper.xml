@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.equipment.mapper.EquipmentHelmetGpsMapper">
+
+    <select id="selectByPage" resultType="com.kakarote.build.equipment.entity.PO.EquipmentHelmetGps">
+        select a.*
+        from b_equipment_helmet_gps a
+        <where>
+            <if test="data.helmetId != null">
+                and a.helmet_Id = #{data.helmetId}
+            </if>
+            <if test="data.startTime != null">
+                and a.upload_time >= #{data.startTime,jdbcType=TIMESTAMP}
+            </if>
+            <if test="data.endTime != null">
+                and a.upload_time &lt;= #{data.endTime,jdbcType=TIMESTAMP}
+            </if>
+        </where>
+        order by a.upload_time
+    </select>
+
+    <select id="selectActionTrack" resultType="com.kakarote.build.equipment.entity.PO.EquipmentHelmetGps">
+        select a.xAxis,a.yAxis
+        from b_equipment_helmet_gps a
+        <where>
+            <if test="data.helmetId != null">
+                and a.helmet_Id = #{data.helmetId}
+            </if>
+            <if test="data.startTime != null">
+                and a.upload_time >= #{data.startTime,jdbcType=TIMESTAMP}
+            </if>
+            <if test="data.endTime != null">
+                and a.upload_time &lt;= #{data.endTime,jdbcType=TIMESTAMP}
+            </if>
+        </where>
+        order by a.upload_time
+    </select>
+
+    <delete id="deletePid">
+        delete from b_equipment_helmet_gps
+        where helmet_id = #{helmetId}
+    </delete>
+</mapper>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.eval.mapper.EvalLevelMapper">
+
+<select id="selectByPage" resultType="com.kakarote.build.eval.entity.PO.EvalLevel">
+    select a.*, CONCAT(a.max_rel,a.max_data) as maxRelData, CONCAT(a.min_rel,a.min_data) as minRelData
+    from b_eval_level a
+    where a.status != '-1'
+    <if test="data.levelName != null and data.levelName != ''">
+        and a.level_name like concat('%', #{data.levelName,jdbcType=VARCHAR}, '%')
+    </if>
+</select>
+</mapper>

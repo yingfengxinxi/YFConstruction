@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.project.mapper.ProgressImageDisplayMapper">
+
+    <select id="selectByPage" resultType="com.kakarote.build.project.entity.PO.ProgressImageDisplay">
+        select d.*
+        from b_progress_image_display d
+        order by d.report_time desc
+    </select>
+</mapper>

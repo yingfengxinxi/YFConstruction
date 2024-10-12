@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.qual.mapper.QualMonitBtbZbMapper">
+
+    <!--根据主表主键查询详细信息-->
+    <select id="selectT" resultType="java.util.Map" parameterType="java.lang.Integer">
+        select a.id,
+        a.sid,a.sname,
+        a.svalue as sValue,
+        a.note,
+        b.*
+        from b_qual_monit_btb_zb a
+        inner join b_qual_monitset b on a.sid = b.id
+        where a.pid = #{pid}
+    </select>
+
+    <delete id="deletByZHid" parameterType="java.lang.Integer">
+        delete from b_qual_monit_btb_zb
+        where pid = #{pid}
+    </delete>
+
+</mapper>

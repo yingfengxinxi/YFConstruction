@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.safety.mapper.BSafetyProductionMapper">
+
+
+    <sql id="selectVo">
+        select id, create_by, create_time, update_by, update_time,tenant_id,project_id,production_id,production_Name,production_standard
+        ,production_methods,sort,remarks
+		from b_safety_production
+    </sql>
+
+    <select id="selectDataList" resultType="com.kakarote.build.safety.entity.BO.BSafetyProductionBO">
+        <include refid="selectVo"/>
+        <where>
+            1=1
+            <if test="data.productionId != null and data.productionId != ''">
+                AND production_id = #{data.productionId}
+            </if>
+            <if test="data.productionStandard != null and data.productionStandard != ''">
+                AND production_standard like concat('%', #{data.productionStandard}, '%')
+            </if>
+
+--             order by  sort
+
+        </where>
+    </select>
+</mapper>

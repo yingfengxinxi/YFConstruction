@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.qual.mapper.QualAcceptTemplateMainSetMapper">
+    <select id="selectByPage" resultType="com.kakarote.build.qual.entity.PO.QualAcceptTemplateMainSet">
+        select id, template_name, accept_work, create_by, create_time, update_by, update_time from
+        b_qual_accept_template_main_set
+        <where>
+            <if test="data.templateName!=null and data.templateName!=''">template_name=#{data.templateName}</if>
+            <if test="data.acceptWork!=null and data.acceptWork!=''">accept_work=#{data.acceptWork}</if>
+        </where>
+    </select>
+</mapper>

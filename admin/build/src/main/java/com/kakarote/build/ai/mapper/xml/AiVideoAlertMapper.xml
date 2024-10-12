@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.ai.mapper.AiVideoAlertMapper">
+    <select id="selectPage" resultType="com.kakarote.build.ai.entity.PO.AiVideoAlert">
+        select p.*, b.asset_code as code, b.asset_name
+        from b_ai_video_alert p
+        left join b_equipment_assets b on p.equipment_id = b.asset_id
+        <where>
+            <if test="data.code != null and data.code != ''">
+                and b.asset_code like concat('%', #{data.code,jdbcType=VARCHAR}, '%')
+            </if>
+            <if test="data.aiEventType != null and data.aiEventType != ''">
+                and p.ai_event_type = #{data.aiEventType,jdbcType=VARCHAR}
+            </if>
+            <if test="data.startTime != null and data.startTime != '' and data.endTime != null and data.endTime != ''">
+                and p.alert_time BETWEEN #{data.startTime,jdbcType=VARCHAR} and #{data.endTime,jdbcType=VARCHAR}
+            </if>
+
+        </where>
+        /*order by p.alert_time desc*/
+    </select>
+
+    <select id="aiEqumentStatistic" resultType="java.util.Map">
+      select ( case when a.ai_monitor_type is not null then GROUP_CONCAT(a.ai_monitor_type)  else '' end) as 'field',
+        sum(case when a.status='1' then 1 else 0 end) as 'onlineNum',
+        sum(case when a.status='0'then 1 else 0 end) as 'inlineNum' ,
+        sum(case when a.status='1' and a.is_ai_equipment='1' then 1 else 0 end ) as 'aiOnlineNum',
+        sum(case when a.status='0' and a.is_ai_equipment='1' then 1 else 0 end ) as 'aiInlineNum'
+        from device_project_relation  a
+    </select>
+
+    <select id="aiEventTypeStatistic" resultType="java.util.Map">
+        select aa.dict_label,aa.dict_value,count(1) as videoNum,sum(case when aa.`status`='1' then 1 else 0 end) as onlineNum  from (
+            select a.dict_label,a.dict_value,b.ai_monitor_type,b.`status`,b.is_ai_equipment
+            from wk_admin_dict_data a
+            left join device_project_relation b on b.ai_monitor_type like CONCAT('%',a.dict_value,'%')
+            where a.dict_type='b_ai_event_type'  and b.`status` is not NULL and b.is_ai_equipment='1'
+        )aa GROUP BY aa.dict_value
+    </select>
+
+    <select id="selectAIAlarmList" resultType="java.util.Map">
+        select b.dict_label as label, count(*) as alarmNum
+        from b_ai_video_alert a
+        left join (select dict_value, dict_label from wk_admin_dict_data
+            where dict_type = 'b_ai_event_type') b on a.ai_event_type = b.dict_value
+        group by a.ai_event_type
+        order by alarmNum desc
+        limit 4
+    </select>
+
+    <select id="selectInfoById" resultType="com.kakarote.build.ai.entity.PO.AiVideoAlert">
+        select a.*, b.asset_code as code
+        from b_ai_video_alert a
+        left join b_equipment_assets b on a.equipment_id = b.asset_id
+        where a.id = #{id}
+    </select>
+</mapper>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.jg.mapper.JgSupervisionMapper">
+    <select id="selectByPage" resultType="com.kakarote.build.jg.entity.PO.JgSupervision">
+        select * from b_jg_supervision
+        <where>1=1
+            <if test="data.projectId!=null and data.projectId!=''">
+                and project_id=#{data.projectId}
+            </if>
+            <if test="data.projectAddress!=null and data.projectAddress!=''">
+                and project_address like concat('%',#{data.projectAddress},'%')
+            </if>
+            <if test="data.patrolStartTime!=null ">
+                and DATE_FORMAT(patrol_time,'%Y-%m-%d') >= DATE_FORMAT(#{data.patrolStartTime},'%Y-%m-%d')
+            </if>
+            <if test="data.patrolEndTime!=null ">
+                and DATE_FORMAT(patrol_time,'%Y-%m-%d') &lt;= DATE_FORMAT(#{data.patrolEndTime},'%Y-%m-%d')
+            </if>
+            <if test="data.patrolPeople!=null and data.patrolPeople!=''">
+                and patrol_people  like  concat('%',#{data.patrolPeople},'%')
+            </if>
+            <if test="data.patrolPeopleAccom!=null and data.patrolPeopleAccom!=''">
+                and patrol_people_accom like  concat('%',#{data.patrolPeopleAccom},'%')
+            </if>
+        </where>
+    </select>
+</mapper>

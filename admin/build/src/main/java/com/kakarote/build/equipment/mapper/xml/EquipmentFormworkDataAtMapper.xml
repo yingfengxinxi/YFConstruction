@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.equipment.mapper.EquipmentFormworkDataAtMapper">
+    <insert id="batchSaveData">
+        insert into b_equipment_formwork_data_at
+        ( project_id,equipment_id, tenant_id,monitor_time,
+        alarm_status,alarm0,alarm1,xangle,yangle,
+        pressure,sedimentation,horizontal_displacement,value,point_id
+        )
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            ( #{item.projectId},#{item.equipmentId}, #{item.tenantId},#{item.monitorTime},
+            #{item.alarmStatus},#{item.alarm0},#{item.alarm1},#{item.xangle},#{item.yangle},
+            #{item.pressure},#{item.sedimentation},#{item.horizontalDisplacement},#{item.value},#{item.pointId}
+            )
+        </foreach>
+    </insert>
+</mapper>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qdoner.message.mapper.AssignUserMapper">
+    <!-- 通过tenantID 被授权的项目ID 获取用户  此处用到了admin_user和build_project_user-->
+    <select id="getAssignUser" resultType="java.lang.Long">
+        SELECT
+        u.user_id
+        FROM
+        wk_admin_user u
+        WHERE
+        1 = 1
+        <if test="data.tenantId != null and data.tenantId != ''">
+            AND u.tenant_id = #{data.tenantId}
+        </if>
+        <if test="data.targetType == '1'">
+            AND u.user_id IN (${data.users})
+            AND u.dept_id IN (${data.depts})
+        </if>
+        <if test="data.projectId != null and data.projectId != ''">
+            AND u.user_id IN (
+            SELECT
+            p.user_id
+            FROM
+            b_project_user p
+            WHERE
+            p.project_id = #{data.projectId}
+            AND tenant_id = #{data.tenantId}
+            )
+        </if>
+    </select>
+</mapper>

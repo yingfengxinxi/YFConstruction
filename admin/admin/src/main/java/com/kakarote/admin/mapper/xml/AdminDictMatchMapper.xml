@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.admin.mapper.AdminDictMatchMapper">
+
+<select id="selectByPage" resultType="com.kakarote.admin.entity.PO.AdminDictMatch">
+    select a.*
+    from wk_admin_dict_match a
+    <where>
+        <if test="data.selfDict != null and data.selfDict != ''">
+            and a.self_dict = #{data.selfDict}
+        </if>
+        <if test="data.selfDictValue != null and data.selfDictValue != ''">
+            and a.self_dict_value = #{data.selfDictValue}
+        </if>
+    </where>
+</select>
+<select id="selectSuggestList" resultType="java.util.Map">
+    select a.*
+    from (
+        select
+
+        <if test='data.type == "1"'>
+            match_system as value
+        </if>
+        <if test='data.type == "2"'>
+            match_dict as value
+        </if>
+        from
+        wk_admin_dict_match
+        <where>
+            <if test="data.queryString != null and data.queryString != ''">
+                <if test='data.ype == "1"'>
+                    and match_system like concat('%', #{data.queryString}, '%')
+                </if>
+                <if test='data.type == "2"'>
+                    and match_dict like concat('%', #{data.queryString}, '%')
+                </if>
+            </if>
+        </where>
+        having 1
+        order by create_time desc) a
+    group by a.value
+    limit 10
+</select>
+    <select id="selectAll"  resultType="com.kakarote.admin.entity.PO.AdminDictMatch">
+        SELECT self_dict_value,match_value,match_dict,match_system,tenant_id FROM `wk_admin_dict_match`
+    </select>
+    <select id="selectDictMatchByType"   resultType="java.util.Map">
+        SELECT * FROM `wk_admin_dict_match` where match_dict =  #{matchDict} and  self_dict_value =  #{value}   and tenant_id = #{tenantId}
+    </select>
+</mapper>

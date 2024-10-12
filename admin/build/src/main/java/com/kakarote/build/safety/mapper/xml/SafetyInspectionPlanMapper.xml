@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.safety.mapper.SafetyInspectionPlanMapper">
+
+    <select id="selectByPage" resultType="com.kakarote.build.safety.entity.PO.SafetyInspectionPlan">
+        SELECT bsip.*, wad.name as deptName
+        FROM b_safety_inspection_plan bsip
+        LEFT JOIN wk_admin_dept wad on bsip.dept_id = wad.dept_id
+        <where>
+            <if test="data.planName != null and data.planName != ''">
+                and bsip.plan_name like concat('%', #{data.planName,jdbcType=VARCHAR}, '%')
+            </if>
+        </where>
+    </select>
+
+    <select id="selectPlanList" resultType="com.kakarote.build.safety.entity.PO.SafetyInspectionPlan">
+        SELECT *
+        FROM b_safety_inspection_plan
+        WHERE tenant_id = tenant_id
+        AND project_id = project_id
+        AND is_enable = '1'
+        ORDER BY plan_level ASC, create_time ASC
+    </select>
+
+    <update id="batchUpdatePlan">
+        insert into b_safety_inspection_plan
+        (id, next_date)
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.id}, #{item.nextDate})
+        </foreach>
+        ON DUPLICATE KEY UPDATE next_date = VALUES(next_date)
+    </update>
+
+    <select id="selectOptions" resultType="com.kakarote.build.safety.entity.PO.SafetyInspectionPlan">
+        SELECT *
+        FROM b_safety_inspection_plan
+        WHERE is_enable = '1'
+        ORDER BY plan_level ASC, create_time ASC
+    </select>
+</mapper>

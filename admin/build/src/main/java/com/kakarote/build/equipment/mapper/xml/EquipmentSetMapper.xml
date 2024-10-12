@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.equipment.mapper.EquipmentSetMapper">
+
+    <select id="selectByPage" resultType="com.kakarote.build.equipment.entity.PO.EquipmentSet">
+        select a.*,
+        d.name as dept_name
+        from b_equipment_set a,wk_admin_dept d
+        <where>
+            a.is_set = #{data.isSet,jdbcType=VARCHAR} and d.dept_id = a.dept_id
+            <if test="data.planType != null">
+                AND a.plan_Type = #{data.planType}
+            </if>
+            <if test="data.level != null">
+                AND a.plan_Type = #{data.level}
+            </if>
+            <if test="data.deptId != null">
+                AND a.dept_Id = #{data.deptId}
+            </if>
+            <if test="data.setBy != null and data.setBy != ''">
+                AND a.set_by like concat('%', #{data.setBy}, '%')
+            </if>
+            <if test="data.planName != null and data.planName != ''">
+                AND a.plan_name like concat('%', #{data.planName}, '%')
+            </if>
+            <if test="data.searchStartDate != null and data.searchEndDate != null">
+                AND a.set_date &gt;= #{data.searchStartDate,jdbcType=TIMESTAMP }
+                and a.set_date &lt;= #{data.searchEndDate,jdbcType=TIMESTAMP }
+            </if>
+        </where>
+--         order by a.set_code
+    </select>
+
+    <select id="selectListByAssetId" resultType="com.kakarote.build.equipment.entity.PO.EquipmentSet">
+        select a.*,
+        d.name as dept_name
+        from b_equipment_set a,wk_admin_dept d
+        where
+        d.dept_id = a.dept_id
+        and a.plan_id in (
+        select DISTINCT(p.plan_id) from b_equipment_plan p
+        left join b_equipment_plan_asset s on s.plan_id = p.plan_id
+        where s.asset_id = #{data.assetId}
+        )
+        and a.is_set = #{data.isSet }
+        order by a.set_code
+    </select>
+</mapper>

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.eval.mapper.EvalApplyMapper">
+
+    <select id="selectByPage" resultType="com.kakarote.build.eval.entity.PO.EvalApply">
+        select a.*, b.level_name, IFNULL(c.project_abbreviation,c.project_name) AS projectName
+        from b_eval_apply a
+        left join b_eval_level b on a.level_id = b.id
+        left join b_project_info c on a.project_id = c.id
+        <where>
+            <if test="data.levelId != null and data.levelId != ''">
+                and a.level_id = #{data.levelId}
+            </if>
+            <if test="data.applyBy != null and data.applyBy != ''">
+                and a.apply_by like concat('%', #{data.applyBy,jdbcType=VARCHAR}, '%')
+            </if>
+        </where>
+--         order by a.status, a.apply_time desc
+    </select>
+
+    <select id="selectRankingList" resultType="com.kakarote.build.eval.entity.PO.EvalApply">
+        select IFNULL(a.project_abbreviation,a.project_name) AS projectName, b.*
+        from b_project_info a
+        inner join b_eval_apply b on a.eval_apply_id = b.id
+        <where>
+            <if test="data.projectId != null">
+                and a.id = #{data.projectId,jdbcType=INTEGER}
+            </if>
+            <if test="data.levelId != null and data.levelId != ''">
+                and b.level_id = #{data.levelId,jdbcType=VARCHAR}
+            </if>
+            <if test="data.appLevel != null and data.appLevel != ''">
+                and b.app_level like concat('%', #{data.appLevel,jdbcType=VARCHAR}, '%')
+            </if>
+            <if test="data.applyBy != null and data.applyBy != ''">
+                and b.apply_by like concat('%', #{data.applyBy,jdbcType=VARCHAR}, '%')
+            </if>
+        </where>
+--         order by b.score desc, b.apply_time desc
+    </select>
+
+    <select id="selectClassTypeById" resultType="java.util.Map">
+        select b.class_type as value, c.dict_label as name
+        from b_eval_apply a
+        inner join b_eval_apply_items b on a.id = b.apply_id
+        left join (select dict_value, dict_label from wk_admin_dict_data
+                where dict_type = 'b_eval_class_type') c on b.class_type = c.dict_value
+        where a.id = #{id}
+        group by b.class_type
+        order by b.class_type * 1
+    </select>
+
+    <select id="selectInfoById" resultType="com.kakarote.build.eval.entity.PO.EvalApply">
+        select a.*, b.project_name, b.company_name as company
+        from b_eval_apply a
+        left join b_project_info b on a.project_id = b.id
+        where a.id = #{id}
+    </select>
+
+    <select id="selectBasicsItemTotalInfo" resultType="java.util.Map">
+        select t.*, (t.score * t.weighing) as weighingScore
+        from (
+            select c.dict_label as name, sum(b.item_score) as score,
+                (case when b.class_type = '1' then 0.15
+                    when b.class_type = '2' then 0.15
+                    when b.class_type = '3' then 0.4
+                    when b.class_type = '4' then 0.1
+                    when b.class_type = '5' then 0.1
+                    when b.class_type = '6' then 0.1 end) as weighing
+            from b_eval_apply_items b
+            left join (select dict_value, dict_label from wk_admin_dict_data
+                where dict_type = 'b_eval_class_type') c on b.class_type = c.dict_value
+            where b.item_type = '10' and b.apply_id = #{id}
+            group by b.class_type) t
+    </select>
+
+    <select id="selectOtherScore" resultType="double">
+        select sum(item_score)
+        from b_eval_apply_items b
+        where b.item_type != '10' and b.apply_id = #{id}
+    </select>
+
+    <select id="selectItemListByClassType" resultType="java.util.Map">
+        select a.*, if(sum(a.item_score is null or a.item_score = ''),'0','1') stateValue
+        from b_eval_apply_items a
+        where a.apply_id = #{applyId} and a.class_type = #{classType} and a.tenant_id = #{tenantId}
+        group by a.item_name
+    </select>
+
+    <select id="getItemList" resultType="java.util.Map">
+        select a.*
+        from b_eval_apply_items a
+        where a.apply_id = #{data.applyId} and a.class_type = #{data.classType} and a.item_name = #{data.itemName}
+        order by a.sort
+    </select>
+</mapper>

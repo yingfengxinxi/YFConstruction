@@ -1,0 +1,8 @@
+server:
+  port: ${SERVER_PORT:8361}
+spring:
+  profiles:
+    include: core,dev
+  application:
+    name: admin
+

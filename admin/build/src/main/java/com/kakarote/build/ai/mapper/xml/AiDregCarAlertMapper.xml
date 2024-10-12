@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.ai.mapper.AiDregCarAlertMapper">
+
+    <select id="selectByPage" resultType="com.kakarote.build.ai.entity.PO.AiDregCarAlert">
+        select a.*
+        from b_ai_dreg_car_alert a
+        <where>
+            <if test="data.code != null and data.code != ''">
+                and a.code like concat('%', #{data.code,jdbcType=VARCHAR}, '%')
+            </if>
+            <if test="data.alertType != null and data.alertType != ''">
+                and a.alert_type = #{data.alertType,jdbcType=VARCHAR}
+            </if>
+            <if test="data.startTime != null and data.startTime != '' and data.endTime != null and data.endTime != ''">
+                and  a.alert_time BETWEEN #{data.startTime,jdbcType=VARCHAR} and  #{data.endTime,jdbcType=VARCHAR}
+            </if>
+
+        </where>
+--         order by a.alert_time desc
+    </select>
+
+    <select id="selectDregAlertList" resultType="java.util.Map">
+        select b.*, c.dict_label
+        from
+            (select a.alert_type, a.alert_img, alert_time
+            from b_ai_dreg_car_alert a
+            <where>
+                <if test="data.code != null and data.code != ''">
+                    and a.code like concat('%', #{data.code,jdbcType=VARCHAR}, '%')
+                </if>
+                <if test="data.alertType != null and data.alertType != ''">
+                    and a.alert_type = #{data.alertType,jdbcType=VARCHAR}
+                </if>
+                <if test="data.startTime != null and data.startTime != '' and data.endTime != null and data.endTime != ''">
+                    and  a.alert_time BETWEEN #{data.startTime,jdbcType=VARCHAR} and  #{data.endTime,jdbcType=VARCHAR}
+                </if>
+                <if test='data.isDispose != null and data.isDispose.equals("1")'>
+                    and a.handle_by is null
+                </if>
+
+            </where>
+            order by a.alert_time desc) b
+        Left join (SELECT dict_label, dict_value FROM wk_admin_dict_data
+        WHERE dict_type = 'b_ai_dreg_alert_type') c ON b.alert_type = c.dict_value
+    </select>
+
+    <select id="selectByPagePro" resultType="com.kakarote.build.ai.entity.PO.AiDregCarAlert">
+        select a.*, IFNULL(b.project_abbreviation,b.project_name) AS projectName
+        from b_ai_dreg_car_alert a
+        left join b_project_info b on a.project_id = b.id
+        <where>
+            <if test="data.code != null and data.code != ''">
+                and a.code like concat('%', #{data.code,jdbcType=VARCHAR}, '%')
+            </if>
+            <if test="data.alertType != null and data.alertType != ''">
+                and a.alert_type = #{data.alertType,jdbcType=VARCHAR}
+            </if>
+            <if test="data.startTime != null and data.startTime != '' and data.endTime != null and data.endTime != ''">
+                and  a.alert_time BETWEEN #{data.startTime,jdbcType=VARCHAR} and  #{data.endTime,jdbcType=VARCHAR}
+            </if>
+            <if test="data.projectId != null">
+                and a.project_id = #{data.projectId,jdbcType=INTEGER}
+            </if>
+        </where>
+        /*order by a.alert_time desc*/
+    </select>
+</mapper>

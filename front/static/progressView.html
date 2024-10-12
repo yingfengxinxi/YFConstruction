@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>施工进度展示</title>
+  <style type="text/css">
+    * {
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      height: 100%;
+    }
+
+    .buttons {
+      font-size: 0;
+    }
+
+    .button {
+      margin: 5px 0 5px 5px;
+      width: 100px;
+      height: 30px;
+      border-radius: 3px;
+      border: none;
+      background: #11DAB7;
+      color: #FFFFFF;
+      outline: none;
+    }
+
+    .main {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      height: 100%;
+    }
+
+    #domId {
+      flex: 1;
+    }
+  </style>
+</head>
+
+<body>
+  <div class='main'>
+    <div class='buttons'>
+      <button class="button" id="btnSctPlaneAnimation" onclick="sectionPlaneAnimation()">施工进度展示</button>
+    </div>
+    <div id="domId"></div>
+  </div>
+  <script src="https://static.bimface.com/api/BimfaceSDKLoader/BimfaceSDKLoader@latest-release.js"></script>
+  <script>
+    var viewToken = '0a5b447abd0e451787ed4f82d5a7da30';
+    // 声明Viewer及App
+    var viewer3D;
+    var app;
+    var viewAdded = false;
+
+    // 配置JSSDK加载项
+    window.onload = function () {
+      var loaderConfig = new BimfaceSDKLoaderConfig();
+      loaderConfig.viewToken = viewToken;
+      BimfaceSDKLoader.load(loaderConfig, successCallback, failureCallback);
+    }
+    // 加载成功回调函数
+    function successCallback(viewMetaData) {
+      var dom4Show = document.getElementById('domId');
+      // 设置WebApplication3D的配置项
+      var webAppConfig = new Glodon.Bimface.Application.WebApplication3DConfig();
+      webAppConfig.domElement = dom4Show;
+      // 创建WebApplication3D，用以显示模型
+      app = new Glodon.Bimface.Application.WebApplication3D(webAppConfig);
+      app.addView(viewToken);
+      viewer3D = app.getViewer();
+      // 增加加载完成监听事件
+      viewer3D.addEventListener(Glodon.Bimface.Viewer.Viewer3DEvent.ViewAdded, function () {
+        viewAdded = true;
+        //自适应屏幕大小
+        window.onresize = function () {
+          viewer3D.resize(document.documentElement.clientWidth, document.documentElement.clientHeight - 40);
+        }
+        viewer3D.setCameraStatus({
+          "name": "persp",
+          "position": { "x": -30219.946765163415, "y": -45491.65416486451, "z": 29660.465140231066 },
+          "target": { "x": 207832.38340026487, "y": 170233.69288006236, "z": -126343.72635548069 },
+          "up": { "x": 0.3236896665312058, "y": 0.2933266544203183, "z": 0.8995468156730366 },
+          "fov": 45,
+          "zoom": 1,
+          "version": 1,
+          "coordinateSystem": "world"
+        });
+        viewer3D.hideComponentsByObjectData([
+          {
+            levelName: "Roof"
+          },
+          {
+            levelName: "Parapet"
+          },
+          {
+            levelName: "03 - Floor",
+            categoryId: "-2000038"
+          },
+          {
+            categoryId: "-2000023"
+          }
+        ]);
+        createSectionPlane();
+        // 渲染场景
+        viewer3D.render();
+      });
+    }
+    // 加载失败回调函数
+    function failureCallback(error) {
+      console.log(error);
+    }
+
+    // 构造剖切面并设置初始状态
+    var sectionPlane = null;
+    var originPt = { x: 0, y: 0, z: 7600 };
+    var planeDirection = { x: 0, y: 0, z: 1 };
+    var sectionPlaneOffset = 500;
+    function createSectionPlane() {
+      if (!viewAdded || sectionPlane) {
+        return;
+      }
+      var sectionPlaneConfig = new Glodon.Bimface.Plugins.Section.SectionPlaneConfig();
+      sectionPlaneConfig.viewer = viewer3D;
+      sectionPlane = new Glodon.Bimface.Plugins.Section.SectionPlane(sectionPlaneConfig);
+      sectionPlane.setPlane(Glodon.Bimface.Plugins.Section.SectionPlanePlane.Z);
+      sectionPlane.setDirection(Glodon.Bimface.Plugins.Section.SectionPlaneDirection.Forward);
+      sectionPlane.setPositionByPlane(originPt, planeDirection, sectionPlaneOffset);
+      sectionPlane.setObjectsByObjectData([
+        {
+          categoryId: "-2000011",
+          family: "基本墙"
+        },
+        {
+          categoryId: "-2001330"
+        }
+      ]);
+      sectionPlane.hidePlane();
+    }
+     function animate() {
+          animationId = requestAnimationFrame(animate);
+          sectionPlaneOffset += 50;
+          if (sectionPlaneOffset > 3500) {
+            sectionPlaneOffset = 500;
+          }
+          sectionPlane.setPositionByPlane(originPt, planeDirection, sectionPlaneOffset);
+          viewer3D.render();
+        }
+    // 剖切面移动动画
+    var isSectionPlaneAnimationActivated = false;
+    var animationId = null;
+    function sectionPlaneAnimation() {
+      if (!viewAdded || !sectionPlane) {
+        return;
+      }
+      if (!isSectionPlaneAnimationActivated) {
+
+        animate();
+        setButtonText('btnSctPlaneAnimation', '暂停进度展示');
+      } else {
+        cancelAnimationFrame(animationId);
+        sectionPlaneOffset = 500;
+        sectionPlane.setPositionByPlane(originPt, planeDirection, sectionPlaneOffset);
+        viewer3D.render();
+        setButtonText('btnSctPlaneAnimation', '施工进度展示');
+      }
+      isSectionPlaneAnimationActivated = !isSectionPlaneAnimationActivated;
+    }
+    
+
+    // ************************** 按钮文字 **************************
+    function setButtonText(btnId, text) {
+      var dom = document.getElementById(btnId);
+      if (dom != null && dom.nodeName == "BUTTON") {
+        dom.innerText = text;
+      }
+    }
+  </script>
+</body>
+
+</html>

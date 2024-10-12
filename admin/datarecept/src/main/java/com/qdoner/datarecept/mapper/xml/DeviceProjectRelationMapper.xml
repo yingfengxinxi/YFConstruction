@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qdoner.datarecept.mapper.DeviceProjectRelationMapper">
+    <select id="videoMonitorDevices" resultType="com.qdoner.datarecept.entity.PO.DeviceProjectRelation">
+        select a.*,b.asset_id,b.asset_code,b.asset_name from device_project_relation a
+        inner join b_equipment_assets b on a.business_id=b.asset_id
+        <where>1=1
+            <if test="data.deviceId != null and data.deviceId != ''">
+                and a.device_id=#{data.deviceId}
+            </if>
+            <if test="data.deviceSerial != null and data.deviceSerial != ''">
+                and a.device_serial=#{data.deviceSerial}
+            </if>
+            <if test="data.isRefreshIPC = '1'">
+                and a.device_serial is not null
+                and a.device_channel_id is not null
+                and a.is_enable = '1'
+            </if>
+        </where>
+        <if test="data.isGroup!=null and data.isGroup!=''">
+            group by a.device_id
+        </if>
+    </select>
+
+    <select id="getVideoDeviceAll" resultType="com.qdoner.datarecept.entity.PO.DeviceProjectRelation">
+        select a.*,b.project_name from device_project_relation a
+        left join b_project_info b on a.project_id=b.id
+        where a.device_serial is not NULL
+        <if test="projectId != null">
+            and a.project_id=#{projectId}
+        </if>
+        GROUP BY a.device_serial order by a.id asc
+    </select>
+
+    <select id="getVideoByProject" resultType="com.qdoner.datarecept.entity.PO.DeviceProjectRelation">
+     	select a.*,b.project_name from device_project_relation a left join b_project_info b on a.project_id=b.id
+              where a.device_serial is not NULL and a.project_id = #{id}   order by a.id asc
+    </select>
+    <select id="getProject" resultType="java.lang.Integer">
+     	SELECT
+            a.project_id
+        FROM
+            device_project_relation a
+        WHERE
+            a.device_serial IS NOT NULL
+        GROUP BY a.project_id
+    </select>
+    <update id="updateBatchById" parameterType="java.util.List">
+        <foreach collection="list" item="item" index="index" open="" close="" separator=";">
+            update device_project_relation
+            <set>
+                <if test="item.deviceChannelNo != null and item.deviceChannelNo!=''">
+                    device_channel_no = #{item.deviceChannelNo,jdbcType=VARCHAR},
+                </if>
+                <if test="item.url != null and item.url!=''">
+                    url = #{item.url,jdbcType=VARCHAR},
+                </if>
+                <if test="item.ysyFlvUrl != null and item.ysyFlvUrl!=''">
+                    ysy_flv_url = #{item.ysyFlvUrl,jdbcType=VARCHAR},
+                </if>
+                <if test="item.wvpOpenUrl != null and item.wvpOpenUrl!=''">
+                    wvp_open_url = #{item.wvpOpenUrl,jdbcType=VARCHAR},
+                </if>
+                <if test=" item.status != null and item.status!=''">
+                    status = #{item.status,jdbcType=VARCHAR},
+                </if>
+                <if test=" item.nvrStatus != null and item.nvrStatus!=''">
+                    nvr_status = #{item.nvrStatus,jdbcType=VARCHAR},
+                </if>
+                <if test=" item.urlRetime != null">
+                    url_retime = #{item.urlRetime}
+                </if>
+            </set>
+            where id = #{item.id}
+        </foreach>
+    </update>
+
+    <select id="getVideoDeviceByDeviceSerial" resultType="com.qdoner.datarecept.entity.PO.DeviceProjectRelation">
+     	select * from device_project_relation where device_serial = #{deviceSerial} and is_enable = '1'
+    </select>
+
+    <update id="updateBybusinessId">
+        update device_project_relation
+        set status = #{data.status}
+        where business_id = #{data.businessId}
+    </update>
+</mapper>

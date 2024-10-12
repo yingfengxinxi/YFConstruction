@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qdoner.datarecept.mapper.BEquipmentAssetsMapper">
+
+    <select id="selectById" resultType="com.qdoner.datarecept.entity.PO.BEquipmentAssets" >
+        select a.*,b.project_name
+        from b_equipment_assets a,b_project_info b
+        where a.asset_id = ${assetId} and a.status = '1' and a.project_id = b.id
+    </select>
+
+    <select id="getByCode" resultType="com.qdoner.datarecept.entity.PO.BEquipmentAssets" >
+        select * from b_equipment_assets where asset_code = ${code} and status = '1'
+        ORDER BY create_time desc
+	    limit 1
+    </select>
+    <update id="updateByAssetCode">
+        update b_equipment_assets
+        <set>
+            <if test="createBy != null">
+                create_by = #{createBy,jdbcType=VARCHAR},
+            </if>
+        </set>
+        where asset_code = #{assetCode,jdbcType=VARCHAR}
+    </update>
+    <select id="selectElevatorById" resultType="java.util.Map" parameterType="java.lang.String">
+        SELECT
+            *
+        FROM
+            b_equipment_assets a
+            LEFT JOIN b_equipment_elevator b ON a.asset_id = b.equipment_id
+            LEFT JOIN ( SELECT * FROM b_equipment_elevator_data_at WHERE equipment_id = #{id} ORDER BY monitor_time DESC LIMIT 1 ) c ON a.asset_id = c.equipment_id
+            where a.asset_id = #{id}
+    </select>
+    <select id="selectTowerCraneById" resultType="java.util.Map" parameterType="java.lang.String">
+        SELECT
+            *
+        FROM
+            b_equipment_assets a
+            LEFT JOIN b_equipment_tower b ON a.asset_id = b.equipment_id
+            LEFT JOIN ( SELECT * FROM b_equipment_tower_data_at WHERE equipment_id = #{id} ORDER BY monitor_time DESC LIMIT 1 ) c ON a.asset_id = c.equipment_id
+            where a.asset_id = #{id}
+    </select>
+    <select id="getIsAllowControl" resultType="java.util.Map">
+        select * from device_project_relation a
+        left join b_equipment_assets b on a.business_id=b.asset_id
+        where  a.ptz_check_box='1' and a.device_channel_id=#{data.channelId}
+    </select>
+
+    <select id="selectMonitorDataList" resultType="java.util.Map">
+        select a.asset_id, a.asset_name, b.monitorTime, a.project_id, a.tenant_id, a.offline_date, a.offline_status,
+            (case when b.monitorTime is null or date_sub(NOW(), INTERVAL ${timeValue} SECOND) > b.monitorTime then 0 else 1 end) as offline
+        from b_equipment_assets a
+        left join (
+            select b2.equipment_id, max(b1.monitor_time) as monitorTime
+            from b_equipment_monitor_data_at b1
+            inner join b_equipment_monitor_point b2 on b1.point_id = b2.id
+            group by b2.equipment_id
+        ) b on a.asset_id = b.equipment_id
+        left join b_equipment_type c on a.type_id = c.type_id
+        where a.status = '1' and c.monitor_type != '2'
+            and c.monitor_type != '3' and c.monitor_type != '27'
+            and c.monitor_type != '96'  and c.monitor_type != '97'
+            and c.monitor_type != '98' and c.monitor_type != '99'
+    </select>
+
+    <select id="selectTowerCraneDataList" resultType="java.util.Map">
+        select a.asset_id, a.asset_name, b.monitorTime, a.project_id, a.tenant_id, a.offline_date, a.offline_status,
+            (case when b.monitorTime is null or date_sub(NOW(), INTERVAL ${timeValue} SECOND) > b.monitorTime then 0 else 1 end) as offline
+        from b_equipment_assets a
+        left join (
+            select equipment_id, max(monitor_time) as monitorTime
+            from b_equipment_tower_data_at
+            group by equipment_id
+        ) b on a.asset_id = b.equipment_id
+        left join b_equipment_type c on a.type_id = c.type_id
+        where a.status = '1' and c.monitor_type = '2'
+    </select>
+
+    <select id="selectElevatorDataList" resultType="java.util.Map">
+        select a.asset_id, a.asset_name, b.monitorTime, a.project_id, a.tenant_id, a.offline_date, a.offline_status,
+            (case when b.monitorTime is null or date_sub(NOW(), INTERVAL ${timeValue} SECOND) > b.monitorTime then 0 else 1 end) as offline
+        from b_equipment_assets a
+        left join (
+            select equipment_id, max(monitor_time) as monitorTime
+            from b_equipment_elevator_data_at
+            group by equipment_id
+        ) b on a.asset_id = b.equipment_id
+        left join b_equipment_type c on a.type_id = c.type_id
+        where a.status = '1' and c.monitor_type = '3'
+    </select>
+    <update id="updateOnlineBatchById" parameterType="java.util.List">
+        <foreach collection="list" item="item" index="index">
+            UPDATE b_equipment_assets as a, (SELECT business_id, status, create_time
+            FROM device_project_relation WHERE business_id = #{item.businessId}) b
+            SET a.offline_status = b.status,
+            a.offline_date = b.create_time
+            WHERE a.asset_id = #{item.businessId}
+            AND (a.offline_status != b.status OR a.offline_status IS NULL);
+        </foreach>
+    </update>
+
+    <select id="selectByAssetId" resultType="com.qdoner.datarecept.entity.PO.BEquipmentAssets">
+        select *
+        from b_equipment_assets
+        where asset_id = #{assetId}
+    </select>
+
+    <select id="selectRoomDataList" resultType="java.util.Map">
+        select a.asset_id, a.asset_name, b.monitorTime, a.project_id, a.tenant_id, a.offline_date, a.offline_status,
+            (case when b.monitorTime is null or date_sub(NOW(), INTERVAL ${timeValue} SECOND) > b.monitorTime then 0 else 1 end) as offline
+        from b_equipment_assets a
+        left join (
+            select equipment_id, max(monitor_data_time) as monitorTime
+            from b_qual_standard_rearing_room
+            group by equipment_id
+        ) b on a.asset_id = b.equipment_id
+        left join b_equipment_type c on a.type_id = c.type_id
+        where a.status = '1' and c.monitor_type = '27'
+    </select>
+</mapper>

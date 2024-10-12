@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.qual.mapper.QualAppraisingdeclareMainGrpMapper">
+    <sql id="selectVo">
+        select id, create_by, create_time, update_by, update_time, tenant_id, project_id, check_status, examine_record_id, owner_user_id,
+        Appraising_batch, DATE_FORMAT(review_time,"%Y-%m-%d") as review_time,DATE_FORMAT(review_end_time,"%Y-%m-%d") as review_end_time,
+        review_standard, review_leader, review_member,main_batch_id
+        from b_qual_appraisingdeclare_main_grp
+    </sql>
+    <select id="selectDataList" resultType="com.kakarote.build.qual.entity.PO.QualAppraisingdeclareMainGrp">
+        <include refid="selectVo"/>
+        <where>1=1
+            <if test="data.appraisingBatch != null and data.appraisingBatch != ''">
+                AND Appraising_batch like concat('%', #{data.appraisingBatch}, '%')
+            </if>
+            <if test="data.startDate != null">
+                and review_time <![CDATA[>=]]> #{data.startDate}
+            </if>
+            <if test="data.endDate != null">
+                and review_time <![CDATA[<=]]> #{data.endDate}
+            </if>
+            <if test="data.reviewLeader != null and data.reviewLeader != ''">
+                AND review_leader = #{data.reviewLeader,jdbcType=VARCHAR}
+            </if>
+        </where>
+        /*order by review_time desc*/
+    </select>
+</mapper>

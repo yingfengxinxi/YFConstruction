@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.equipment.mapper.EquipmentLocationMapper">
+
+    <select id="getByPid" resultType="java.util.Map">
+        select location_id as id,location_name as label,location_pid as parentId
+        from b_equipment_location
+        where location_pid = #{pid}
+        order by sort
+    </select>
+
+    <select id="getById" resultType="com.kakarote.build.equipment.entity.PO.EquipmentLocation">
+        select l.*,
+               (select c.location_code from b_equipment_location c where c.location_id = l.location_pid) as locationPcode,
+               (select c.location_name from b_equipment_location c where c.location_id = l.location_pid) as locationPname,
+               (select a. realname from wk_admin_user a where a.user_id = l.create_user_id) as createUserName,
+               (select u. realname from wk_admin_user u where u.user_id = l.update_user_id) as updateUserName
+        from b_equipment_location l where l.location_id = #{id}
+    </select>
+    <select id="queryTreeListByParentId" resultType="java.util.Map">
+         select location_id as id,location_name as label,location_pid as parentId,
+	      CASE WHEN ( SELECT count( 1 ) FROM b_equipment_location m WHERE m.location_pid = l.location_id ) = 0 THEN FALSE ELSE TRUE END hasChildren,
+          IF(( SELECT count( 1 ) FROM b_equipment_location m  WHERE m.location_pid = l.location_id ) = 0,
+	      IF(( SELECT count( 1 ) FROM b_equipment_assets m WHERE m.location_id = l.location_id
+	      <if test="data.hookCheckBox != null and data.hookCheckBox != ''">
+              and EXISTS(select * from device_project_relation dpr where m.asset_id=dpr.business_id and dpr.hook_check_box= #{data.hookCheckBox})
+          </if>
+	      ) > 0,false,true),false) as leaf
+        from b_equipment_location l  where location_pid = #{parentId}  order by sort asc
+    </select>
+
+    <select id="getGroupByPid" resultType="java.util.Map">
+        select location_id as id,location_name as label,location_pid as parentId
+        from b_equipment_location
+        where location_pid = #{pid}
+        <if test="data.projectId != null">
+            and project_id = #{data.projectId,jdbcType=INTEGER}
+        </if>
+        <if test="data.projectId == null">
+            and project_id != '0'
+        </if>
+        order by sort
+    </select>
+</mapper>

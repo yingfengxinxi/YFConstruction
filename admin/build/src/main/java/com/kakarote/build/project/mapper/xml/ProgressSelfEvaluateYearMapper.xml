@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.project.mapper.ProgressSelfEvaluateYearMapper">
+    <select id="selectList" resultType="com.kakarote.build.project.entity.BO.ProgressSelfEvaluateYearBO">
+        SELECT
+        a.security_id,
+        a.create_time,
+        a.evaluate_month,
+        c.dict_label AS security_name,
+        sum( a.mark ) AS mark
+        FROM
+        b_progress_self_evaluate_year a
+        LEFT JOIN b_progress_safety_production b ON a.security_evaluation_id = b.id
+        LEFT JOIN wk_admin_dict_data c ON a.security_id = c.dict_value
+        AND c.dict_type = 'b_safety_standards'
+        <where>
+            1=1
+            <if test="data.securityId != null and data.securityId != ''">
+                and a.security_id = #{data.securityId}
+            </if>
+            <if test="data.evaluateMonth != null and data.evaluateMonth != ''">
+                and a.evaluate_month = #{data.evaluateMonth}
+            </if>
+        </where>
+        GROUP BY
+        a.security_id
+    </select>
+    <select id="getEvaluateList"  resultType="com.kakarote.build.project.entity.BO.ProgressSelfEvaluateYearBO">
+        SELECT
+            a.id,
+            a.security_id,
+            a.mark,
+			b.security_evaluation_standard,
+            b.security_evaluation_name,
+            b.security_evaluation_function,
+            b.should_score,
+			c.dict_label AS security_name
+        FROM
+            b_progress_self_evaluate_year a
+            LEFT JOIN b_progress_safety_production b ON a.security_evaluation_id = b.id
+			LEFT JOIN wk_admin_dict_data c ON a.security_id = c.dict_value
+            AND c.dict_type = 'b_safety_standards'
+        WHERE
+            a.security_id = #{id}
+            ORDER BY b.sort
+    </select>
+</mapper>

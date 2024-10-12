@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.labour.mapper.BLabourAttendanceEpidemicMapper">
+
+    <sql id="selectVo">
+        select id, create_by, create_time, update_by, update_time,tenant_id,project_id,
+        infocollection_id,infocollection_name,clock_direction,
+        clock_time,health_code,nucleic_acid_time,body_temperature,remarks
+		from b_labour_attendance_epidemic
+    </sql>
+
+    <select id="selectDataList" resultType="com.kakarote.build.labour.entity.BO.BLabourAttendanceEpidemicBO">
+        <include refid="selectVo"/>
+        <where>
+            1=1
+            <if test="data.infocollectionId != null and data.infocollectionId != ''">
+                AND infocollection_id = #{data.infocollectionId}
+            </if>
+            <if test="data.infocollectionName != null and data.infocollectionName != ''">
+                AND infocollection_name  like concat('%', #{data.infocollectionName}, '%')
+            </if>
+            <if test="data.projectId != null and data.projectId != ''">
+                AND project_id = #{data.projectId}
+            </if>
+            <if test="data.clockDirection != null and data.clockDirection != ''">
+                AND clock_direction = #{data.clockDirection}
+            </if>
+            <if test="data.healthCode != null and data.healthCode != ''">
+                AND health_code = #{data.healthCode}
+            </if>
+            <if test="data.createBy != null and data.createBy != ''">
+                AND DATE_FORMAT(clock_time,'%Y-%m-%d')  &gt;= #{data.createBy}
+            </if>
+            <if test="data.updateBy != null and data.updateBy != ''">
+                AND #{data.updateBy} &gt;= DATE_FORMAT(clock_time,'%Y-%m-%d')
+            </if>
+--             order by  create_time desc
+
+        </where>
+    </select>
+
+
+    <select id="attendanceEpidemicStatistical" resultType="java.util.Map">
+        SELECT
+        a.date,
+        (
+            SELECT
+            count(1)
+            FROM
+            b_labour_attendance_epidemic b
+            WHERE
+            DATE_FORMAT(b.clock_time, '%Y-%m-%d') = a.date
+            and b.clock_direction='0'
+            and b.tenant_id=#{data.tenantId}
+        ) AS jczs ,
+        (
+            SELECT
+            count(1)
+            FROM
+            b_labour_attendance_epidemic b
+            WHERE
+            DATE_FORMAT(b.clock_time, '%Y-%m-%d') = a.date
+            and b.clock_direction='1'
+            and b.tenant_id=#{data.tenantId}
+        ) AS cczs,
+        (
+            SELECT
+            count(1)
+            FROM
+            b_labour_attendance_epidemic b
+            WHERE
+            DATE_FORMAT(b.clock_time, '%Y-%m-%d') = a.date
+            and b.body_temperature>37
+            and b.tenant_id=#{data.tenantId}
+        ) AS wdzs,
+	    (
+            SELECT
+                count(1)
+            FROM
+                b_labour_attendance_epidemic b
+            WHERE
+                DATE_FORMAT(b.clock_time, '%Y-%m-%d') = a.date
+                and b.health_code='0'
+                and b.tenant_id=#{data.tenantId}
+	    ) AS lm
+        ,
+        (
+            SELECT
+                count(1)
+            FROM
+                b_labour_attendance_epidemic b
+            WHERE
+                DATE_FORMAT(b.clock_time, '%Y-%m-%d') = a.date
+                and b.health_code='1'
+                and b.tenant_id=#{data.tenantId}
+	    ) AS hm
+        ,
+        (
+            SELECT
+                count(1)
+            FROM
+                b_labour_attendance_epidemic b
+            WHERE
+                DATE_FORMAT(b.clock_time, '%Y-%m-%d') = a.date
+                and b.health_code='2'
+                and b.tenant_id=#{data.tenantId}
+	    ) AS hhm
+        ,
+        (
+            SELECT
+            count(1)
+            FROM
+            b_labour_attendance_epidemic b
+            WHERE
+            DATE_FORMAT(b.clock_time, '%Y-%m-%d') = a.date
+            and hour(TIMEDIFF(b.clock_time,b.nucleic_acid_time)) &lt;= 48
+            and b.tenant_id=#{data.tenantId}
+        ) AS hs1
+        ,
+        (
+            SELECT
+            count(1)
+            FROM
+            b_labour_attendance_epidemic b
+            WHERE
+            DATE_FORMAT(b.clock_time, '%Y-%m-%d') = a.date
+            and hour(TIMEDIFF(b.clock_time,b.nucleic_acid_time))> 48
+            and hour(TIMEDIFF(b.clock_time,b.nucleic_acid_time)) &lt;= 72
+            and b.tenant_id=#{data.tenantId}
+        ) AS hs2
+        ,
+        (
+            SELECT
+            count(1)
+            FROM
+            b_labour_attendance_epidemic b
+            WHERE
+            DATE_FORMAT(b.clock_time, '%Y-%m-%d') = a.date
+            and hour(TIMEDIFF(b.clock_time,b.nucleic_acid_time))> 72
+            and b.tenant_id=#{data.tenantId}
+        ) AS hs3
+        FROM
+        (
+        SELECT
+        @s :=@s + 1 AS `index`,
+        DATE(
+        DATE_SUB(CURRENT_DATE, INTERVAL @s DAY)
+        ) AS `date`
+        FROM
+        mysql.help_topic,
+        (SELECT @s := - 1) temp
+        WHERE
+        @s &lt;6
+        ORDER BY
+        `date`
+        ) a
+    </select>
+
+    <select id="attendanceEpidemicStatisticalList" resultType="java.util.Map">
+      SELECT
+        a.id,a.project_name as projectName,
+        (select count(1) from b_labour_attendance_epidemic b where  b.project_id = a.id  and b.health_code='1'and b.tenant_id=#{data.tenantId}) as hmrs,
+        (select count(1) from b_labour_attendance_epidemic b where  b.project_id = a.id  and b.health_code='2' and b.tenant_id=#{data.tenantId}) as hhmrs,
+      (
+                SELECT
+                count(1)
+                FROM
+                b_labour_attendance_epidemic b
+                WHERE
+                b.project_id = a.id
+                and hour(TIMEDIFF(b.clock_time,b.nucleic_acid_time))> 72
+                and b.tenant_id=#{data.tenantId}
+         ) AS hs3
+    FROM
+        b_project_info a
+    WHERE
+        a.tenant_id = #{data.tenantId}
+
+        order by  hhmrs desc ,hmrs desc , hs3 desc
+    </select>
+
+
+
+</mapper>

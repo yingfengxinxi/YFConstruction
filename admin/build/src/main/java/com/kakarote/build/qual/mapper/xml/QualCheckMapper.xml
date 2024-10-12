@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.qual.mapper.QualCheckMapper">
+
+    <select id="selectByPage" resultType="com.kakarote.build.qual.entity.PO.QualCheck">
+        select bqc.*
+        from b_qual_check bqc
+        <where>
+            <if test="data.startCheckDate != null ">
+                and <![CDATA[ bqc.qual_check_date >= #{data.startCheckDate}]]>
+            </if>
+            <if test="data.endCheckDate != null">
+                and <![CDATA[ bqc.qual_check_date <= #{data.endCheckDate}]]>
+            </if>
+            <if test="data.qualCheckPersonName != null and data.qualCheckPersonName != ''">
+                AND bqc.qual_check_person_name like concat('%', #{data.qualCheckPersonName}, '%')
+            </if>
+            <if test="data.qualCheckCom != null and data.qualCheckCom != ''">
+                AND bqc.qual_check_com like concat('%', #{data.qualCheckCom}, '%')
+            </if>
+            <if test="data.qualCheckType != null and data.qualCheckType != ''">
+                AND bqc.qual_check_type = #{data.qualCheckType,jdbcType=VARCHAR}
+            </if>
+            <if test="data.qualReceiptStatus != null and data.qualReceiptStatus != ''">
+                AND bqc.qual_receipt_status = #{data.qualReceiptStatus,jdbcType=VARCHAR}
+            </if>
+            <if test="data.qualDocumentNumber != null and data.qualDocumentNumber != ''">
+                AND bqc.qual_document_number like concat('%', #{data.qualDocumentNumber}, '%')
+            </if>
+            <if test="data.qualPrincipalName != null and data.qualPrincipalName != ''">
+                AND bqc.qual_principal_name like concat('%', #{data.qualPrincipalName}, '%')
+            </if>
+        </where>
+    </select>
+
+    <insert id="saveInfo" parameterType="com.kakarote.build.qual.entity.PO.QualCheck">
+        <selectKey keyProperty="checkId" keyColumn="check_id" resultType="int" order="AFTER">
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+
+        insert into b_qual_check
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="qualCheckType != null ">qual_check_type,</if>
+            <if test="qualCheckPersonId != null ">qual_check_person_id,</if>
+            <if test="qualCheckPersonName != null ">qual_check_person_name,</if>
+            <if test="qualPrincipalId != null ">qual_principal_id,</if>
+            <if test="qualPrincipalName != null ">qual_principal_name,</if>
+            <if test="qualCheckDate != null ">qual_check_date,</if>
+            <if test="qualPhone != null ">qual_phone,</if>
+            <if test="qualRepairTimeLimit != null ">qual_repair_time_limit,</if>
+            <if test="qualDocumentNumber != null ">qual_document_number,</if>
+            <if test="qualOpinionOption != null ">qual_opinion_option,</if>
+            <if test="qualCheckCom != null ">qual_check_com,</if>
+            <if test="qualProgress != null ">qual_progress,</if>
+            <if test="qualCheckScore != null ">qual_check_score,</if>
+            <if test="qualDocumentDate != null ">qual_document_date,</if>
+            <if test="qualReceiptStatus != null ">qual_receipt_status,</if>
+            <if test="createTime != null ">create_time,</if>
+            <if test="updateTime != null ">update_time,</if>
+        </trim>
+
+
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="qualCheckType != null ">#{qualCheckType},</if>
+            <if test="qualCheckPersonId != null ">#{qualCheckPersonId},</if>
+            <if test="qualCheckPersonName != null ">#{qualCheckPersonName},</if>
+            <if test="qualPrincipalId != null ">#{qualPrincipalId},</if>
+            <if test="qualPrincipalName != null ">#{qualPrincipalName},</if>
+            <if test="qualCheckDate != null ">#{qualCheckDate},</if>
+            <if test="qualPhone != null ">#{qualPhone},</if>
+            <if test="qualRepairTimeLimit != null ">#{qualRepairTimeLimit},</if>
+            <if test="qualDocumentNumber != null ">#{qualDocumentNumber},</if>
+            <if test="qualOpinionOption != null ">#{qualOpinionOption},</if>
+            <if test="qualCheckCom != null ">#{qualCheckCom},</if>
+            <if test="qualProgress != null ">#{qualProgress},</if>
+            <if test="qualCheckScore != null ">#{qualCheckScore},</if>
+            <if test="qualDocumentDate != null ">#{qualDocumentDate},</if>
+            <if test="qualReceiptStatus != null ">#{qualReceiptStatus},</if>
+            <if test="createTime != null ">#{createTime},</if>
+            <if test="updateTime != null ">#{updateTime},</if>
+        </trim>
+    </insert>
+
+    <select id="getPrintData" resultType="java.util.Map">
+        select pi.company_name, pi.project_name, pi.project_address, pi.construction_unit_name,
+        DATE_FORMAT(c.qual_repair_time_limit,"%Y年%m月%d日") repairTimeLimit, c.qual_document_number
+        from b_qual_check c
+        left join b_project_info pi on c.project_id = pi.id
+        where c.check_id = #{id,jdbcType=INTEGER}
+    </select>
+</mapper>

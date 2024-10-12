@@ -1,0 +1,39 @@
+xxl:
+  job:
+    admin:
+      addresses: http://127.0.0.1:8999
+    executor:
+      appname: build
+      ip:
+      port: 9998
+      logpath: /data/applogs/xxl-job/jobhandler
+      logretentiondays: 30
+    accessToken:
+    #    是否开启job任务注册
+    isRegister: false
+spring:
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:123456}
+    database: 13
+    lettuce:
+      pool:
+        max-active: 300
+  datasource:
+    url: jdbc:${DATASOURCE_DBTYPE:mysql}://${DATASOURCE_HOST:127.0.0.1}:${DATASOURCE_PORT:3306}/wk_build_demo?characterEncoding=utf8&useSSL=false&zeroDateTimeBehavior=convertToNull&tinyInt1isBit=false&serverTimezone=Asia/Shanghai&allowMultiQueries=true
+    username: ${DATASOURCE_USERNAME:root}
+    password: ${DATASOURCE_PASSWORD:password}
+wvp:
+  config:
+    urlPrefix: http://47.94.169.80:18080/
+ysy:
+  config:
+      urlPrefix: https://open.ys7.com
+      appKey: b
+      aecret: d
+      accessToken: a
+wx:
+  wxapp:
+    AppID: wx
+    AppSecret: f8

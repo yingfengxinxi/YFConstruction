@@ -1,0 +1,46 @@
+server:
+  port: ${SERVER_PORT:8553}
+spring:
+  profiles:
+    include: coreprod,dev
+  application:
+    name: build
+  cloud:
+    nacos:
+      config:
+        enabled: true
+        server-addr: 127.0.0.1:8848
+        file-extension: yaml
+        prefix: admin
+      discovery:
+        enabled: true
+        server-addr: 127.0.0.1:8848
+    sentinel:
+      filter:
+        enabled: false
+      transport:
+        dashboard: ${SENTINEL_DASHBOARD_HOST:localhost}:${SENTINEL_DASHBOARD_PORT:8079}
+      datasource:
+        flow:
+          server-addr: localhost:8848
+          dataId: ${spring.application.name}-flow-rules
+          groupId: SENTINEL_GROUP
+          rule-type: flow
+  mqtt:
+    username: iot2yun
+    password: 888888
+    url: tcp://127.0.0.1:1883
+    client:
+      id: iot_platform_2
+    default:
+      topic: crm
+    consumer:
+      clientId: crm_pro
+      defaultTopic: /dev/coo/+,/sys/update/+
+mybatis-plus:
+  global-config:
+    sql-parser-cache: true
+
+# 自动喷淋系统定时任务配置
+spray:
+  cron: 0/5 * * * * ?

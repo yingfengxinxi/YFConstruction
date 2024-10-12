@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.wx.mapper.WxUserMapper">
+
+    <select id="getWxUserByOpenId" resultType="com.kakarote.build.wx.entity.PO.WxUser">
+        select * from b_wx_user where open_id = #{id}
+    </select>
+    <insert id="add" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO b_wx_user(
+       open_id, tenant_id, project_id)
+      VALUES ( #{data.openId},#{data.tenantId},#{data.projectId});
+    </insert>
+    <update id="updateWxUser">
+        update b_wx_user
+        <set >
+            <if test="data.projectId!= '' and data.projectId != null">
+                project_id = #{data.projectId},
+            </if>
+            <if test="data.name!= '' and data.name != null">
+                name = #{data.name},
+            </if>
+            <if test="data.tel!= '' and data.tel != null">
+                tel = #{data.tel},
+            </if>
+        </set>
+        where open_id = #{data.openId}
+    </update>
+</mapper>

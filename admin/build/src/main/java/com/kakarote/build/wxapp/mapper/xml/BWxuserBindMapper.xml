@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.wxapp.mapper.BWxuserBindMapper">
+    <select id="selectByPage" resultType="com.kakarote.build.wxapp.entity.PO.BWxuserBind">
+        select a.*
+        from b_wxuser_bind a
+        <where>
+            1=1
+            <if test="data.username != null and data.username != ''">
+                AND a.username like concat('%', #{data.username}, '%')
+            </if>
+            <if test="data.name != null and data.name != ''">
+                AND a.name like concat('%', #{data.name}, '%')
+            </if>
+            <if test="data.phone != null and data.phone != ''">
+                AND a.code like phone('%', #{data.phone}, '%')
+            </if>
+        </where>
+        order by a.create_time desc
+    </select>
+</mapper>

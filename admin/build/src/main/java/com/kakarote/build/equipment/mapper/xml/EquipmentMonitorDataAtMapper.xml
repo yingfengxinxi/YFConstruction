@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.equipment.mapper.EquipmentMonitorDataAtMapper">
+    <select id="listByPro" resultType="java.util.Map">
+        select point.point_code,point.point_name,point.unit ,point.monitor_son_type,point.c4d_position,
+        point.plane_coordinate_x,point.plane_coordinate_y, b.dict_label as monitor_son_type_name,
+        at.* from b_equipment_pit_data_at_bak at
+        left join b_equipment_monitor_point point on at.point_id = point.id
+        left join (select dict_type, dict_value, dict_label
+            from wk_admin_dict_data where dict_type like 'b_equipment_monitor_type_%') b
+        on CONCAT('b_equipment_monitor_type_', point.monitor_type) = b.dict_type and point.monitor_son_type = b.dict_value
+        where at.point_id in(
+          select p.id from b_equipment_monitor_point p where p.equipment_id in (
+            select f.equipment_id from b_equipment_pit_formwork f where f.pro_id = #{proId}
+          )
+        )
+        order by at.monitor_time desc
+    </select>
+
+    <select id="selectEnvDataAtList" resultType="java.util.Map">
+        select * from(
+            select a.*, b.monitor_son_type, b.alarm_upper, b.unit
+            from b_equipment_monitor_data_at a
+                      left join b_equipment_monitor_point b on a.point_id = b.id
+            where b.monitor_type = 9
+            having 1 = 1
+            order by a.monitor_time desc) c
+        group by c.monitor_son_type
+    </select>
+
+    <select id="listByEquipment" resultType="java.util.Map">
+        select point.point_code,point.point_name,point.unit ,point.monitor_son_type,b.dict_label as monitor_son_type_name,
+               at.* from b_equipment_pit_data_at_bak at
+        left join b_equipment_monitor_point point on at.point_id = point.id
+        left join (select dict_type, dict_value, dict_label
+            from wk_admin_dict_data where dict_type like 'b_equipment_monitor_type_%') b
+        on CONCAT('b_equipment_monitor_type_', point.monitor_type) = b.dict_type and point.monitor_son_type = b.dict_value
+        where at.equipment_id = #{equipmentId}
+        order by at.monitor_time desc
+    </select>
+</mapper>

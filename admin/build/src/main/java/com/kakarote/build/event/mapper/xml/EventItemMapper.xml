@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.event.mapper.EventItemMapper">
+
+    <select id="selectProEventReturn" resultType="java.util.Map">
+        select IFNULL(c.project_abbreviation, c.project_name) AS projectName, count(d.id) as totalNumber,
+               sum(case when d.check_result = '2' then 1 else 0 end) as number, count(e.id) as currentMonth, count(f.id) as lastMonth
+        from b_project_info c
+        left join b_event_item d on c.id = d.project_id
+        left join (select a.id, a.project_id from b_event_item a
+                where DATE_FORMAT(a.create_time, '%Y%m') = DATE_FORMAT(CURDATE(), '%Y%m') and a.check_result = '2' ) e on d.id = e.id
+        left join (select b.id, b.project_id from b_event_item b
+                where PERIOD_DIFF(DATE_FORMAT(now(), '%Y%m'), DATE_FORMAT(b.create_time, '%Y%m')) = 1 and b.check_result = '2') f on d.id = f.id
+        where c.project_state = '2'
+        group by c.id
+        order by number desc
+    </select>
+
+    <select id="selectItemList" resultType="com.kakarote.build.event.entity.PO.EventItem">
+        select a.*, b.name as handleName, c.realname as checkName
+        from b_event_item a
+        left join b_wxuser_bind b on a.handle_by = b.openId and b.project_id = b.project_id
+        left join wk_admin_user c on a.check_by = c.user_id
+        <where>
+            <if test="data.eventId != null and data.eventId != ''">
+                a.event_id = #{data.eventId}
+            </if>
+        </where>
+        order by handle_time desc
+    </select>
+</mapper>

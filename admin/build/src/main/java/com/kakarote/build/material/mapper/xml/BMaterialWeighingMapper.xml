@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.material.mapper.BMaterialWeighingMapper">
+
+    <sql id="selectVo">
+        select id, create_by, create_time, update_by, update_time,tenant_id,project_id,
+        weighing_order_on,license_number,material_type,material_name,specifications_type,
+        delivery_unit,thegoods_unit,transport_unit,the_driver,gross_weight,tare_weight,
+        thenet_weight,buckle_miscellaneous,actual_weight,unit_price,amount_of,number_of
+		from b_material_weighing
+    </sql>
+
+    <select id="selectDataList" resultType="com.kakarote.build.material.entity.PO.BMaterialWeighing">
+        <include refid="selectVo"/>
+        <where>
+            1=1
+            <if test="data.weighingOrderOn != null and data.weighingOrderOn != ''">
+                AND weighing_order_on like concat('%', #{data.weighingOrderOn}, '%')
+            </if>
+            <if test="data.licenseNumber != null and data.licenseNumber != ''">
+                AND license_number like concat('%', #{data.licenseNumber}, '%')
+            </if>
+            <if test="data.materialName != null and data.materialName != ''">
+                AND material_name like concat('%', #{data.materialName}, '%')
+            </if>
+            <if test="data.materialType != null and data.materialType != ''">
+                AND material_type = #{data.materialType}
+            </if>
+            <if test="data.specificationsType != null and data.specificationsType != ''">
+                AND specifications_type like concat('%', #{data.specificationsType}, '%')
+            </if>
+            <if test="data.deliveryUnit != null and data.deliveryUnit != ''">
+                AND delivery_unit like concat('%', #{data.deliveryUnit}, '%')
+            </if>
+            <if test="data.thegoodsUnit != null and data.thegoodsUnit != ''">
+                AND thegoods_unit like concat('%', #{data.thegoodsUnit}, '%')
+            </if>
+            <if test="data.transportUnit != null and data.transportUnit != ''">
+                AND transport_unit like concat('%', #{data.transportUnit}, '%')
+            </if>
+            <if test="data.theDriver != null and data.theDriver != ''">
+                AND the_driver like concat('%', #{data.theDriver}, '%')
+            </if>
+            <if test="data.createBy != null and data.createBy != ''">
+                AND DATE_FORMAT( create_time, '%Y-%m-%d' ) &gt;= #{data.createBy}
+            </if>
+            <if test="data.updateBy != null and data.updateBy != ''">
+                AND DATE_FORMAT( create_time, '%Y-%m-%d' )  &lt;= #{data.updateBy}
+            </if>
+            <if test="data.projectId != null and data.projectId != ''">
+                AND project_id = #{data.projectId}
+            </if>
+            /*order by  create_time desc*/
+
+        </where>
+    </select>
+
+</mapper>

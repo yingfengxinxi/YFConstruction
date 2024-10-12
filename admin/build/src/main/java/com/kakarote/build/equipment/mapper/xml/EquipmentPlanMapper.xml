@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.equipment.mapper.EquipmentPlanMapper">
+
+    <select id="selectByPage" resultType="com.kakarote.build.equipment.entity.PO.EquipmentPlan">
+        select a.*,d.name as dept_name
+        from b_equipment_plan a,wk_admin_dept d
+        <where>
+            d.dept_id = a.dept_id
+            <if test="data.planName != null and data.planName != ''">
+                AND a.plan_name like concat('%', #{data.planName}, '%')
+            </if>
+            <if test="data.enable != null and data.enable != ''">
+                AND a.enable = #{data.enable}
+            </if>
+        </where>
+--         order by a.enable desc,a.update_time desc
+    </select>
+
+    <update id="batchUpdatePlan">
+        insert into b_equipment_plan
+        (plan_id, next_date)
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.planId}, #{item.nextDate})
+        </foreach>
+        ON DUPLICATE KEY UPDATE next_date = VALUES(next_date)
+    </update>
+</mapper>

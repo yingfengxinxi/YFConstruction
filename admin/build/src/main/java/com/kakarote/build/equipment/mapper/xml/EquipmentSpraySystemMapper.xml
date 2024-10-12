@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.equipment.mapper.EquipmentSpraySystemMapper">
+
+    <select id="selectByPage" resultType="com.kakarote.build.equipment.entity.PO.EquipmentSpraySystem">
+        select s.*, p.point_name, a.asset_name
+        from b_equipment_spray_system s
+        left join b_equipment_monitor_point p on s.monitor_point_id = p.id
+        left join b_equipment_assets a on s.equipment_id = a.asset_id
+        <where>
+            <if test="data.monitorPointId != null">
+                and s.monitor_point_id = #{data.monitorPointId,jdbcType=INTEGER}
+            </if>
+            <if test="data.equipmentId != null">
+                and s.equipment_id = #{data.equipmentId,jdbcType=INTEGER}
+            </if>
+            <if test="data.operationType != null and data.operationType != ''">
+                and s.operation_type = #{data.operationType,jdbcType=VARCHAR}
+            </if>
+            <if test="data.startTime != null">
+                and s.operation_time >= #{data.startTime,jdbcType=TIMESTAMP}
+            </if>
+            <if test="data.endTime != null">
+                and s.operation_time &lt;= #{data.endTime,jdbcType=TIMESTAMP}
+            </if>
+        </where>
+--         order by s.operation_time desc
+    </select>
+
+
+    <select id="selectByPageOperation" resultType="com.kakarote.build.equipment.entity.PO.EquipmentSpraySystem">
+        select s.*, p.point_name, a.asset_name
+        ,(select lo.location_name from b_equipment_location lo where lo.location_id =a.location_id) as assetDom
+        ,(SELECT value FROM b_equipment_monitor_data  jcsj WHERE
+        jcsj.point_id in (
+        SELECT
+        id
+        FROM
+        `b_equipment_monitor_point` jcd
+        WHERE
+        jcd.monitor_type = '9'
+        AND jcd.monitor_son_type = '1'
+        )  and jcsj.monitor_time > date_sub(s.operation_time,INTERVAL 10 MINUTE) and
+        jcsj.monitor_time &lt;= s.operation_time and jcsj.project_id = s.project_id
+        order by jcsj.monitor_time desc limit 1) as PM1
+        ,(SELECT
+        value
+        FROM
+        b_equipment_monitor_data  jcsj
+        WHERE
+        jcsj.point_id in (
+        SELECT
+        id
+        FROM
+        `b_equipment_monitor_point` jcd
+        WHERE
+        jcd.monitor_type = '9'
+        AND jcd.monitor_son_type = '2'
+        )  and jcsj.monitor_time > date_sub(s.operation_time,INTERVAL 10 MINUTE) and
+        jcsj.monitor_time &lt;= s.operation_time and jcsj.project_id = s.project_id
+        order by jcsj.monitor_time desc limit 1 ) as PM2
+        ,xm.project_name as projectName
+        from b_equipment_spray_system s
+        left join b_equipment_monitor_point p on s.monitor_point_id = p.id
+        left join b_equipment_assets a on s.equipment_id = a.asset_id
+        left join b_project_info xm on s.project_id = xm.id
+        <where>
+            <if test="data.monitorPointId != null and data.monitorPointId != ''">
+                and s.monitor_point_id = #{data.monitorPointId,jdbcType=INTEGER}
+            </if>
+            <if test="data.equipmentId != null and data.operationType != ''">
+                and s.equipment_id = #{data.equipmentId,jdbcType=INTEGER}
+            </if>
+            <if test="data.operationType != null and data.operationType != ''">
+                and s.operation_type = #{data.operationType,jdbcType=VARCHAR}
+            </if>
+            <if test="data.startTime != null ">
+                and s.operation_time >= #{data.startTime,jdbcType=TIMESTAMP}
+            </if>
+            <if test="data.endTime != null ">
+                and s.operation_time &lt;= #{data.endTime,jdbcType=TIMESTAMP}
+            </if>
+            <if test="data.projectId != null and data.projectId != ''">
+                and s.project_id = #{data.projectId,jdbcType=TIMESTAMP}
+            </if>
+        </where>
+        order by s.operation_time desc
+    </select>
+
+    <select id="selectPieData" resultType="java.util.Map">
+       SELECT
+      (
+		CASE (
+					SELECT
+						operation_type
+					FROM
+						b_equipment_spray_system b
+					WHERE
+						b.equipment_id = a.asset_id
+					ORDER BY
+						b.operation_time
+						DESC
+					LIMIT 1
+				)
+        WHEN 1 THEN
+            '启动'
+        WHEN 0 THEN
+            '关闭'
+        ELSE
+            '关闭'
+        END
+	  )   as name  , count(1) as value
+        FROM
+            b_equipment_assets a
+        WHERE
+            a.type_id = '50'
+        GROUP BY  name
+    </select>
+
+
+    <select id="selectBarData" resultType="java.util.Map">
+          select  a.id ,a.project_abbreviation  AS projetName ,
+            (select count(1) from b_monitor_point_alert c where c.monitor_point_id in
+            (select b.id from  b_equipment_monitor_point b where b.project_id=a.id and b.monitor_son_type in('1','2') )
+             and DATE_FORMAT(c.create_time,'%Y-%m-%d')=#{data.day}
+             and alert_type='1'
+            ) as brs ,
+            (select count(1) from b_monitor_point_alert c where c.monitor_point_id in
+            (select b.id from  b_equipment_monitor_point b where b.project_id=a.id and b.monitor_son_type in('1','2')  )
+            and alert_type='1'
+            ) as zs
+         from b_project_info a
+    </select>
+
+    <select id="selectKqsdfxData" resultType="java.util.Map">
+        select a .asset_id ,
+
+        (CASE
+        WHEN (select c.operation_type from b_equipment_spray_system c where DATE_FORMAT(c.operation_time ,'%Y-%m-%d %H') = DATE_FORMAT(DATE_ADD(#{data.day},INTERVAL #{data.sz} HOUR),'%Y-%m-%d %H')
+        AND equipment_id =  a.asset_id ) IS NULL THEN
+        (
+        SELECT
+        cc.operation_type
+        FROM
+        b_equipment_spray_system cc
+        WHERE
+        DATE_FORMAT(cc.operation_time ,'%Y-%m-%d %H') &lt; DATE_FORMAT(DATE_ADD(#{data.day},INTERVAL #{data.sz} HOUR),'%Y-%m-%d %H')
+        AND equipment_id =  a.asset_id
+        ORDER BY
+        cc.operation_time DESC
+        LIMIT 1
+        )
+        ELSE
+        (select c.operation_type from b_equipment_spray_system c where DATE_FORMAT(c.operation_time ,'%Y-%m-%d %H') = DATE_FORMAT(DATE_ADD(#{data.day},INTERVAL #{data.sz} HOUR),'%Y-%m-%d %H')
+          AND c.equipment_id =  a.asset_id)
+        END) AS operationType ,
+        DATE_FORMAT(DATE_ADD(#{data.day},INTERVAL #{data.sz} HOUR),'%H') as rq
+        from b_equipment_assets a  where a.type_id='50';
+
+    </select>
+
+
+    <select id="selectPlscfxData" resultType="java.util.Map">
+
+                SELECT
+                a.id ,a.equipment_id AS equipmentId ,
+                a.operation_time AS operationTime,
+                (
+                    SELECT
+                        d.operation_time
+                    FROM
+                        b_equipment_spray_system d
+                    WHERE
+                        d.operation_time > a.operation_time
+                    AND d.operation_type = '0'
+                    AND d.equipment_id = a.equipment_id
+                    AND DATE_FORMAT(d.operation_time,'%Y-%m-%d') >= #{data.kssj}
+                    AND DATE_FORMAT(d.operation_time,'%Y-%m-%d') &lt;= #{data.jssj}
+                    LIMIT 1
+                ) AS gbsj
+
+            FROM
+                b_equipment_spray_system a
+            WHERE
+                a.equipment_id IN (
+                    SELECT
+                        c.asset_id
+                    FROM
+                        b_equipment_assets c
+                    WHERE
+                        c.project_id = #{data.pid}
+                )
+            AND a.operation_type = '1'
+            AND DATE_FORMAT(a.operation_time,'%Y-%m-%d') >= #{data.kssj}
+            AND DATE_FORMAT(a.operation_time,'%Y-%m-%d') &lt;= #{data.jssj}
+            ORDER BY
+                a.equipment_id,
+                a.operation_time
+    </select>
+
+
+    <select id="selectassterNumber" resultType="java.lang.Integer">
+    select count(1) as zs  from  b_equipment_assets a where a.project_id=#{data.pid} and a.type_id='50'
+    </select>
+
+    <select id="selectNoPage" resultType="java.util.Map">
+           select a.operation_type,a.operation_time,b.asset_name,CONCAT((IFNULL(
+        (
+        (SELECT value FROM b_equipment_monitor_data jcsj WHERE jcsj.point_id IN
+        (SELECT id FROM `b_equipment_monitor_point` jcd WHERE jcd.monitor_type = #{data.monitorType} AND jcd.monitor_son_type = #{data.monitorSonType})
+        AND jcsj.monitor_time > date_sub(a.operation_time, INTERVAL 10 MINUTE) AND jcsj.monitor_time &lt;= a.operation_time
+        AND jcsj.project_id = a.project_id ORDER BY jcsj.monitor_time DESC LIMIT 1)
+        )
+           ,0) ),d.unit) as value from b_equipment_spray_system a
+           left join b_equipment_assets b  on a.equipment_id=b.asset_id
+           left join b_equipment_monitor_point d on a.monitor_point_id=d.id
+           where monitor_point_id in (select id from b_equipment_monitor_point
+           where monitor_type=#{data.monitorType} and monitor_son_type=#{data.monitorSonType}  ) and a.project_id=#{data.projectId}
+            limit 8
+    </select>
+
+</mapper>

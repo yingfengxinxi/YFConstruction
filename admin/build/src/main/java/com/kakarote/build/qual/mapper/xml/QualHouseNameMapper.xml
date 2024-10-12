@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kakarote.build.qual.mapper.QualHouseNameMapper">
+    <select id="getByHouseTypeId" resultType="com.kakarote.build.qual.entity.PO.QualHouseName">
+
+    select * from b_qual_house_name where house_type_id=#{id}
+
+    </select>
+
+    <delete id="delByHouseTypeId">
+
+    delete from b_qual_house_name where house_type_id=#{id}
+
+    </delete>
+
+    <select id="getInfoByMap" resultType="java.util.Map">
+        select *
+        from b_qual_house_name
+        where
+        type = '2'
+        and house_type_id = #{data.houseTypeId}
+        and accept_work = #{data.acceptWork}
+        order by create_time desc
+        limit 1
+    </select>
+
+</mapper>
