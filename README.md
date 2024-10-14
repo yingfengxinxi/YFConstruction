@@ -73,10 +73,10 @@
 ### 🔧 Java项目框架 和 WEB PC 项目运行环境
 ~~~
 1. SpringBoot 2.2.5.RELEASE
-2. Jdk1.8
-3. Maven3.5.0+   
-4. Mysql5.7.20 
-5. Redis(版本不限)
+2. Jdk 1.8
+3. Maven 3.5.0+   
+4. Mysql 5.7.20 
+5. Redis (版本不限)
 6. Nacos（1.2.1)
 5. npm 8.19.1
 6. node v14.18.0
