@@ -63,22 +63,23 @@
 
 ### 💻 运行环境及框架：
 ~~~
-1.	移动端uniapp开发框架 可生成H5 公众号 微信小程序
-2.	WEB Pc 管理后台使用Vue + Element UI 开发 兼容主流浏览器 ie11+
-3.	后台服务 Java SpringBoot + Mybatis-plus + Mysql + redis
-4.	运行环境 linux和windows等都支持,只要有Java环境和对应的数据库 redis
-5.	运行条件 Java 1.8 Mysql5.7
+1.	WEB Pc 管理后台使用Vue + Element UI 开发 兼容主流浏览器 ie11+
+2.	后台服务 Java SpringBoot + Mybatis + Mysql + redis
+3.	运行环境 linux和windows等都支持,只要有Java环境和对应的数据库 redis
+4.	运行条件 Java 1.8 Mysql5.7
 ~~~
 ---
 
 ### 🔧 Java项目框架 和 WEB PC 项目运行环境
 ~~~
-1. SpringBoot 2.2.6.RELEASE
-2. Maven 3.6.1
-3. swagger-bootstrap-ui 1.0
-4. Mybatis Plus 3.3.1
-5. npm 6
-6. node 14
+1. SpringBoot 2.2.5.RELEASE
+2. Jdk1.8
+3. Maven3.5.0+   
+4. Mysql5.7.20 
+5. Redis(版本不限)
+6. Nacos（1.2.1)
+5. npm 8.19.1
+6. node v14.18.0
 7. vue 2.x
 8. element ui 2.13
 ~~~
@@ -87,13 +88,23 @@
 
 ### 🧭 项目代码包介绍
 ~~~
-1. admin     WEB程序         PC端管理端 VUE + ElementUi
-2. app       移动商城         UniApp标准开发(H5 + 微信小程序)
-3. crmeb     Api            Java SpringBoot + mybatisPlus
-4. 接口文档   Api对应的接口文档也可以部署项目后查看
+1. admin     WEB程序         Java SpringBoot + mybatis
+   ├── admin         -- 系统管理模块和用户管理模块
+   ├── authorization -- 登录鉴权模块
+   ├── core          -- 通用的代码和工具类
+   ├── crm           -- 客户管理模块（租户相关）
+   ├── gateway       -- 网关模块
+   ├── oa            -- OA模块（审批相关）
+   ├── work          -- 项目管理模块（任务分配相关）
+   ├── build         -- 智慧工地功能模块（核心业务）
+   ├── dataagg       -- 数据聚合模块
+   ├── datarecept    -- 数据接收模块
+   ├── message       -- 消息发送模块
+   ├── xxl-job-admin -- 定时任务模块
+   └── workflow      -- 工作流模块
+2. front     移动商城        PC端管理端 VUE + ElementUi
+3. 接口文档   Api对应的接口文档也可以部署项目后查看
 ~~~
-
-移动端 uniapp 开发 使用 HbuilderX 开发
 
 ---
 
