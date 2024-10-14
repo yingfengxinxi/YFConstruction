@@ -26,8 +26,9 @@
 <div align="center">
 
 [官网](https://sdyingfeng.cn/?gongdi) |
-[在线体验](http://zhgd.sdyingfeng.cn) 
-[帮助文档](https://wiki.sdqingyun.cn/) |
+[在线体验](http://zhgd.sdyingfeng.cn) |
+[宽屏预览](https://gitee.com/qingyun-software/YFConstruction/blob/master/README.md) 
+
 </div>
 
 <div align="center">
@@ -40,10 +41,10 @@
 
 萤丰 开源智慧工地系统Java版，基于微服务架构+Java+Spring Cloud +Uni-App +MySql开发，在微信公众号、小程序、H5、移动端都能使用，代码全开源无加密，独立部署，二开很方便，还支持免费商用，自用、做二开项目都很合适。
 
-萤丰开源智慧工地Java版本：https://gitee.com/qingyun-software
+萤丰开源智慧工地Java版本：https://gitee.com/qingyun-software/YFConstruction
 
 
-系统代码全开源无加密，独立部署、二开方便，适用于建筑公司、建筑集团、房地产公司等各种业务需求。
+系统代码全开源无加密，独立部署、二开方便，适用于建筑公司、建筑集团、房地产公司等各种业务需求。利用互联网与AI技术,以建筑工地为核心,支持视频监控、工地实名制、安全帽识别、反光背心、抽烟等多模型同步对接。
 
 ---
 
