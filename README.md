@@ -102,7 +102,7 @@
    ├── message       -- 消息发送模块
    ├── xxl-job-admin -- 定时任务模块
    └── workflow      -- 工作流模块
-2. front     移动商城        PC端管理端 VUE + ElementUi
+2. front     PC端管理端       VUE + ElementUi
 3. 接口文档   Api对应的接口文档也可以部署项目后查看
 ~~~
 
